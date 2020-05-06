@@ -24,6 +24,7 @@ class ProfilePoint(object):
             self.__dict__[key] = elem
         self.row = row
         self.col = col
+        # dist = distance to downstream point
         self.dist=dist
 
     # def __setattr__(self, key, value):
