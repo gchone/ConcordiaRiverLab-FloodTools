@@ -339,7 +339,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
                 colinc = 0
                 distinc = raster.raster.meanCellHeight
                 point.lim3 = max(raster.raster.extent.YMin, raster.raster.extent.YMax - (currentrow + 1) * raster.raster.meanCellHeight) + 0.5 * raster.raster.meanCellHeight
-            while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
+            while (not (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height)) \
                 and raster.getValue(currentrow, currentcol) <> raster.nodata and distance < distoutput / 2:
                 distance += distinc
                 currentrow += rowinc
