@@ -122,7 +122,6 @@ class RunSim2DsupergcQvar_hdown(object):
         zfield = parameters[6].valueAsText
         channelmanning = float(parameters[7].valueAsText)
         simtime = int(parameters[8].valueAsText)
-        str_output = parameters[9].valueAsText
 
         execute_RunSim(str_zones, str_simfolder, str_lisflood, arcpy.Raster(str_q),  arcpy.Raster(str_lakes), zfield, voutput, channelmanning, simtime, messages)
 
