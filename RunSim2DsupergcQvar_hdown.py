@@ -166,8 +166,8 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
 
                     for point2 in sorted(segment, key=lambda q: q[2]):
 
-                        raster_q_value = discharge.getValue(discharge.YtoRow(point[0].firstPoint.Y),
-                                                            discharge.XtoCol(point[0].firstPoint.X))
+                        raster_q_value = discharge.getValue(discharge.YtoRow(point2[0].firstPoint.Y),
+                                                            discharge.XtoCol(point2[0].firstPoint.X))
                         if point2[3] == "main":
                             # Création du fichier bdy
 
