@@ -111,11 +111,11 @@ class ChanelDetection(object):
 
 
         # Récupération des paramètres
-        streams = parameters[0].valueAsText
-        dem = parameters[1].valueAsText
+        streams = arcpy.Raster(parameters[0].valueAsText)
+        dem = arcpy.Raster(parameters[1].valueAsText)
         niter = int(parameters[2].valueAsText)
         globaltol = float(parameters[3].valueAsText)
-        offlim = parameters[4].valueAsText
+        offlim = arcpy.Raster(parameters[4].valueAsText)
 
         brch = parameters[5].valueAsText
         postpro = bool(parameters[6].valueAsText)
@@ -123,7 +123,7 @@ class ChanelDetection(object):
         localtol = float(parameters[8].valueAsText)
         watsurf = parameters[9].valueAsText
 
-        execute_ChanelDetection(arcpy.Raster(streams), arcpy.Raster(dem), niter, arcpy.Raster(offlim), brch, postpro,  checkelev, localtol, globaltol, watsurf,
+        execute_ChanelDetection(streams, dem, niter, offlim, brch, postpro,  checkelev, localtol, globaltol, watsurf,
                                 messages)
 
 
