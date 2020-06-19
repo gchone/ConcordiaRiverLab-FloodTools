@@ -122,7 +122,10 @@ class ChanelDetection(object):
         brch = parameters[5].valueAsText
         postpro = bool(parameters[6].valueAsText)
         checkelev = bool(parameters[7].valueAsText)
-        localtol = float(parameters[8].valueAsText)
+        if checkelev:
+            localtol = float(parameters[8].valueAsText)
+        else:
+            localtol = None
         watsurf = parameters[9].valueAsText
 
         execute_ChanelDetection(streams, dem, niter, offlim, brch, postpro,  checkelev, localtol, globaltol, watsurf,

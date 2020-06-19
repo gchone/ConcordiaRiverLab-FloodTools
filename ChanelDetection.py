@@ -38,7 +38,7 @@ def execute_ChanelDetection(r_streams, r_dem, niter, offlim, brch, postpro, chec
     newdem = r_dem + newstreams
 
     for ii in range(0, niter, 1):
-        localmax = arcpy.sa.FocalStatistics(newdem, arcpy.sa.NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+        localmax = arcpy.sa.FocalStatistics(newdem, arcpy.sa.NbrCircle(1, "CELL"), "MAXIMUM", "DATA")
 
         newstreams = arcpy.sa.Con((r_dem - localmax) <= globaltol, 0)
         if maskras is not None:  # On ajoute des zéros partout et les NoData du masque effacent les données
