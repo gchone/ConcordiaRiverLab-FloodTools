@@ -46,6 +46,7 @@ def execute_ChanelDetection(r_streams, r_dem, niter, offlim, brch, postpro, chec
 
         # on remplace les valeurs du dem par le localmax si celui-ci est plus petit
         newdem = arcpy.sa.Con((r_dem - localmax) < 0, r_dem, localmax)
+        newdem = newdem + newstreams
 
         del localmax
         if growthcheck:
