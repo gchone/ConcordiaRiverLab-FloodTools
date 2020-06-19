@@ -78,8 +78,8 @@ def execute_ChanelDetection(r_streams, r_dem, niter, offlim, brch, postpro, chec
                 newstreams = arcpy.sa.Con(nbneighbors >= 6, 1, newstreams)
                 del nbneighbors
 
-            if maskras is not None:  # On ajoute des zéros partout et les NoData du masque effacent les données
-                newstreams = newstreams + maskras
+            #if maskras is not None:  # On ajoute des zéros partout et les NoData du masque effacent les données
+                #newstreams = newstreams + maskras
         del streamelev
     del maskras
 

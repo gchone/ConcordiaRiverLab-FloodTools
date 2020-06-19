@@ -115,7 +115,9 @@ class ChanelDetection(object):
         dem = arcpy.Raster(parameters[1].valueAsText)
         niter = int(parameters[2].valueAsText)
         globaltol = float(parameters[3].valueAsText)
-        offlim = arcpy.Raster(parameters[4].valueAsText)
+        offlim = parameters[4].valueAsText
+        if offlim and offlim != "#":
+            offlim = arcpy.Raster(parameters[4].valueAsText)
 
         brch = parameters[5].valueAsText
         postpro = bool(parameters[6].valueAsText)
