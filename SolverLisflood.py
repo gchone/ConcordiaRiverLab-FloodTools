@@ -29,18 +29,9 @@ def manning_solver(cs):
     while Qcalc >= cs.Q:
         y = y - increment
         R = (cs.width * y) / (cs.width + 2 * y)
-        try:
-            Qcalc = (y * cs.width * R ** (2. / 3.) * slope ** 0.5) / cs.n
-        except RuntimeWarning:
-            print cs.n
-            print slope
-            print R
-            print cs.width
-            print y
-            print cs.row
-            print cs.col
-            print cs.Q
-            raise ArithmeticError
+
+        Qcalc = (y * cs.width * R ** (2. / 3.) * slope ** 0.5) / cs.n
+
     increment = 0.001
     while Qcalc < cs.Q:
         y = y + increment

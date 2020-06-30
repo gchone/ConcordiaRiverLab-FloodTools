@@ -91,9 +91,9 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
         intheraster = True
         if currentcol<0 or currentcol>=flowdir.raster.width or currentrow<0 or currentrow>= flowdir.raster.height:
             intheraster = False
-        elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow, currentcol) <> 2 and
-                            flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow, currentcol) <> 8 and
-                            flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow, currentcol) <> 32 and flowdir.getValue(currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+        elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow, currentcol) != 2 and
+                            flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow, currentcol) != 8 and
+                            flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow, currentcol) != 32 and flowdir.getValue(currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
             intheraster = False
 
 
@@ -117,9 +117,9 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
             inlake = False
             lakevalue = lakes.getValue(currentrow, currentcol)
 
-            inlake = (lakevalue <> lakes.nodata)
+            inlake = (lakevalue != lakes.nodata)
             type = typesim.getValue(currentrow, currentcol)
-            if type <> typesim.nodata and segnumber not in typesimdict:
+            if type != typesim.nodata and segnumber not in typesimdict:
                 typesimdict[segnumber] = type
 
 
@@ -177,7 +177,7 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
                 dividedriver = True
 
 
-            elif type <> typesim.nodata and lasttype <> type:
+            elif type != typesim.nodata and lasttype != type:
                 totaldistance = 0
                 segnumber += 1
                 dividedriver = False
@@ -235,15 +235,15 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
             # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
                 intheraster = False
-            elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow, currentcol) <> 2 and
-                            flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow, currentcol) <> 8 and
-                            flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow, currentcol) <> 32 and flowdir.getValue(currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+            elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow, currentcol) != 2 and
+                            flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow, currentcol) != 8 and
+                            flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow, currentcol) != 32 and flowdir.getValue(currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
                 intheraster = False
 
 
             if intheraster:
                 confluence_seg = raster_segments.getValue(currentrow, currentcol)
-                if (confluence_seg <> -255):
+                if (confluence_seg != -255):
                     # Atteinte d'un confluent déjà traité
 
                     # Si le segment dans lequel on arrive est limité par un lac, le confluent peut l'être aussi

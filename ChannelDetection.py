@@ -17,7 +17,7 @@
 
 import arcpy
 
-def execute_ChanelDetection(r_streams, r_dem, niter, offlim, brch, postpro, checkelev, localtol, globaltol, watsurf, messages):
+def execute_ChannelDetection(r_streams, r_dem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf, messages):
     arcpy.env.snapRaster = r_streams
     arcpy.env.extent = r_streams
     niter = max(niter, 1)
@@ -37,8 +37,14 @@ def execute_ChanelDetection(r_streams, r_dem, niter, offlim, brch, postpro, chec
 
     newdem = r_dem + newstreams
 
+    if diffusionD8:
+        shapediffusion = arcpy.sa.NbrRectangle(3, 3, "CELL")
+    else:
+        shapediffusion = arcpy.sa.NbrCircle(1, "CELL")
+
     for ii in range(0, niter, 1):
-        localmax = arcpy.sa.FocalStatistics(newdem, arcpy.sa.NbrCircle(1, "CELL"), "MAXIMUM", "DATA")
+
+        localmax = arcpy.sa.FocalStatistics(newdem, shapediffusion, "MAXIMUM", "DATA")
 
         newstreams = arcpy.sa.Con((r_dem - localmax) <= globaltol, 0)
         if maskras is not None:  # On ajoute des zéros partout et les NoData du masque effacent les données

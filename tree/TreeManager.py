@@ -12,8 +12,6 @@
 # v0.0.2 - 24/10/2017 - Description modifiée - Guénolé Choné
 
 
-import TreeSegment
-
 
 class TreeManager(object):
 

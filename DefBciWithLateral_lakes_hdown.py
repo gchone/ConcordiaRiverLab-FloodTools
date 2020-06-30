@@ -173,13 +173,13 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
 
             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
                 intheraster = False
-            elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow,
-                                                                                     currentcol) <> 2 and
-                          flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow,
-                                                                                             currentcol) <> 8 and
-                          flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow,
-                                                                                              currentcol) <> 32 and flowdir.getValue(
-                currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+            elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow,
+                                                                                     currentcol) != 2 and
+                          flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
+                                                                                             currentcol) != 8 and
+                          flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
+                                                                                              currentcol) != 32 and flowdir.getValue(
+                currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
                 intheraster = False
 
             if localcol < 0 or localcol >= localraster.raster.width or localrow < 0 or localrow >= localraster.raster.height:
@@ -241,7 +241,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
         distance = 0
         # On progresse sur dans une direction jusqu'à sortir du raster ou jusqu'à ce que la distance voullue soit attente
         while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
-                and raster.getValue(currentrow,currentcol) <> raster.nodata and distance < distoutput/2:
+                and raster.getValue(currentrow,currentcol) != raster.nodata and distance < distoutput/2:
             distance += distinc
             currentrow += rowinc
             currentcol += colinc
@@ -278,7 +278,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
                 point.lim3 = max(raster.raster.extent.YMin, raster.raster.extent.YMax - (currentrow + 1) * raster.raster.meanCellHeight) + 0.5 * raster.raster.meanCellHeight
             # On progresse à nouveau jusqu'à sortir du raster ou jusqu'à ce que la distance voullue soit attente
             while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
-                    and raster.getValue(currentrow, currentcol) <> raster.nodata and distance < distoutput / 2:
+                    and raster.getValue(currentrow, currentcol) != raster.nodata and distance < distoutput / 2:
                 distance += distinc
                 currentrow += rowinc
                 currentcol += colinc
@@ -306,7 +306,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
         currentrow = raster.YtoRow(point.Y)
         distance = 0
         while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
-                and raster.getValue(currentrow, currentcol) <> raster.nodata and distance < distoutput / 2:
+                and raster.getValue(currentrow, currentcol) != raster.nodata and distance < distoutput / 2:
             distance += distinc
             currentrow += rowinc
             currentcol += colinc
@@ -340,7 +340,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
                 distinc = raster.raster.meanCellHeight
                 point.lim3 = max(raster.raster.extent.YMin, raster.raster.extent.YMax - (currentrow + 1) * raster.raster.meanCellHeight) + 0.5 * raster.raster.meanCellHeight
             while (not (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height)) \
-                and raster.getValue(currentrow, currentcol) <> raster.nodata and distance < distoutput / 2:
+                and raster.getValue(currentrow, currentcol) != raster.nodata and distance < distoutput / 2:
                 distance += distinc
                 currentrow += rowinc
                 currentcol += colinc

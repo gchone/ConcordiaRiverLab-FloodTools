@@ -40,7 +40,7 @@ def execute_SpatializeQ(r_flowdir, str_frompoint, r_flowacc, r_qpts, str_res, in
             cs.A = float(cs.flowacc)
 
 
-            if cs.Q <> qpts.nodata:
+            if cs.Q != qpts.nodata:
                 cs.up_ptsA = cs.A
                 cs.up_ptsQ = cs.Q
             elif prev_cs != None:
@@ -54,7 +54,7 @@ def execute_SpatializeQ(r_flowdir, str_frompoint, r_flowacc, r_qpts, str_res, in
         for segment, prev_cs, cs in tree.browsepts():
 
 
-            if cs.Q <> qpts.nodata:
+            if cs.Q != qpts.nodata:
                 cs.down_ptsA = cs.A
                 cs.down_ptsQ = cs.Q
 

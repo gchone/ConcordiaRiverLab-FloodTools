@@ -53,10 +53,10 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
     listzones_fp = []
     lastidfp = -999
     for zone in allzones:
-        print dictsegmentsin[zone][0][4]
+
         if dictsegmentsin[zone][0][4] != lastidfp:
             if lastidfp!=-999:
-                print listzones_fp
+
                 listzones_fp.sort(reverse=True)
                 sortedzones.extend(listzones_fp)
             listzones_fp = []
@@ -81,7 +81,7 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
     lakeid_byzone = {}
     for zoneshp in zonesscursor:
         typesim[zoneshp[0]] = zoneshp[2]
-        if zoneshp[3] <> -999:
+        if zoneshp[3] != -999:
             lakeid_byzone[zoneshp[0]] = zoneshp[3]
 
     # Z BCI
@@ -210,7 +210,7 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                     subprocess.check_call([str_lisfloodfolder + "\\lisflood_intelRelease_double.exe", "-steady", "-steadytol", steadytol[point[1]], str_simfolder + "\\zone" + str(point[1]) + ".par"], shell=True, cwd=str_simfolder)
                     progres += 1
                     arcpy.SetProgressorPosition(progres)
-                    print "sim zone " + str(point[1])
+
 
 
                     # Conversion des fichiers output
@@ -264,13 +264,12 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                     arcpy.DefineProjection_management(str_simfolder + "\\elev_" + zonename, r_q.spatialReference)
 
 
-
+                    messages.addMessage(str(point[1]) + " done")
 
                 if not arcpy.Exists(str_simfolder + "\\lisflood_res"):
 
                     arcpy.Copy_management(str_simfolder + "\\elev_" + zonename, str_simfolder + "\\lisflood_res")
                 else:
-                    print str(point[1]) + " done"
 
                     arcpy.Mosaic_management(str_simfolder + "\\elev_" + zonename, str_simfolder + "\\lisflood_res", mosaic_type="MAXIMUM")
                     #arcpy.Copy_management(str_output + "\\lisflood_res", str_output + "\\tmp_mosaic")

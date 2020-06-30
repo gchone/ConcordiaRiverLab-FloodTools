@@ -11,8 +11,8 @@
 # v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
 
 
-import TreeManager
-from OurTreeSegment import *
+import tree.TreeManager as TreeManager
+from tree.OurTreeSegment import *
 import arcpy
 import math
 
@@ -88,18 +88,17 @@ def build_trees(flowdir, frompoint, **kwargs):
         intheraster = True
         if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
             intheraster = False
-        elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow, currentcol) <> 2 and
-                      flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow,
-                                                                                         currentcol) <> 8 and
-                      flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow,
-                                                                                          currentcol) <> 32 and flowdir.getValue(
-            currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+        elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow, currentcol) != 2 and
+                      flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
+                                                                                         currentcol) != 8 and
+                      flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
+                                                                                          currentcol) != 32 and flowdir.getValue(
+            currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
             intheraster = False
 
         segmentid += 1
         newtreeseg = OurTreeSegment(segmentid)
 
-        print "fp: " + str(frompoint[1]) + " / id: " + str(segmentid)
 
         # Traitement effectué sur chaque cellule le long de l'écoulement
         while (intheraster):
@@ -153,13 +152,13 @@ def build_trees(flowdir, frompoint, **kwargs):
             # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
                 intheraster = False
-            elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow,
-                                                                                     currentcol) <> 2 and
-                          flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow,
-                                                                                             currentcol) <> 8 and
-                          flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow,
-                                                                                              currentcol) <> 32 and flowdir.getValue(
-                currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+            elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow,
+                                                                                     currentcol) != 2 and
+                          flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
+                                                                                             currentcol) != 8 and
+                          flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
+                                                                                              currentcol) != 32 and flowdir.getValue(
+                currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
                 intheraster = False
 
             if intheraster:
