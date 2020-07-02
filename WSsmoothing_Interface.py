@@ -16,7 +16,7 @@ from WSsmoothing import *
 
 class WSsmoothing(object):
     def __init__(self):
-        self.label = "Extraction de la surface de l'eau avec lissage"
+        self.label = "Lissage de la surface de l'eau"
         self.description = "Effectue un lissage de la surface de l'eau"
         self.canRunInBackground = True
 
