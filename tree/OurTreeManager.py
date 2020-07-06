@@ -162,7 +162,7 @@ def build_trees(flowdir, frompoint, **kwargs):
                 intheraster = False
 
             if intheraster:
-                if treated_pts.has_key((currentrow, currentcol)):
+                if (currentrow, currentcol) in treated_pts:
                     # Atteinte d'un confluent
                     nextcellsegment = treated_pts[(currentrow, currentcol)]
                     intheraster = False
