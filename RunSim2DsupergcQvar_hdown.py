@@ -46,7 +46,7 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                 steadytol[point[1]] = "0.1"
 
 
-    allzones = dictsegmentsin.keys()
+    allzones = list(dictsegmentsin.keys())
     allzones.sort()
 
     sortedzones = []
