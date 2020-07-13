@@ -12,8 +12,8 @@
 # v0.0.2 - 24/10/2017 - Description modifiée - Guénolé Choné
 
 
-import TreeSegment
-import ProfilePoint
+import tree.TreeSegment as TreeSegment
+import tree.ProfilePoint as ProfilePoint
 
 
 class OurTreeSegment(TreeSegment.TreeSegment):

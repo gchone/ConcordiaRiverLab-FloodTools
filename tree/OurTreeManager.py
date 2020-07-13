@@ -8,11 +8,11 @@
 
 ### Historique des versions ###
 # v0.0.1 - 13/11/2018 - Création
+# v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
 
 
-
-import TreeManager
-from OurTreeSegment import *
+import tree.TreeManager as TreeManager
+from tree.OurTreeSegment import *
 import arcpy
 import math
 
@@ -66,114 +66,122 @@ class OurTreeManager(TreeManager.TreeManager):
                 yield l, m, n
 
 
-    def build_tree(self, flowdir, frompoint, **kwargs):
-        segmentid = 0
+def build_trees(flowdir, frompoint, **kwargs):
 
-        treated_pts = {}
+    trees = []
+    segmentid = 0
 
-        # Traitement effectué pour chaque point de départ
-        frompointcursor = arcpy.da.SearchCursor(frompoint, ["SHAPE@", "OID@"])
-        for frompoint in frompointcursor:
+    treated_pts = {}
 
-            # On prend l'objet géométrique (le point) associé à la ligne dans la table
-            frompointshape = frompoint[0].firstPoint
+    # Traitement effectué pour chaque point de départ
+    frompointcursor = arcpy.da.SearchCursor(frompoint, ["SHAPE@", "OID@"])
+    for frompoint in frompointcursor:
 
-            # Conversion des coordonnées
-            currentcol = flowdir.XtoCol(frompointshape.X)
-            currentrow = flowdir.YtoRow(frompointshape.Y)
+        # On prend l'objet géométrique (le point) associé à la ligne dans la table
+        frompointshape = frompoint[0].firstPoint
 
-            # Tests de sécurité pour s'assurer que le point de départ est à l'intérieurs des rasters
-            intheraster = True
+        # Conversion des coordonnées
+        currentcol = flowdir.XtoCol(frompointshape.X)
+        currentrow = flowdir.YtoRow(frompointshape.Y)
+
+        # Tests de sécurité pour s'assurer que le point de départ est à l'intérieurs des rasters
+        intheraster = True
+        if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
+            intheraster = False
+        elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow, currentcol) != 2 and
+                      flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
+                                                                                         currentcol) != 8 and
+                      flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
+                                                                                          currentcol) != 32 and flowdir.getValue(
+            currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
+            intheraster = False
+
+        segmentid += 1
+        newtreeseg = OurTreeSegment(segmentid)
+
+
+        # Traitement effectué sur chaque cellule le long de l'écoulement
+        while (intheraster):
+
+
+            dictdata = {}
+            for rastername, raster in kwargs.items():
+                dictdata[rastername] = raster.getValue(currentrow, currentcol)
+
+            ptprofile = ProfilePoint.ProfilePoint(currentrow, currentcol, 0, dictdata)
+            newtreeseg.add_ptprofile(ptprofile)
+            treated_pts[(currentrow, currentcol)] = segmentid
+
+            # On cherche le prochain point à partir du flow direction
+            direction = flowdir.getValue(currentrow, currentcol)
+            if (direction == 1):
+                currentcol = currentcol + 1
+                currentdistance = flowdir.raster.meanCellWidth
+            if (direction == 2):
+                currentcol = currentcol + 1
+                currentrow = currentrow + 1
+                currentdistance = math.sqrt(
+                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
+            if (direction == 4):
+                currentrow = currentrow + 1
+                currentdistance = flowdir.raster.meanCellHeight
+            if (direction == 8):
+                currentcol = currentcol - 1
+                currentrow = currentrow + 1
+                currentdistance = math.sqrt(
+                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
+            if (direction == 16):
+                currentcol = currentcol - 1
+                currentdistance = flowdir.raster.meanCellWidth
+            if (direction == 32):
+                currentcol = currentcol - 1
+                currentrow = currentrow - 1
+                currentdistance = math.sqrt(
+                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
+            if (direction == 64):
+                currentrow = currentrow - 1
+                currentdistance = flowdir.raster.meanCellHeight
+            if (direction == 128):
+                currentcol = currentcol + 1
+                currentrow = currentrow - 1
+                currentdistance = math.sqrt(
+                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
+
+            ptprofile.dist = currentdistance
+
+            # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
                 intheraster = False
-            elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow, currentcol) <> 2 and
-                          flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow,
-                                                                                             currentcol) <> 8 and
-                          flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow,
-                                                                                              currentcol) <> 32 and flowdir.getValue(
-                currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
+            elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow,
+                                                                                     currentcol) != 2 and
+                          flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
+                                                                                             currentcol) != 8 and
+                          flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
+                                                                                              currentcol) != 32 and flowdir.getValue(
+                currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
                 intheraster = False
 
-            segmentid += 1
-            newtreeseg = OurTreeSegment(segmentid)
-
-            print "fp: " + str(frompoint[1]) + " / id: " + str(segmentid)
-
-            # Traitement effectué sur chaque cellule le long de l'écoulement
-            while (intheraster):
-
-
-                dictdata = {}
-                for rastername, raster in kwargs.items():
-                    dictdata[rastername] = raster.getValue(currentrow, currentcol)
-
-                ptprofile = ProfilePoint.ProfilePoint(currentrow, currentcol, 0, dictdata)
-                newtreeseg.add_ptprofile(ptprofile)
-                treated_pts[(currentrow, currentcol)] = segmentid
-
-                # On cherche le prochain point à partir du flow direction
-                direction = flowdir.getValue(currentrow, currentcol)
-                if (direction == 1):
-                    currentcol = currentcol + 1
-                    currentdistance = flowdir.raster.meanCellWidth
-                if (direction == 2):
-                    currentcol = currentcol + 1
-                    currentrow = currentrow + 1
-                    currentdistance = math.sqrt(
-                        flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-                if (direction == 4):
-                    currentrow = currentrow + 1
-                    currentdistance = flowdir.raster.meanCellHeight
-                if (direction == 8):
-                    currentcol = currentcol - 1
-                    currentrow = currentrow + 1
-                    currentdistance = math.sqrt(
-                        flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-                if (direction == 16):
-                    currentcol = currentcol - 1
-                    currentdistance = flowdir.raster.meanCellWidth
-                if (direction == 32):
-                    currentcol = currentcol - 1
-                    currentrow = currentrow - 1
-                    currentdistance = math.sqrt(
-                        flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-                if (direction == 64):
-                    currentrow = currentrow - 1
-                    currentdistance = flowdir.raster.meanCellHeight
-                if (direction == 128):
-                    currentcol = currentcol + 1
-                    currentrow = currentrow - 1
-                    currentdistance = math.sqrt(
-                        flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-
-                ptprofile.dist = currentdistance
-
-                # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
-                if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
+            if intheraster:
+                if (currentrow, currentcol) in treated_pts:
+                    # Atteinte d'un confluent
+                    nextcellsegment = treated_pts[(currentrow, currentcol)]
                     intheraster = False
-                elif (flowdir.getValue(currentrow, currentcol) <> 1 and flowdir.getValue(currentrow,
-                                                                                         currentcol) <> 2 and
-                              flowdir.getValue(currentrow, currentcol) <> 4 and flowdir.getValue(currentrow,
-                                                                                                 currentcol) <> 8 and
-                              flowdir.getValue(currentrow, currentcol) <> 16 and flowdir.getValue(currentrow,
-                                                                                                  currentcol) <> 32 and flowdir.getValue(
-                    currentrow, currentcol) <> 64 and flowdir.getValue(currentrow, currentcol) <> 128):
-                    intheraster = False
-
-                if intheraster:
-                    if treated_pts.has_key((currentrow, currentcol)):
-                        # Atteinte d'un confluent
-                        nextcellsegment = treated_pts[(currentrow, currentcol)]
-                        intheraster = False
-                        # tree.get_treesegment(nextcellsegment).add_child(fp_tree)
-                        # confluence = True
-                        # confluenceid = nextcellsegment
-                        segmentid += 1
-                        oldsegment, ptprofile = self.getsegmentbyprofilpt(currentrow, currentcol)
-                        oldsegment.fork(newtreeseg, segmentid, ptprofile)
+                    # tree.get_treesegment(nextcellsegment).add_child(fp_tree)
+                    # confluence = True
+                    # confluenceid = nextcellsegment
+                    segmentid += 1
+                    # on cherche l'arbre et le segment que l'on vient de rejoindre
+                    for tree in trees:
+                        oldsegment, ptprofile = tree.getsegmentbyprofilpt(currentrow, currentcol)
+                        if oldsegment is not None:
+                            break
+                    oldsegment.fork(newtreeseg, segmentid, ptprofile)
 
 
 
-                else:
-                    # tree.treeroot = fp_tree
-                    self.treeroot = newtreeseg
+            else:
+                tree = OurTreeManager()
+                tree.treeroot = newtreeseg
+                trees.append(tree)
+
+    return trees
