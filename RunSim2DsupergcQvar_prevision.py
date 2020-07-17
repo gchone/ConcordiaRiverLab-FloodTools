@@ -295,5 +295,6 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
 
                     except BaseException as e:
                         filelog.write("ERREUR in " + simname + ": sim aborded during zone "+ str(point[1]) + "\n")
+                        messages.addWarningMessage("Some simulations skipped. See log file.")
     return
 
