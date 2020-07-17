@@ -47,11 +47,11 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
     zones = str_zonesfolder + "\\envelopezones.shp"
     arcpy.FeatureEnvelopeToPolygon_management( str_zonesfolder + "\\polyzones.shp", zones)
 
-    # Clip du DEM et récupération du paramètre SuperGC
-    typesim = {}
-    zonesscursor = arcpy.da.SearchCursor(zones, ["GRID_CODE", "SHAPE@", "SuperGC"])
+    # Clip du DEM
+
+    zonesscursor = arcpy.da.SearchCursor(zones, ["GRID_CODE", "SHAPE@"])
     for zoneshp in zonesscursor:
-        typesim[zoneshp[0]] = zoneshp[2]
+
         Xmin = zoneshp[1].extent.XMin
         Ymin = zoneshp[1].extent.YMin
         Xmax = zoneshp[1].extent.XMax
@@ -468,12 +468,12 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
                 arcpy.Delete_management(str_zonesfolder + r"\nzone" + str(point[1]))
 
 
-                if typesim[point[1]] == 1:
-                    arcpy.Clip_management(r_mask, "#", str_zonesfolder + r"\mzone" + str(point[1]),
-                                          str_zonesfolder + "\\zone" + str(point[1]),
-                                          "#", "NONE", "MAINTAIN_EXTENT")
-                    arcpy.RasterToASCII_conversion(str_zonesfolder + "\mzone" + str(point[1]),
-                                                   str_outputfolder + "\\mzone" + str(point[1]) + ".txt")
-                    arcpy.Delete_management(str_zonesfolder + r"\mzone" + str(point[1]))
+
+                arcpy.Clip_management(r_mask, "#", str_zonesfolder + r"\mzone" + str(point[1]),
+                                      str_zonesfolder + "\\zone" + str(point[1]),
+                                      "#", "NONE", "MAINTAIN_EXTENT")
+                arcpy.RasterToASCII_conversion(str_zonesfolder + "\mzone" + str(point[1]),
+                                               str_outputfolder + "\\mzone" + str(point[1]) + ".txt")
+                arcpy.Delete_management(str_zonesfolder + r"\mzone" + str(point[1]))
 
     return

@@ -73,16 +73,14 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
     for point in bcipointcursor:
         listzonesout[point[0]] = point
 
-    # SuperGC ou SubGC?
+
     zones = str_zonefolder + "\\envelopezones.shp"
-    # récupération du paramètre SuperGC et bci lac
-    typesim = {}
-    zonesscursor = arcpy.da.SearchCursor(zones, ["GRID_CODE", "SHAPE@", "SuperGC", "Lake_ID"])
+    # récupération du bci lac
+    zonesscursor = arcpy.da.SearchCursor(zones, ["GRID_CODE", "SHAPE@", "Lake_ID"])
     lakeid_byzone = {}
     for zoneshp in zonesscursor:
-        typesim[zoneshp[0]] = zoneshp[2]
-        if zoneshp[3] != -999:
-            lakeid_byzone[zoneshp[0]] = zoneshp[3]
+        if zoneshp[2] != -999:
+            lakeid_byzone[zoneshp[0]] = zoneshp[2]
 
     # Z BCI
     fieldidlakes = arcpy.Describe(str_lakes).OIDFieldName
@@ -149,8 +147,8 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                     filepar.write("SGCbank\tzone" + str(point[1]) + ".txt\n")
                     filepar.write("SGCbed\tdzone" + str(point[1]) + ".txt\n")
                     filepar.write("SGCn\t" + str(channelmanning) + "\n")
-                    if typesim[point[1]] == 1:
-                        filepar.write("chanmask\tmzone" + str(point[1]) + ".txt\n")
+
+                    filepar.write("chanmask\tmzone" + str(point[1]) + ".txt\n")
 
                     # Vitesses du courant
                     if voutput:

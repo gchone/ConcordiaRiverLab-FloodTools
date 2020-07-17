@@ -73,12 +73,7 @@ class CreateZonesWlakes(object):
             datatype="GPLong",
             parameterType="Required",
             direction="Input")
-        param_typesim = arcpy.Parameter(
-            displayName="Lignes des types de simulation",
-            name="typesim",
-            datatype="GPFeatureLayer",
-            parameterType="Required",
-            direction="Input")
+
         param_folder = arcpy.Parameter(
             displayName="Dossier pour les zones",
             name="folder ",
@@ -96,12 +91,11 @@ class CreateZonesWlakes(object):
         param0.value = arcpy.env.scratchWorkspace
         param_frompoint.filter.list = ["Point"]
         param_lakes.filter.list = ["POLYGON"]
-        param_typesim.filter.list = ["Polyline"]
         param_distance.value = 15000
         param_bufferw.value = 3000
         param_minslope.value = 0.001
 
-        params = [param_flowdir, param_lakes, param_slope, param_minslope, param_frompoint, param_distance, param_bufferw, param_typesim, param_folder, param0]
+        params = [param_flowdir, param_lakes, param_slope, param_minslope, param_frompoint, param_distance, param_bufferw, param_folder, param0]
 
         return params
 
@@ -128,12 +122,11 @@ class CreateZonesWlakes(object):
         str_frompoint = parameters[4].valueAsText
         distance = int(parameters[5].valueAsText)
         bufferw = int(parameters[6].valueAsText)
-        str_typesim = parameters[7].valueAsText
-        str_folder = parameters[8].valueAsText
+        str_folder = parameters[7].valueAsText
 
-        arcpy.env.scratchWorkspace = parameters[9].valueAsText
+        arcpy.env.scratchWorkspace = parameters[8].valueAsText
 
-        execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, distance, bufferw, str_typesim, str_folder, messages)
+        execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, distance, bufferw, str_folder, messages)
 
         return
 

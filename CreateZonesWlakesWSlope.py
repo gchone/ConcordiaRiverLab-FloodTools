@@ -24,7 +24,7 @@ class pointflowpath:
 
 
 
-def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, distance, bufferw, str_typesim, str_zonesfolder, messages):
+def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, distance, bufferw, str_zonesfolder, messages):
 
 
 
@@ -35,7 +35,6 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
     save_sourcepoints = str_zonesfolder + "\\sourcepoints.shp"
 
     str_r_lakes = str_zonesfolder + "\\r_lakes"
-    str_r_type = str_zonesfolder + "\\r_type"
 
     flowdir = RasterIO(r_flowdir)
     slope = RasterIO(r_slope)
@@ -56,17 +55,13 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
     str_lakes = str_zonesfolder + "\\lakes.shp"
     arcpy.AddGeometryAttributes_management(str_lakes, "EXTENT")
 
-    arcpy.PolylineToRaster_conversion(str_typesim, "SuperGC", str_r_type,
-                                      "MAXIMUM_LENGTH", cellsize=flowdir.raster)
-    typesim = RasterIO(arcpy.Raster(str_r_type))
-
     ### Début du traitement perrmettant d'identifier les segments (sous forme de raster) ###
 
     raster_segments = RasterIO(r_flowdir, str_segments, int,-255)
 
     # numérotation des segments
     segnumber = 0
-    typesimdict = {}
+
     lakes_bci = {}
     toclip = {}
     inputpoints = {}
@@ -106,7 +101,6 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
         # listtomerged contient la liste des segments trop courts, qui doivent être fusionnés avec segment précédent
         listtomerged = []
 
-        lasttype = typesim.getValue(currentrow, currentcol)
 
         # Pour chaque cellule en suivant l'écoulement
         while (intheraster):
@@ -118,10 +112,6 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
             lakevalue = lakes.getValue(currentrow, currentcol)
 
             inlake = (lakevalue != lakes.nodata)
-            type = typesim.getValue(currentrow, currentcol)
-            if type != typesim.nodata and segnumber not in typesimdict:
-                typesimdict[segnumber] = type
-
 
 
             if not (inlake and waslake):
@@ -177,13 +167,6 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
                 dividedriver = True
 
 
-            elif type != typesim.nodata and lasttype != type:
-                totaldistance = 0
-                segnumber += 1
-                dividedriver = False
-
-
-            lasttype = type
 
             if not inlake:
                 # On conseerve une liste des points traités, avec leur numéro de segment
@@ -327,10 +310,9 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
     # Création de la zone pour chaque segment
     arcpy.CreateFeatureclass_management (str_zonesfolder, "polyzones.shp", "POLYGON", str_bufferedsegments, spatial_reference=flowdir.raster.spatialReference)
     polyzones = str_zonesfolder + "\\polyzones.shp"
-    arcpy.AddField_management(polyzones, "SuperGC", "SHORT")
     arcpy.AddField_management(polyzones, "Lake_ID", "LONG")
 
-    cursor = arcpy.da.InsertCursor(polyzones, ["GRID_CODE", "SHAPE@", "SuperGC", "Lake_ID"])
+    cursor = arcpy.da.InsertCursor(polyzones, ["GRID_CODE", "SHAPE@", "Lake_ID"])
 
 
     segmentscursor = arcpy.da.UpdateCursor(str_bufferedsegments, ["GRID_CODE", "SHAPE@"])
@@ -363,7 +345,7 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
         else:
             lakeid = -999
 
-        cursor.insertRow([segment[0], polygon, typesimdict[segment[0]], lakeid])
+        cursor.insertRow([segment[0], polygon, lakeid])
 
     del cursor
     del segmentscursor
