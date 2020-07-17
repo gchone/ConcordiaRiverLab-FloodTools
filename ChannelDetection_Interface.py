@@ -16,7 +16,7 @@ import arcpy
 class ChannelDetection(object):
     def __init__(self):
 
-        self.label = "Détection de l'étendue des sources"
+        self.label = "Détection du chenal"
         self.description = "Identifie les cours d'eau de manière itérative"
         self.canRunInBackground = True
 
@@ -129,14 +129,16 @@ class ChannelDetection(object):
             offlim = arcpy.Raster(parameters[4].valueAsText)
 
         brch = parameters[5].valueAsText
-        diffusionD8 = bool(parameters[6].valueAsText)
-        postpro = bool(parameters[7].valueAsText)
-        checkelev = bool(parameters[8].valueAsText)
+        diffusionD8 = parameters[6].valueAsText == 'true'
+        postpro = parameters[7].valueAsText == 'true'
+        checkelev = parameters[8].valueAsText == 'true'
         if checkelev:
             localtol = float(parameters[9].valueAsText)
         else:
             localtol = None
         watsurf = parameters[10].valueAsText
+
+
 
         execute_ChannelDetection(streams, dem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf,
                                 messages)

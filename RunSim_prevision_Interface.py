@@ -15,14 +15,14 @@
 
 
 import arcpy
-from RunSim2DsupergcQvar_hdown import *
+from RunSim2DsupergcQvar_prevision import *
 
 
 
-class RunSim2DsupergcQvar_hdown(object):
+class RunSim2D_prevision(object):
     def __init__(self):
 
-        self.label = "Lancement des simulations avec LISFLOOD-FP"
+        self.label = "Lancement des simulations de prevision avec LISFLOOD-FP"
         self.description = ""
         self.canRunInBackground = False
 
@@ -49,9 +49,9 @@ class RunSim2DsupergcQvar_hdown(object):
             parameterType="Required",
             direction="Input")
         param_q = arcpy.Parameter(
-            displayName="Raster des débits",
+            displayName="Fichier csv des débits",
             name="q",
-            datatype="GPRasterLayer",
+            datatype="DEFile",
             parameterType="Required",
             direction="Input")
         param_voutput = arcpy.Parameter(
@@ -84,16 +84,23 @@ class RunSim2DsupergcQvar_hdown(object):
             datatype="GPLong",
             parameterType="Required",
             direction="Input")
+        param_log = arcpy.Parameter(
+            displayName="Fichier de log",
+            name="log",
+            datatype="DEFile",
+            parameterType="Required",
+            direction="Outpur")
 
 
         param_channelmanning.value = 0.03
         param_simtime.value = 200000
         param_voutput.value = False
         param_lakes.filter.list = ["Polygon"]
+        param_q.filter.list = ['csv']
         param_zfield.parameterDependencies = [param_lakes.name]
 
 
-        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime]
+        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime, param_log]
 
         return params
 
@@ -122,8 +129,9 @@ class RunSim2DsupergcQvar_hdown(object):
         zfield = parameters[6].valueAsText
         channelmanning = float(parameters[7].valueAsText)
         simtime = int(parameters[8].valueAsText)
+        str_log = parameters[9].valueAsText
 
-        execute_RunSim(str_zones, str_simfolder, str_lisflood, arcpy.Raster(str_q), str_lakes, zfield, voutput, simtime, channelmanning, messages)
+        execute_RunSim_prev(str_zones, str_simfolder, str_lisflood, str_q, str_lakes, zfield, voutput, simtime, channelmanning, str_log, messages)
 
         return
 

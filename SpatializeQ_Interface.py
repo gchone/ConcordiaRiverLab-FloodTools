@@ -86,7 +86,7 @@ class SpatializeQ(object):
         str_frompoint = parameters[1].valueAsText
         r_flowacc = arcpy.Raster(parameters[2].valueAsText)
         r_qpts = arcpy.Raster(parameters[3].valueAsText)
-        interpolation = bool(parameters[4].valueAsText)
+        interpolation = parameters[4].valueAsText == 'true'
         str_res = parameters[5].valueAsText
         arcpy.env.scratchWorkspace = parameters[6].valueAsText
 
