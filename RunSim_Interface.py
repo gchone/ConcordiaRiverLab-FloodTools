@@ -84,6 +84,12 @@ class RunSim2DsupergcQvar_hdown(object):
             datatype="GPLong",
             parameterType="Required",
             direction="Input")
+        param_zbed = arcpy.Parameter(
+            displayName="Élévation du lit",
+            name="zbed",
+            datatype="GPRasterLayer",
+            parameterType="Required",
+            direction="Input")
 
 
         param_channelmanning.value = 0.03
@@ -93,7 +99,7 @@ class RunSim2DsupergcQvar_hdown(object):
         param_zfield.parameterDependencies = [param_lakes.name]
 
 
-        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime]
+        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime, param_zbed]
 
         return params
 
@@ -122,8 +128,9 @@ class RunSim2DsupergcQvar_hdown(object):
         zfield = parameters[6].valueAsText
         channelmanning = float(parameters[7].valueAsText)
         simtime = int(parameters[8].valueAsText)
+        bed = arcpy.Raster(parameters[9].valueAsText)
 
-        execute_RunSim(str_zones, str_simfolder, str_lisflood, arcpy.Raster(str_q), str_lakes, zfield, voutput, simtime, channelmanning, messages)
+        execute_RunSim(str_zones, str_simfolder, str_lisflood, arcpy.Raster(str_q), str_lakes, zfield, voutput, simtime, channelmanning, bed, messages)
 
         return
 

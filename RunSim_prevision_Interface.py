@@ -84,6 +84,12 @@ class RunSim2D_prevision(object):
             datatype="GPLong",
             parameterType="Required",
             direction="Input")
+        param_zbed = arcpy.Parameter(
+            displayName="Élévation du lit",
+            name="zbed",
+            datatype="GPRasterLayer",
+            parameterType="Required",
+            direction="Input")
         param_log = arcpy.Parameter(
             displayName="Fichier de log",
             name="log",
@@ -100,7 +106,7 @@ class RunSim2D_prevision(object):
         param_zfield.parameterDependencies = [param_lakes.name]
 
 
-        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime, param_log]
+        params = [param_zones, param_simfolder, param_lisflood, param_q, param_voutput, param_lakes, param_zfield, param_channelmanning, param_simtime, param_zbed, param_log]
 
         return params
 
@@ -129,9 +135,10 @@ class RunSim2D_prevision(object):
         zfield = parameters[6].valueAsText
         channelmanning = float(parameters[7].valueAsText)
         simtime = int(parameters[8].valueAsText)
-        str_log = parameters[9].valueAsText
+        zbed = arcpy.Raster(parameters[9].valueAsText)
+        str_log = parameters[10].valueAsText
 
-        execute_RunSim_prev(str_zones, str_simfolder, str_lisflood, str_q, str_lakes, zfield, voutput, simtime, channelmanning, str_log, messages)
+        execute_RunSim_prev(str_zones, str_simfolder, str_lisflood, str_q, str_lakes, zfield, voutput, simtime, channelmanning, zbed, str_log, messages)
 
         return
 

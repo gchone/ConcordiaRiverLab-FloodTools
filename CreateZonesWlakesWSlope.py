@@ -16,6 +16,8 @@
 # v1.5 - fevrier 2020 - Debug : problème de clip pour les confluent des segments coupé par les lacs
 # v1.6 - mai 2020 - Coupure pour SUB et SUPER GC - Séparation interface et metier - Suppression de l'utilisation de la hauteur des lacs
 #    - suppression de l'utilisation du DEM et ouput sous forme de shapefiles (sourcepoints.shp et polyzones.shp)
+# v1.7 - juillet 2020 - Coupure pour SUB et SUPER GC supprimé: distinction faite par le masque
+# v1.8 - aout 2020 - pente optionnelle
 
 from RasterIO import *
 
@@ -37,7 +39,10 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
     str_r_lakes = str_zonesfolder + "\\r_lakes"
 
     flowdir = RasterIO(r_flowdir)
-    slope = RasterIO(r_slope)
+    if r_slope is not None:
+        slope = RasterIO(r_slope)
+    else:
+        slope = None
 
     try:
         flowdir.checkMatch(slope)
@@ -119,6 +124,9 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
                 totaldistance = totaldistance + currentdistance
 
 
+            slope_criteria = True
+            if slope is not None:
+                slope_criteria = slope.getValue(currentrow,currentcol) > minslope
 
             # Test si on arrive à un lac
             if inlake and not waslake:
@@ -160,7 +168,7 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
 
 
 
-            elif totaldistance > distance and slope.getValue(currentrow,currentcol) > minslope:
+            elif totaldistance > distance and slope_criteria:
                 # Test si on a parcouru la distance voullue
                 totaldistance = 0
                 segnumber += 1

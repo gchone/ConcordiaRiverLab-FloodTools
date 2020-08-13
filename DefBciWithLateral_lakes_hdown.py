@@ -13,6 +13,7 @@
 # v1.5 - Octobre 2019 - version modifiée pour simulations de l'amont vers l,aval avec reprise de l'élévation aval comme condition limite:
 # v1.6 - Octobre 2019 - Débits ajustés jusqu'à la fin de la zone
 # v1.7 - Mai 2020 - Séparation de l'interface - Adaption à CreateZones v1.6 - Fusion avec PrepaSim
+# v1.8 - Aoput 2020 - Débogage fenêtre de sortie
 
 import os
 
@@ -240,7 +241,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
         currentrow = raster.YtoRow(point.Y)
         distance = 0
         # On progresse sur dans une direction jusqu'à sortir du raster ou jusqu'à ce que la distance voullue soit attente
-        while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
+        while (not (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height)) \
                 and raster.getValue(currentrow,currentcol) != raster.nodata and distance < distoutput/2:
             distance += distinc
             currentrow += rowinc
@@ -277,7 +278,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
                 distinc = raster.raster.meanCellHeight
                 point.lim3 = max(raster.raster.extent.YMin, raster.raster.extent.YMax - (currentrow + 1) * raster.raster.meanCellHeight) + 0.5 * raster.raster.meanCellHeight
             # On progresse à nouveau jusqu'à sortir du raster ou jusqu'à ce que la distance voullue soit attente
-            while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
+            while (not (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height)) \
                     and raster.getValue(currentrow, currentcol) != raster.nodata and distance < distoutput / 2:
                 distance += distinc
                 currentrow += rowinc
@@ -305,7 +306,7 @@ def execute_DefBCI(r_flowdir, r_flowacc, distoutput, percent, str_zonesfolder,
         currentcol = raster.XtoCol(point.X)
         currentrow = raster.YtoRow(point.Y)
         distance = 0
-        while (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height) \
+        while (not (currentcol < 0 or currentcol >= raster.raster.width or currentrow < 0 or currentrow >= raster.raster.height)) \
                 and raster.getValue(currentrow, currentcol) != raster.nodata and distance < distoutput / 2:
             distance += distinc
             currentrow += rowinc

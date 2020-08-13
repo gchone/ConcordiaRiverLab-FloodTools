@@ -12,6 +12,7 @@
 # v1.2 - octobre 2019 - stabilisation des simulations
 # v1.3 - feb 2020 - Utilisation des résultats en fin de simulation si le steady state n'est pas atteint
 # v1.4 - Séparation de l'interface
+# v1.5 - Aout 2020 - Correction du z de départ et du steadytol
 
 import os
 import arcpy
@@ -21,12 +22,12 @@ import csv
 from RasterIO import *
 
 
-def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_csvq, str_lakes, field_z, voutput, simtime, channelmanning, str_log, messages):
+def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_csvq, str_lakes, field_z, voutput, simtime, channelmanning, r_zbed, str_log, messages):
 
     str_inbci = str_zonefolder + "\\inbci.shp"
     str_outbci = str_zonefolder + "\\outbci.shp"
+    zbed = RasterIO(r_zbed)
 
-    ref_raster = arcpy.Raster(str_zonefolder + "\\zone1")
 
     # count est utilisé pour compter le nombre de zones, pour la barre de progression lors des simulations
     count = 0
@@ -34,39 +35,33 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
     bcipointcursor = arcpy.da.SearchCursor(str_inbci, ["SHAPE@", "zoneid", "flowacc", "type", "fpid"])
     dictsegmentsin = {}
 
-    steadytol = {}
+
 
     for point in bcipointcursor:
         if point[1] not in dictsegmentsin:
             dictsegmentsin[point[1]] = []
         dictsegmentsin[point[1]].append(point)
-        if point[3] == "main":
-            if point[2] > 100:
-                steadytol[point[1]] = "1"
-            else:
-                steadytol[point[1]] = "0.1"
 
 
     allzones = list(dictsegmentsin.keys())
     allzones.sort()
 
-    sortedzones = []
-    listzones_fp = []
-    lastidfp = -999
+
+    dictzones_fp = {}
+
     for zone in allzones:
+        if dictsegmentsin[zone][0][4] not in dictzones_fp:
+            dictzones_fp[dictsegmentsin[zone][0][4]] = []
 
-        if dictsegmentsin[zone][0][4] != lastidfp:
-            if lastidfp!=-999:
+        dictzones_fp[dictsegmentsin[zone][0][4]].append(zone)
 
-                listzones_fp.sort(reverse=True)
-                sortedzones.extend(listzones_fp)
-            listzones_fp = []
-            lastidfp = dictsegmentsin[zone][0][4]
-
-
-        listzones_fp.append(zone)
-    listzones_fp.sort(reverse=True)
-    sortedzones.extend(listzones_fp)
+    sortedzones = []
+    listfp = list(dictzones_fp.keys())
+    listfp.sort()
+    for fp in listfp:
+        listzones_fp = dictzones_fp[fp]
+        listzones_fp.sort(reverse=True)
+        sortedzones.extend(listzones_fp)
 
     # Ajout des information du fichier outbci.shp
     listzonesout = {}
@@ -74,10 +69,9 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
     for point in bcipointcursor:
         listzonesout[point[0]] = point
 
-    # SuperGC ou SubGC?
+
     zones = str_zonefolder + "\\envelopezones.shp"
     # récupération du bci lac
-
     zonesscursor = arcpy.da.SearchCursor(zones, ["GRID_CODE", "SHAPE@", "Lake_ID"])
     lakeid_byzone = {}
     for zoneshp in zonesscursor:
@@ -101,6 +95,8 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
     csvfile = open(str_csvq)
     csv_reader = csv.DictReader(csvfile)
 
+    ref_raster = None
+
     for cvsrow in csv_reader:
         simname = cvsrow["nom"]
         currentsimfolder = str_simfolder + "\\" + simname
@@ -117,6 +113,9 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                 if point[3]=="main":
                     try:
                         if not arcpy.Exists(currentsimfolder + "\\elev_zone" + str(point[1])):
+
+                            if ref_raster is None:
+                                ref_raster = arcpy.Raster(str_zonefolder + "\\zone" + str(point[1]))
 
 
                             outpointshape = listzonesout[point[1]][7].firstPoint
@@ -140,9 +139,8 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                                         messages.addErrorMessage("Condition limite aval non trouvée : zone " + str(point[1]))
                                     arcpy.Delete_management(currentsimfolder + "\\tmp_zone"  + str(point[1]))
 
-                            zonedem = RasterIO(arcpy.Raster(str_zonefolder + "\\zone" + str(point[1])))
-                            zdem = zonedem.getValue(zonedem.YtoRow(outpointshape.Y),
-                                                    zonedem.XtoCol(outpointshape.X))
+
+
 
 
                             # par
@@ -188,7 +186,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
 
 
                                     pointdischarge = q_value / (
-                                    (zonedem.raster.meanCellHeight + zonedem.raster.meanCellWidth) / 2)
+                                    (ref_raster.meanCellHeight + ref_raster.meanCellWidth) / 2)
                                     lastdischarge = q_value
                                     latnum = 0
                                     filebdy = open(newfilebdy, 'w')
@@ -202,7 +200,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                                 else:
                                     latnum += 1
                                     pointdischarge = (q_value - lastdischarge) / (
-                                    (zonedem.raster.meanCellHeight + zonedem.raster.meanCellWidth) / 2)
+                                    (ref_raster.meanCellHeight + ref_raster.meanCellWidth) / 2)
                                     lastdischarge = q_value
                                     filebdy = open(newfilebdy, 'a')
                                     filebdy.write("\nzone" + str(point[1]) + "_" + str(latnum) + "\n")
@@ -212,17 +210,25 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                                     filebdy.write("{0:.3f}".format(pointdischarge) + "\t" + str(simtime))
                                     filebdy.close()
 
+                            # condition aval: 30cm au dessus du lit pour commencer
+                            zdep = min(zbed.getValue(zbed.YtoRow(outpointshape.Y),
+                                                     zbed.XtoCol(outpointshape.X)) + 0.3, hfix)
                             filebdy = open(newfilebdy, 'a')
                             filebdy.write("\nhvar\n")
                             filebdy.write("4\tseconds\n")
-                            filebdy.write("{0:.2f}".format(zdem) + "\t0\n")
-                            filebdy.write("{0:.2f}".format(zdem) + "\t50000\n")
+                            filebdy.write("{0:.2f}".format(zdep) + "\t0\n")
+                            filebdy.write("{0:.2f}".format(zdep) + "\t50000\n")
                             filebdy.write("{0:.2f}".format(hfix) + "\t55000\n")
                             filebdy.write("{0:.2f}".format(hfix) + "\t" + str(simtime))
 
                             filebdy.close()
 
-                            subprocess.check_call([str_lisfloodfolder + "\\lisflood_intelRelease_double.exe", "-steady", "-steadytol", steadytol[point[1]], str_simfolder + "\\zone" + str(point[1]) + ".par"], shell=True, cwd=str_simfolder)
+                            # calcul pour le -steadytol
+                            # Divise le débit par 200 et ne conserve qu'un chiffre significatif
+                            steadytol = str(
+                                round(lastdischarge / 200., - int(math.floor(math.log10(abs(lastdischarge / 200.))))))
+
+                            subprocess.check_call([str_lisfloodfolder + "\\lisflood_intelRelease_double.exe", "-steady", "-steadytol", steadytol, str_simfolder + "\\zone" + str(point[1]) + ".par"], shell=True, cwd=str_simfolder)
                             progres += 1
                             arcpy.SetProgressorPosition(progres)
 
@@ -242,7 +248,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                             else:
                                 os.rename(currentsimfolder  + "\\" + zonename + "-0001.elev",
                                           currentsimfolder + "\\" + zonename + "elev.txt")
-                                messages.addWarningMessage("Steady state not reached : " + zonename)
+                                messages.addWarningMessage("Steady state not reached : " + zonename + ", sim " + simname)
 
                             if os.path.exists(currentsimfolder + "\\" + zonename + "-9999.Vx") or os.path.exists(currentsimfolder + "\\"  + zonename + "-0001.Vx"):
                                 if os.path.exists(currentsimfolder + "\\" + zonename + "Vx.txt"):

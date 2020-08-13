@@ -46,13 +46,13 @@ class CreateZonesWlakes(object):
             displayName="Pente",
             name="slope",
             datatype="GPRasterLayer",
-            parameterType="Required",
+            parameterType="Optional",
             direction="Input")
         param_minslope = arcpy.Parameter(
             displayName="Pente minimale",
             name="minslope",
             datatype="GPDouble",
-            parameterType="Required",
+            parameterType="Optional",
             direction="Input")
 
         param_frompoint = arcpy.Parameter(
@@ -93,7 +93,7 @@ class CreateZonesWlakes(object):
         param_lakes.filter.list = ["POLYGON"]
         param_distance.value = 15000
         param_bufferw.value = 3000
-        param_minslope.value = 0.001
+        param_minslope.enabled = False
 
         params = [param_flowdir, param_lakes, param_slope, param_minslope, param_frompoint, param_distance, param_bufferw, param_folder, param0]
 
@@ -104,7 +104,11 @@ class CreateZonesWlakes(object):
         return True
 
     def updateParameters(self, parameters):
-
+        if parameters[2].valueAsText and parameters[2].valueAsText != "#":
+            parameters[3].enabled = True
+            parameters[3].value = 0.001
+        else:
+            parameters[3].enabled = False
         return
 
     def updateMessages(self, parameters):
@@ -117,8 +121,12 @@ class CreateZonesWlakes(object):
         # Récupération des paramètres
         r_flowdir = arcpy.Raster(parameters[0].valueAsText)
         str_lakes = parameters[1].valueAsText
-        r_slope = arcpy.Raster(parameters[2].valueAsText)
-        minslope = float(parameters[3].valueAsText)
+        if parameters[2].valueAsText and parameters[2].valueAsText != "#":
+            r_slope = arcpy.Raster(parameters[2].valueAsText)
+            minslope = float(parameters[3].valueAsText)
+        else:
+            r_slope = None
+            minslope = None
         str_frompoint = parameters[4].valueAsText
         distance = int(parameters[5].valueAsText)
         bufferw = int(parameters[6].valueAsText)
