@@ -13,6 +13,8 @@ from SpatializeQ_Interface import *
 from ChannelDetection_Interface import *
 from WSprofile_Interface import *
 from RunSim_prevision_Interface import *
+from IdentifyDifQ_Interface import *
+from RunSim_prevision_2var_Interface import *
 
 class Toolbox(object):
     def __init__(self):
@@ -20,7 +22,7 @@ class Toolbox(object):
         self.label = "Outils inondations"
         self.alias = ""
 
-        self.tools = [DefBciWithLateralWlakes_hdown, RunSim2DsupergcQvar_hdown, CreateZonesWlakes, ChannelCorrection, WSsmoothing, BedAssessment, SpatializeQ, ChannelDetection, WSprofile, RunSim2D_prevision]
+        self.tools = [DefBciWithLateralWlakes_hdown, RunSim2DsupergcQvar_hdown, CreateZonesWlakes, ChannelCorrection, WSsmoothing, BedAssessment, SpatializeQ, ChannelDetection, WSprofile, RunSim2D_prevision, IdentifyDifQ, RunSim2D_prevision_2var]
 
 
 
