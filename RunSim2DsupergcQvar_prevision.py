@@ -248,6 +248,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                             else:
                                 os.rename(currentsimfolder  + "\\" + zonename + "-0001.elev",
                                           currentsimfolder + "\\" + zonename + "elev.txt")
+                                filelog.write("Steady state not reached : " + zonename + ", sim " + simname)
                                 messages.addWarningMessage("Steady state not reached : " + zonename + ", sim " + simname)
 
                             if os.path.exists(currentsimfolder + "\\" + zonename + "-9999.Vx") or os.path.exists(currentsimfolder + "\\"  + zonename + "-0001.Vx"):

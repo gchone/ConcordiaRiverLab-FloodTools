@@ -115,9 +115,21 @@ def execute_RunSim_prev_2var(str_zonefolder, str_simfolder, str_lisfloodfolder, 
 
                                 outpointshape = listzonesout[point[1]][7].firstPoint
 
-
-
-
+                                if arcpy.Exists(currentresult):
+                                    # dans le cas où un fichier résultat existe avec un résulat valide, on prends les résultats de ce fichier comme limite aval
+                                    if arcpy.Exists(currentsimfolder + "\\tmp_zone" + str(point[1])):
+                                        arcpy.Delete_management(currentsimfolder + "\\tmp_zone" + str(point[1]))
+                                    arcpy.Copy_management(currentresult, currentsimfolder + "\\tmp_zone" + str(point[1]))
+                                    res_downstream = RasterIO(arcpy.Raster(currentsimfolder + "\\tmp_zone" + str(point[1])))
+                                    hfix_raster = res_downstream.getValue(res_downstream.YtoRow(outpointshape.Y),
+                                                                   res_downstream.XtoCol(outpointshape.X))
+                                    if hfix_raster != res_downstream.nodata:
+                                        hfix_sim = hfix_raster
+                                    else:
+                                        hfix_sim = hfix
+                                    arcpy.Delete_management(currentsimfolder + "\\tmp_zone" + str(point[1]))
+                                else:
+                                    hfix_sim = hfix
 
                                 # par
 
@@ -188,14 +200,14 @@ def execute_RunSim_prev_2var(str_zonefolder, str_simfolder, str_lisfloodfolder, 
 
                                 # condition aval: 30cm au dessus du lit pour commencer
                                 zdep = min(zbed.getValue(zbed.YtoRow(outpointshape.Y),
-                                                         zbed.XtoCol(outpointshape.X)) + 0.3, hfix)
+                                                         zbed.XtoCol(outpointshape.X)) + 0.3, hfix_sim)
                                 filebdy = open(newfilebdy, 'a')
                                 filebdy.write("\nhvar\n")
                                 filebdy.write("4\tseconds\n")
                                 filebdy.write("{0:.2f}".format(zdep) + "\t0\n")
                                 filebdy.write("{0:.2f}".format(zdep) + "\t50000\n")
-                                filebdy.write("{0:.2f}".format(hfix) + "\t55000\n")
-                                filebdy.write("{0:.2f}".format(hfix) + "\t" + str(simtime))
+                                filebdy.write("{0:.2f}".format(hfix_sim) + "\t55000\n")
+                                filebdy.write("{0:.2f}".format(hfix_sim) + "\t" + str(simtime))
 
                                 filebdy.close()
 
@@ -223,6 +235,7 @@ def execute_RunSim_prev_2var(str_zonefolder, str_simfolder, str_lisfloodfolder, 
                                 else:
                                     os.rename(currentsimfolder  + "\\" + zonename + "-0001.elev",
                                               currentsimfolder + "\\" + zonename + "elev.txt")
+                                    filelog.write("Steady state not reached : " + zonename + ", sim " + simname)
                                     messages.addWarningMessage("Steady state not reached : " + zonename + ", sim " + simname)
 
                                 if os.path.exists(currentsimfolder + "\\" + zonename + "-9999.Vx") or os.path.exists(currentsimfolder + "\\"  + zonename + "-0001.Vx"):
