@@ -27,6 +27,8 @@ def execute_CannyEdge(str_raster, sigma, threshold1, threshold2, result, message
     resraster = arcpy.NumPyArrayToRaster(edges, arcpy.Point(originalraster.extent.XMin, originalraster.extent.YMin),
                                          originalraster.meanCellWidth, originalraster.meanCellHeight, originalraster.noDataValue)
     resraster.save(result)
+    arcpy.DefineProjection_management(result, originalraster.spatialReference)
+
     arcpy.Delete_management(filetemp)
 
 

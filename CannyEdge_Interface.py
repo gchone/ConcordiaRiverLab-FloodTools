@@ -58,7 +58,9 @@ class CannyEdge(object):
             datatype="DEWorkspace",
             parameterType="Required",
             direction="Input")
-
+        param_sigma.value = 0.5
+        param_threshold1.value = 10
+        param_threshold2.value = 20
         params = [param_raster, param_sigma, param_threshold1, param_threshold2, param_edges, param0]
 
         return params
