@@ -17,7 +17,7 @@
 
 import arcpy
 
-def execute_ChannelDetection(r_streams, r_dem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf, messages):
+def execute_ChannelDetection(r_streams, ch_elev, r_originaldem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf, messages):
     arcpy.env.snapRaster = r_streams
     arcpy.env.extent = r_streams
     niter = max(niter, 1)
@@ -25,6 +25,12 @@ def execute_ChannelDetection(r_streams, r_dem, niter, offlim, brch, diffusionD8,
 
     if isinstance(offlim, arcpy.Raster):
         maskras = arcpy.sa.Con(arcpy.sa.IsNull(offlim), 0)
+
+    # Si le fichier r_stream contient des élévations, elles prennent le dessus sur le DEM
+    if ch_elev:
+        r_dem = arcpy.sa.Con(arcpy.sa.IsNull(r_streams), r_originaldem, r_streams)
+    else:
+        r_dem = r_originaldem
 
     newstreams = arcpy.sa.Con(arcpy.sa.IsNull(r_streams), r_streams, 0) # replace channel values by 0
 
@@ -69,7 +75,7 @@ def execute_ChannelDetection(r_streams, r_dem, niter, offlim, brch, diffusionD8,
             oldgrowth = arcpy.sa.Con(arcpy.sa.IsNull(newstreams), 0, 1)
             growthcheck = True
 
-
+        messages.addMessage("Iteration " + str(ii+1) + " done")
 
     if postpro:
         streamelev = r_dem + newstreams
@@ -88,9 +94,13 @@ def execute_ChannelDetection(r_streams, r_dem, niter, offlim, brch, diffusionD8,
             #if maskras is not None:  # On ajoute des zéros partout et les NoData du masque effacent les données
                 #newstreams = newstreams + maskras
         del streamelev
-    del maskras
 
-    sources = arcpy.sa.Con(arcpy.sa.IsNull(newstreams), r_streams, r_dem)
+        sources = arcpy.sa.Con(arcpy.sa.IsNull(newstreams), r_streams, r_dem)
+
+    else:
+        sources = newdem
+
+    del maskras
     sources.save(watsurf)
 
     return

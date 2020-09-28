@@ -22,9 +22,15 @@ class ChannelDetection(object):
 
     def getParameterInfo(self):
         param_streams = arcpy.Parameter(
-            displayName="Élévations du chenal ou du HAND zéro",
+            displayName="Position du chenal ou du HAND zéro",
             name="streams",
             datatype="GPRasterLayer",
+            parameterType="Required",
+            direction="Input")
+        param_chelev = arcpy.Parameter(
+            displayName="Élévations?",
+            name="chelev",
+            datatype="GPBoolean",
             parameterType="Required",
             direction="Input")
         param_dem = arcpy.Parameter(
@@ -91,12 +97,14 @@ class ChannelDetection(object):
         param_niter.value = 20
         param_globaltol.value = 0.5
         param_brch.filter.list = ["Polyline"]
+        param_chelev.value = False
         param_postpro.value = False
         param_diffusion.value = False
         param_checkelev.value = False
+        param_eltol.value = 0.5
         param_eltol.enabled = False
 
-        params = [param_streams, param_dem, param_niter, param_globaltol, param_offlim, param_brch, param_diffusion, param_postpro, param_checkelev, param_eltol, param_watsurf]
+        params = [param_streams, param_chelev, param_dem, param_niter, param_globaltol, param_offlim, param_brch, param_diffusion, param_postpro, param_checkelev, param_eltol, param_watsurf]
 
         return params
 
@@ -104,11 +112,10 @@ class ChannelDetection(object):
         return True
 
     def updateParameters(self, parameters):
-        if parameters[8].valueAsText == 'true':
-            parameters[9].enabled = True
-            parameters[9].value = 0.5
+        if parameters[9].valueAsText == 'true':
+            parameters[10].enabled = True
         else:
-            parameters[9].enabled = False
+            parameters[10].enabled = False
 
 
         return
@@ -121,26 +128,27 @@ class ChannelDetection(object):
 
         # Récupération des paramètres
         streams = arcpy.Raster(parameters[0].valueAsText)
-        dem = arcpy.Raster(parameters[1].valueAsText)
-        niter = int(parameters[2].valueAsText)
-        globaltol = float(parameters[3].valueAsText)
-        offlim = parameters[4].valueAsText
+        ch_elev = parameters[1].valueAsText == 'true'
+        dem = arcpy.Raster(parameters[2].valueAsText)
+        niter = int(parameters[3].valueAsText)
+        globaltol = float(parameters[4].valueAsText)
+        offlim = parameters[5].valueAsText
         if offlim and offlim != "#":
-            offlim = arcpy.Raster(parameters[4].valueAsText)
+            offlim = arcpy.Raster(parameters[5].valueAsText)
 
-        brch = parameters[5].valueAsText
-        diffusionD8 = parameters[6].valueAsText == 'true'
-        postpro = parameters[7].valueAsText == 'true'
-        checkelev = parameters[8].valueAsText == 'true'
+        brch = parameters[6].valueAsText
+        diffusionD8 = parameters[7].valueAsText == 'true'
+        postpro = parameters[8].valueAsText == 'true'
+        checkelev = parameters[9].valueAsText == 'true'
         if checkelev:
-            localtol = float(parameters[9].valueAsText)
+            localtol = float(parameters[10].valueAsText)
         else:
             localtol = None
-        watsurf = parameters[10].valueAsText
+        watsurf = parameters[11].valueAsText
 
 
 
-        execute_ChannelDetection(streams, dem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf,
+        execute_ChannelDetection(streams, ch_elev, dem, niter, offlim, brch, diffusionD8, postpro, checkelev, localtol, globaltol, watsurf,
                                 messages)
 
 
