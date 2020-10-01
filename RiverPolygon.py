@@ -2,10 +2,13 @@
 
 ##################################################################
 # Auteur: François Larouche-Tremblay, Ing, M Sc
-# Date: 24/04/2020
 # Description: Génère un polygone de surface de l'eau à partir du
 # raster des sources en effectuant une suite d'extension-contraction
 ##################################################################
+
+# Versions:
+# v1.0 - April 2020 - François Larouche-Tremblay - Creation
+# v1.1 - May 2020 - Guénolé Choné - Brought into the FloodTools package.
 
 import arcpy
 from arcpy import env, CreateScratchName
@@ -15,14 +18,14 @@ from arcpy.analysis import GraphicBuffer, Erase
 from arcpy.management import Delete, EliminatePolygonPart, MultipartToSinglepart, Merge, Dissolve
 
 
-def execute_GenererPolygoneSurface(watsurf, maxwidth, minwidth, islands, surface, messages):
+def execute_RiverPolygon(r_watsurf, maxwidth, minwidth, islands, surface, messages):
     sws = env.scratchWorkspace
-    env.extent = watsurf
-    watras = Raster(watsurf)
-    cellsize = int(watras.meanCellHeight)
+    env.extent = r_watsurf
+
+    cellsize = int(r_watsurf.meanCellHeight)
 
     bedpoly = CreateScratchName("gepo", data_type="FeatureClass", workspace=sws)
-    RasterToPolygon(watsurf, bedpoly, "NO_SIMPLIFY", "VALUE", "MULTIPLE_OUTER_PART")
+    RasterToPolygon(r_watsurf, bedpoly, "NO_SIMPLIFY", "VALUE", "MULTIPLE_OUTER_PART")
 
     islandup = CreateScratchName("gepo", data_type="FeatureClass", workspace="in_memory")
     GraphicBuffer(bedpoly, islandup, "{0} Meters".format(cellsize), "SQUARE", "MITER", 10, "0 Meters")

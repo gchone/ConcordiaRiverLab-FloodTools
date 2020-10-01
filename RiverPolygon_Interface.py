@@ -10,10 +10,10 @@
 # v1.0 - April 2020 - François Larouche-Tremblay - Creation
 # v1.1 - Sept 2020 - Guénolé Choné - Brought into the FloodTools package. Default values changed.
 
-from GenererPolygoneSurface import *
+from RiverPolygon import *
 
 
-class GenererPolygoneSurface(object):
+class RiverPolygon(object):
     def __init__(self):
 
         self.label = "Création du polygone de surface de l'eau"
@@ -80,6 +80,6 @@ class GenererPolygoneSurface(object):
         islands = parameters[3].valueAsText
         surface = parameters[4].valueAsText
 
-        execute_GenererPolygoneSurface(watsurf, maxwidth, minwidth, islands, surface, messages)
+        execute_RiverPolygon(arcpy.Raster(watsurf), maxwidth, minwidth, islands, surface, messages)
 
         return
