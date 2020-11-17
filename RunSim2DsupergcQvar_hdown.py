@@ -144,7 +144,6 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
 
                     # Vitesses du courant
                     if voutput:
-                        filepar.write("hazard\n")
                         filepar.write("qoutput\n")
                     filepar.write("cfl\t0.5\n")
                     filepar.write("max_Froude\t1\n")
@@ -224,32 +223,6 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                         os.rename(str_simfolder + "\\res\\"  + zonename + "-0001.elev",
                                   str_simfolder + "\\res\\" + zonename + "elev.txt")
                         messages.addWarningMessage("Steady state not reached : " + zonename)
-
-                    if os.path.exists(str_simfolder + "\\res\\"  + zonename + "-9999.Vx") or os.path.exists(str_simfolder + "\\res\\"  + zonename + "-0001.Vx"):
-                        if os.path.exists(str_simfolder + "\\res\\"  + zonename + "Vx.txt"):
-                            os.remove(str_simfolder + "\\res\\"  + zonename + "Vx.txt")
-
-                        if os.path.exists(str_simfolder + "\\res\\"  + zonename + "Vy.txt"):
-                            os.remove(str_simfolder + "\\res\\"  + zonename + "Vy.txt")
-                        if os.path.exists(str_simfolder + "\\res\\"  + zonename + "-9999.Vx"):
-                            os.rename(str_simfolder + "\\res\\"  + zonename + "-9999.Vx",
-                                      str_simfolder + "\\res\\" + zonename + "Vx.txt")
-                            os.rename(str_simfolder + "\\res\\"  + zonename + "-9999.Vy",
-                                      str_simfolder + "\\res\\" + zonename + "Vy.txt")
-                        else:
-                            os.rename(str_simfolder + "\\res\\"  + zonename + "-0001.Vx",
-                                      str_simfolder + "\\res\\" + zonename + "Vx.txt")
-                            os.rename(str_simfolder + "\\res\\"  + zonename + "-0001.Vy",
-                                      str_simfolder + "\\res\\" + zonename + "Vy.txt")
-                        arcpy.ASCIIToRaster_conversion(str_simfolder + "\\res\\" + zonename + "Vx.txt",
-                                                       str_simfolder + "\\Vx_" + zonename,
-                                                   "FLOAT")
-                        arcpy.ASCIIToRaster_conversion(str_simfolder + "\\res\\" + zonename + "Vy.txt",
-                                                       str_simfolder + "\\Vy_" + zonename,
-                                                   "FLOAT")
-                        arcpy.DefineProjection_management(str_simfolder + "\\Vx_" + zonename, r_q.spatialReference)
-                        arcpy.DefineProjection_management(str_simfolder + "\\Vy_" + zonename, r_q.spatialReference)
-
 
                     # Conversion des fichiers de sortie en raster pour ArcGIS
                     str_elev = str_simfolder + "\\elev_" + zonename
