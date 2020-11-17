@@ -46,6 +46,9 @@ class TreeManager(object):
                 leaves.append(segment)
         return leaves
 
+    def __str__(self):
+        return str(self.treeroot)
+
 
 
 

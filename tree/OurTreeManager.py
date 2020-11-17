@@ -9,12 +9,14 @@
 ### Historique des versions ###
 # v0.0.1 - 13/11/2018 - Création
 # v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
+# v1.0 - Nov 2020 - Ajout de dossier en paramètre de données (kwargs): Crée un dictionnaire avec comme clé le nom de chaque raster du dossier
 
 
 import tree.TreeManager as TreeManager
 from tree.OurTreeSegment import *
 import arcpy
 import math
+from RasterIO import *
 
 
 class OurTreeManager(TreeManager.TreeManager):
@@ -66,7 +68,7 @@ class OurTreeManager(TreeManager.TreeManager):
                 yield l, m, n
 
 
-def build_trees(flowdir, frompoint, **kwargs):
+def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
 
     trees = []
     segmentid = 0
@@ -105,10 +107,19 @@ def build_trees(flowdir, frompoint, **kwargs):
 
 
             dictdata = {}
-            for rastername, raster in kwargs.items():
-                dictdata[rastername] = raster.getValue(currentrow, currentcol)
+            if dtype=="SINGLE":
+                for paramname, param in kwargs.items():
+                    dictdata[paramname] = param.getValue(currentrow, currentcol)
+                ptprofile = ProfilePoint.ProfilePoint(currentrow, currentcol, 0, dictdata)
+            else:
+                # param must be a dictionary of RasterIO object (the data are a collection of rasters in a folder)
+                for paramname, param in kwargs.items():
+                    for raster_name, raster in param.items():
+                        if not dictdata.has_key(raster_name):
+                            dictdata[raster_name] = {}
+                        dictdata[raster_name][paramname] = raster.getValue(currentrow, currentcol)
+                ptprofile = ProfilePoint.ProfilePointMulti(currentrow, currentcol, 0, dictdata)
 
-            ptprofile = ProfilePoint.ProfilePoint(currentrow, currentcol, 0, dictdata)
             newtreeseg.add_ptprofile(ptprofile)
             treated_pts[(currentrow, currentcol)] = segmentid
 

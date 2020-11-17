@@ -1,5 +1,6 @@
 # coding: latin-1
 
+# v0.2 Nov 2020. Clarification du nom des variables
 
 
 # Solver sous-critique uniquement
@@ -62,8 +63,8 @@ def cs_solver(cs_up, cs_down):
         cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
 
         cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
-        #cs_tosolve.h = cs_tosolve.zlidar + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
-        cs_tosolve.h = cs_tosolve.zlidar + cs_tosolve.y
+        #cs_tosolve.h = cs_tosolve.z + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
+        cs_tosolve.h = cs_tosolve.z + cs_tosolve.y
         cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
         cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
 
@@ -80,9 +81,9 @@ def cs_solver(cs_up, cs_down):
             cs_tosolve.y -= increment
 
             cs_tosolve.type = 1
-        if increment == -0.001 and cs_tosolve.y < cs_ref.zlidar+cs_ref.y-cs_tosolve.zlidar:
+        if increment == -0.001 and cs_tosolve.y < cs_ref.z+cs_ref.y-cs_tosolve.z:
             stoploop = True
-            cs_tosolve.y = cs_ref.zlidar+cs_ref.y-cs_tosolve.zlidar
+            cs_tosolve.y = cs_ref.z+cs_ref.y-cs_tosolve.z
 
             cs_tosolve.type = 2
         if increment == 0.01 and cs_tosolve.h > cs_ref.h + friction_h:
@@ -105,8 +106,8 @@ def cs_solver(cs_up, cs_down):
 
     cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
     cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
-    #cs_tosolve.h = cs_tosolve.zlidar + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
-    cs_tosolve.h = cs_tosolve.zlidar + cs_tosolve.y
+    #cs_tosolve.h = cs_tosolve.z + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
+    cs_tosolve.h = cs_tosolve.z + cs_tosolve.y
     cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
     cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
 
