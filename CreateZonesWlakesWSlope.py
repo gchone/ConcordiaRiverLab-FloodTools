@@ -41,14 +41,15 @@ def execute_CreateZone(r_flowdir, str_lakes, r_slope, minslope, str_frompoint, d
     flowdir = RasterIO(r_flowdir)
     if r_slope is not None:
         slope = RasterIO(r_slope)
+        try:
+            flowdir.checkMatch(slope)
+
+        except Exception as e:
+            messages.addErrorMessage(e.message)
     else:
         slope = None
 
-    try:
-        flowdir.checkMatch(slope)
 
-    except Exception as e:
-        messages.addErrorMessage(e.message)
 
     # Conversion des lacs en raster et copie
     arcpy.env.snapRaster = flowdir.raster
