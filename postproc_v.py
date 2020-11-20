@@ -56,16 +56,16 @@ def conversion(folder):
         # List the differents simulations in the folder
         list_zones = set(f[:-8] for f in globres)
 
-        list_results = []
 
         for zone in list_zones:
             # For each simulation, get the list of results (i.e. [9999, 0001, 0000])
             print zone
-            list_res_num = sorted([int(x[-7:-3]) for x in globres if x.startswith(zone)], reverse=True)
+            list_res_num = sorted([x[-7:-3] for x in globres if x.startswith(zone)], reverse=True)
+            print list_res_num
             if len(list_res_num) > 0:
                 # Take the fist result of the list and rename the file with a .asc extension
-                os.rename(zone + "-" + str(list_res_num[0]) + ".Qx", zone + "_Qx.asc")
-                os.rename(zone + "-" + str(list_res_num[0]) + ".Qy", zone + "_Qy.asc")
+                os.rename(zone + "-" + list_res_num[0] + ".Qx", zone + "_Qx.asc")
+                os.rename(zone + "-" + list_res_num[0] + ".Qy", zone + "_Qy.asc")
         return list_zones
 
 def postproc_v(width, bed, dem, res_folder):
@@ -75,89 +75,82 @@ def postproc_v(width, bed, dem, res_folder):
     arcpy.env.workspace = res_folder
 
 
-    ### Block merging the qx and qy results by taking the value where the elevation is the maximum
-    ### based on the usage of HighestPosition (with the elevation), then Pick
     elev_rasters = arcpy.ListRasters("elev_zone*")
-    qx_rasters = []
-    qy_rasters = []
+    Vx_rasters = []
+    Vy_rasters = []
+    Vch_rasters = []
     tmp_elev_rasters = []
     # Loop to create lists of the qx, qy and elevation raster (with -9999 instead of NoData) results
     for elev_raster in elev_rasters:
         # create a temp version of elev_zone* by replacing NoData by -9999 for the full extent
+        # (used latter for the HighestPosition / Pick process
         with arcpy.EnvManager(extent=result):
             tmp_elev_raster = arcpy.sa.Con(arcpy.sa.IsNull(elev_raster) == 1, -9999, elev_raster)
         tmp_elev_raster.save(os.path.join(arcpy.env.scratchWorkspace, "tmp_e_"+elev_raster[5:]))
         tmp_elev_rasters.append(os.path.join(arcpy.env.scratchWorkspace, "tmp_e_"+elev_raster[5:]))
-        qx_rasters.append(os.path.join(res_folder, "res", elev_raster[5:] + "_Qx.asc"))
-        qy_rasters.append(os.path.join(res_folder, "res", elev_raster[5:] + "_Qy.asc"))
+        qx_raster = os.path.join(res_folder, "res", elev_raster[5:] + "_Qx.asc")
+        qy_raster = os.path.join(res_folder, "res", elev_raster[5:] + "_Qy.asc")
+        print elev_raster[5:]
+        ### Computing the velocity
+        # replace NoData by 0 (so the mean is than correctly computed)
+        qx_raster = arcpy.sa.Con(arcpy.sa.IsNull(qx_raster) == 1, 0, qx_raster)
+        qy_raster = arcpy.sa.Con(arcpy.sa.IsNull(qy_raster) == 1, 0, qy_raster)
+        # The average of both cells (2 cells horizontally for qx, 2 vertically for qy) must be taken
+        # Focal Statistics with a 1x2 (or 2x1) compute the average. The results are than shifted to snap the elevation raster
+        # NbrRectangle(2,1) take the original cell and its right one, so the shift is to the right (positive)
+        # NbrRectangle(1,2) take the original cell and its bottom one, so the shift is downward (negative)
+        mean = arcpy.sa.FocalStatistics(qx_raster, arcpy.sa.NbrRectangle(2,1, "CELL"), "MEAN", "NODATA")
+        arcpy.Shift_management(mean, os.path.join(arcpy.env.scratchWorkspace, "qxmean"), qx_raster.meanCellWidth/2., 0, result)
+        mean = arcpy.sa.FocalStatistics(qy_raster, arcpy.sa.NbrRectangle(1, 2, "CELL"), "MEAN", "NODATA")
+        arcpy.Shift_management(mean, os.path.join(arcpy.env.scratchWorkspace, "qymean"), 0, -qy_raster.meanCellHeight / 2., result)
+        arcpy.DefineProjection_management(os.path.join(arcpy.env.scratchWorkspace, "qxmean"), bed)
+        arcpy.DefineProjection_management(os.path.join(arcpy.env.scratchWorkspace, "qymean"), bed)
 
+        # converting the q in v in the channel
+        area = (result - bed)*width
+        v = (arcpy.sa.Abs(arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qxmean"))) + arcpy.sa.Abs(arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qymean")))) / area
+        v.save(os.path.join(arcpy.env.scratchWorkspace, "vch_"+elev_raster[5:]))
+        Vch_rasters.append(os.path.join(arcpy.env.scratchWorkspace, "vch_"+elev_raster[5:]))
+        # converting the qx in vx in the floodplain
+        area = arcpy.sa.Con(arcpy.sa.IsNull(width), (result - dem) * result.meanCellHeight)
+        area2 = arcpy.sa.SetNull(area, area, "VALUE <= 0")
+        v = arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qxmean")) / area2
+        v.save(os.path.join(arcpy.env.scratchWorkspace, "vx_" + elev_raster[5:]))
+        Vx_rasters.append(os.path.join(arcpy.env.scratchWorkspace, "vx_" + elev_raster[5:]))
+        # converting the qy in vy in the floodplain
+        area = arcpy.sa.Con(arcpy.sa.IsNull(width), (result - dem) * result.meanCellWidth)
+        area2 = arcpy.sa.SetNull(area, area, "VALUE <= 0")
+        v = arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qymean")) / area2
+        v.save(os.path.join(arcpy.env.scratchWorkspace, "vy_" + elev_raster[5:]))
+        Vy_rasters.append(os.path.join(arcpy.env.scratchWorkspace, "vy_" + elev_raster[5:]))
+
+
+
+    ### Merging the qx and qy results by taking the value where the elevation is the maximum
+    ### based on the usage of HighestPosition (with the elevation), then Pick
     # create a raster indicating which zone has the maximum elevation
     max_id = arcpy.sa.HighestPosition(tmp_elev_rasters)
+    # Pick merge the vx, vy and vch rasters
+    with arcpy.EnvManager(extent=max_id):
+        vx_raster = arcpy.sa.Pick(max_id, Vx_rasters)
+        vy_raster = arcpy.sa.Pick(max_id, Vy_rasters)
+        vch_raster = arcpy.sa.Pick(max_id, Vch_rasters)
+        vx_raster.save(os.path.join(res_folder, "vx"))
+        vy_raster.save(os.path.join(res_folder, "vy"))
+        vch_raster.save(os.path.join(res_folder, "v_channel"))
 
-    # shift the resulting raster by half of a pixel (because of the shift between the qx, qy and elevation raster cells positions)
-    # done twice (both ways), than merged, in order to have the right extent
-    arcpy.Shift_management(max_id, os.path.join(arcpy.env.scratchWorkspace, "max_idx1"), -result.meanCellWidth/2., 0, qx_rasters[0])
-    arcpy.Shift_management(max_id, os.path.join(arcpy.env.scratchWorkspace, "max_idy1"), 0, -result.meanCellHeight / 2.,
-                                     qy_rasters[0])
-    arcpy.Shift_management(max_id, os.path.join(arcpy.env.scratchWorkspace, "max_idx2"), result.meanCellWidth/2., 0, qx_rasters[0])
-    arcpy.Shift_management(max_id, os.path.join(arcpy.env.scratchWorkspace, "max_idy2"), 0, result.meanCellHeight / 2.,
-                                     qy_rasters[0])
-    arcpy.MosaicToNewRaster_management([os.path.join(arcpy.env.scratchWorkspace, "max_idx1"), os.path.join(arcpy.env.scratchWorkspace, "max_idx2")], arcpy.env.scratchWorkspace, "max_idx", pixel_type="32_BIT_FLOAT", number_of_bands=1, mosaic_method="LAST")
-    arcpy.MosaicToNewRaster_management([os.path.join(arcpy.env.scratchWorkspace, "max_idy1"), os.path.join(arcpy.env.scratchWorkspace, "max_idy2")], arcpy.env.scratchWorkspace, "max_idy", pixel_type="32_BIT_FLOAT", number_of_bands=1, mosaic_method="LAST")
-
-    # Pick merge the qx and qy rasters
-    with arcpy.EnvManager(extent=os.path.join(arcpy.env.scratchWorkspace, "max_idx")):
-        qcx_raster = arcpy.sa.Pick(os.path.join(arcpy.env.scratchWorkspace, "max_idx"), qx_rasters)
-    with arcpy.EnvManager(extent=os.path.join(arcpy.env.scratchWorkspace, "max_idy")):
-        qcy_raster = arcpy.sa.Pick(os.path.join(arcpy.env.scratchWorkspace, "max_idy"), qy_rasters)
-    # replace NoData by 0 (so the mean is than correctly computed)
-    qcx_raster = arcpy.sa.Con(arcpy.sa.IsNull(qcx_raster) == 1, 0, qcx_raster)
-    qcy_raster = arcpy.sa.Con(arcpy.sa.IsNull(qcy_raster) == 1, 0, qcy_raster)
-    ### end of block ###
-
-    ### Computing the velocity
-
-    # The average of both cells (2 cells horizontally for qx, 2 vertically for qy) must be taken
-    # Focal Statistics with a 1x2 (or 2x1) compute the average. The results are than shifted to snap the elevation raster
-    # NbrRectangle(2,1) take the original cell and its right one, so the shift is to the right (positive)
-    # NbrRectangle(1,2) take the original cell and its bottom one, so the shift is downward (negative)
-    mean = arcpy.sa.FocalStatistics(qcx_raster, arcpy.sa.NbrRectangle(2,1, "CELL"), "MEAN", "NODATA")
-    arcpy.Shift_management(mean, os.path.join(arcpy.env.scratchWorkspace, "qxmean"), qcx_raster.meanCellWidth/2., 0, result)
-    mean = arcpy.sa.FocalStatistics(qcy_raster, arcpy.sa.NbrRectangle(1, 2, "CELL"), "MEAN", "NODATA")
-    arcpy.Shift_management(mean, os.path.join(arcpy.env.scratchWorkspace, "qymean"), 0, -qcy_raster.meanCellHeight / 2., result)
-    arcpy.DefineProjection_management(os.path.join(arcpy.env.scratchWorkspace, "qxmean"), bed)
-    arcpy.DefineProjection_management(os.path.join(arcpy.env.scratchWorkspace, "qymean"), bed)
-
-    # converting the q in v in the channel
-    area = (result - bed)*width
-    v = (arcpy.sa.Abs(arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qxmean"))) + arcpy.sa.Abs(arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qymean")))) / area
-    v.save(os.path.join(res_folder, "v_channel"))
-
-    # converting the qx in vx in the floodplain
-    area = arcpy.sa.Con(arcpy.sa.IsNull(width), (result - dem) * result.meanCellHeight)
-    area2 = arcpy.sa.SetNull(area, area, "VALUE <= 0")
-    v = arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qxmean")) / area2
-    v.save(os.path.join(res_folder, "vx"))
-    # converting the qy in vy in the floodplain
-    area = arcpy.sa.Con(arcpy.sa.IsNull(width), (result - dem) * result.meanCellWidth)
-    area2 = arcpy.sa.SetNull(area, area, "VALUE <= 0")
-    v = arcpy.Raster(os.path.join(arcpy.env.scratchWorkspace, "qymean")) / area2
-    v.save(os.path.join(res_folder, "vy"))
 
     # cleaning temp results
-    arcpy.Delete_management("max_idx1")
-    arcpy.Delete_management("max_idx2")
-    arcpy.Delete_management("max_idx")
-    arcpy.Delete_management("max_idy1")
-    arcpy.Delete_management("max_idy2")
-    arcpy.Delete_management("max_idy")
     arcpy.Delete_management("qymean")
     arcpy.Delete_management("qxmean")
     for raster in tmp_elev_rasters:
         arcpy.Delete_management(raster)
-
-
-
+    for raster in Vx_rasters:
+        arcpy.Delete_management(raster)
+    for raster in Vy_rasters:
+        arcpy.Delete_management(raster)
+    for raster in Vch_rasters:
+        arcpy.Delete_management(raster)
 
 
 if __name__ == "__main__":
@@ -170,5 +163,7 @@ if __name__ == "__main__":
     bed = arcpy.Raster(r"Z:\Projects\MSP\DuNord\Lisflood_Atlas2020_Fall2020\inputs\bed_b")
     dem = arcpy.Raster(r"Z:\Projects\MSP\DuNord\Lisflood_Atlas2020_Fall2020\inputs\lid10mavg_c")
 
-    #conversion(folder)
+    conversion(folder)
     postproc_v(width, bed, dem, folder)
+
+
