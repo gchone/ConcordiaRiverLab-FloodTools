@@ -15,6 +15,7 @@
 # v1.0 - Sept 2019 - François Larouche-Tremblay - Creation
 # v1.1 - May 2020 - Guénolé Choné - Pour package FloodTools. Ajout de la ligne de cours d'eau pour assurer un pixel de large
 #    Utilisation d'un raster en m. Extent = dem par défaut. Coordinate system = dem
+# v1.2 - Nov 2020 - Debug pour utilisation de DEM ne contenants pas de limites amont/aval
 
 import arcpy
 from arcpy import env, CreateScratchName
@@ -27,14 +28,7 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, breachedmnt,
 
     arcpy.env.outputCoordinateSystem = demras.spatialReference
     env.snapRaster = demras
-    env.extent = demras
 
-    rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
-    PolygonToRaster(riverbed, arcpy.Describe(riverbed).OIDFieldName, rasterbed, "CELL_CENTER", cellsize=demras)
-    rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
-    PolylineToRaster(rivernet, arcpy.Describe(rivernet).OIDFieldName, rasterline, cellsize=demras)
-
-    streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
     ends = CreateScratchName("loob", data_type="FeatureClass", workspace="in_memory")
     CopyFeatures(boundary, ends)
 
@@ -44,6 +38,16 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, breachedmnt,
     endsras = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
     PolylineToRaster(ends, "dummy", endsras, "MAXIMUM_LENGTH", cellsize=demras)
     statpts = FocalStatistics(endsras, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+
+    env.extent = demras
+
+    rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
+    PolygonToRaster(riverbed, arcpy.Describe(riverbed).OIDFieldName, rasterbed, "CELL_CENTER", cellsize=demras)
+    rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
+    PolylineToRaster(rivernet, arcpy.Describe(rivernet).OIDFieldName, rasterline, cellsize=demras)
+
+    streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
+
     bedwalls = FocalStatistics(streambed, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
 
     env.extent = bedwalls
