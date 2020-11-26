@@ -10,7 +10,7 @@
 ### Historique des versions ###
 # v0.0.1 - 18/09/2017 - Création - Guénolé Choné
 # v0.0.2 - 24/10/2017 - Description modifiée - Guénolé Choné
-
+# v0.0.3 - 24/11/2020 - added delete_ptprofile - Guénolé Choné
 
 import tree.TreeSegment as TreeSegment
 import tree.ProfilePoint as ProfilePoint
@@ -31,6 +31,9 @@ class OurTreeSegment(TreeSegment.TreeSegment):
         #   id : int - identifiant d'un point du profil longitudinal
         #   retour de la méthode : ProfilePoint
         return self.__ptsprofile[id]
+
+    def delete_ptprofile(self, pt):
+        self.__ptsprofile.remove(pt)
 
     def add_ptprofile(self, profilept):
         #   profilept : ProfilePoint - point du profil transversal à ajouter

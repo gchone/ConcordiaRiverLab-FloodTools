@@ -10,6 +10,7 @@
 # Versions
 # v1.0 - Mai 2019 - Création
 # v1.1 - Mai 2020 - Ménage pour ajout dans le package FloodTools. Prise en charge d'arbres multiples
+# v1.2 - Nov 2020 - Debug to fit v0.2 of SolverLisflood
 
 import os
 import arcpy
@@ -41,14 +42,14 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
         iteration = 0
         while not enditeration:
             iteration += 1
-
+            print iteration
 
             # 1D hydraulic calculations
             prevsegid = 0
             for segment, prev_cs, cs in tree.browsepts():
                 cs.n = manning
                 if iteration == 1:
-                    cs.zlidar = cs.wslidar
+                    cs.z = cs.wslidar
                     cs.ws = cs.wslidar
 
                 if prev_cs == None:
@@ -57,7 +58,7 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
                     cs.s = downstream_s
                     manning_solver(cs)
                     cs.v = cs.Q / (cs.width * cs.y)
-                    cs.h = cs.zlidar + cs.y + cs.v ** 2 / (2 * g)
+                    cs.h = cs.z + cs.y + cs.v ** 2 / (2 * g)
                     cs.Fr = cs.v / (g * cs.y) ** 0.5
                     cs.solver = "manning"
                     cs.type = 0
@@ -69,7 +70,7 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
 
 
                 cs.prev_ws = cs.ws
-                cs.ws = cs.zlidar + cs.y
+                cs.ws = cs.z + cs.y
                 cs.dif = cs.ws - cs.wslidar
 
 
@@ -82,8 +83,8 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
             # down to up
             for segment, prev_cs, cs in tree.browsepts():
                 if prev_cs != None:
-                    if prev_cs.z_fill > cs.zlidar:
-                        if prev_cs.zlidar == prev_cs.z_fill:
+                    if prev_cs.z_fill > cs.z:
+                        if prev_cs.z == prev_cs.z_fill:
                             # first backwater cell
                             correction = []
                             corrections.append(correction)
@@ -94,13 +95,13 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
                         cs.z_fill = prev_cs.z_fill
                         correction.append(cs)
                     else:
-                        cs.z_fill = cs.zlidar
+                        cs.z_fill = cs.z
                         correction = []
                         correction.append(cs)
                         corrections.append(correction)
                         cs.idcorrection = len(corrections) - 1
                 else:
-                    cs.z_fill = cs.zlidar
+                    cs.z_fill = cs.z
                     correction = []
                     correction.append(cs)
                     corrections.append(correction)
@@ -117,13 +118,13 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
                 difws = abs(sumdifws) / len(correction)
                 if difws > 0.01:
                     for cscorrect in correction:
-                        cscorrect.zlidar = cscorrect.zlidar - correcteddif
+                        cscorrect.z = cscorrect.z - correcteddif
                     enditeration = False
 
 
         for segment in tree.treesegments():
             for pt in segment.get_profile():
-                Result.setValue(pt.row, pt.col, pt.zlidar)
+                Result.setValue(pt.row, pt.col, pt.z)
 
 
     Result.save()
