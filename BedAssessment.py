@@ -37,9 +37,11 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
 
     Result = RasterIO(r_flowdird4, result, float, -255)
 
+
     for tree in trees:
         enditeration = False
         iteration = 0
+        downstream_end = True
         while not enditeration:
             iteration += 1
             print iteration
@@ -47,34 +49,43 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
             # 1D hydraulic calculations
             prevsegid = 0
             for segment, prev_cs, cs in tree.browsepts():
-                cs.n = manning
-                if iteration == 1:
-                    cs.z = cs.wslidar
-                    cs.ws = cs.wslidar
 
-                if prev_cs == None:
-
-                    # downstream cs calculation
-                    cs.s = downstream_s
-                    manning_solver(cs)
-                    cs.v = cs.Q / (cs.width * cs.y)
-                    cs.h = cs.z + cs.y + cs.v ** 2 / (2 * g)
-                    cs.Fr = cs.v / (g * cs.y) ** 0.5
-                    cs.solver = "manning"
-                    cs.type = 0
-
-
+                if (cs.width == width.nodata or cs.wslidar==zwater.nodata or cs.Q == Q.nodata):
+                    cs.skipped = True
+                    if not downstream_end:
+                        messages.addErrorMessage("Missing data at "+str(cs.X)+", "+str(cs.Y))
                 else:
+                    cs.skipped = False
+                    downstream_end = False
+                    cs.n = manning
 
-                    cs_solver(cs, prev_cs)
+                    if iteration == 1:
+                        cs.z = cs.wslidar
+                        cs.ws = cs.wslidar
+
+                    if prev_cs == None or prev_cs.skipped:
+
+                        # downstream cs calculation
+                        cs.s = downstream_s
+                        manning_solver(cs)
+                        cs.v = cs.Q / (cs.width * cs.y)
+                        cs.h = cs.z + cs.y + cs.v ** 2 / (2 * g)
+                        cs.Fr = cs.v / (g * cs.y) ** 0.5
+                        cs.solver = "manning"
+                        cs.type = 0
 
 
-                cs.prev_ws = cs.ws
-                cs.ws = cs.z + cs.y
-                cs.dif = cs.ws - cs.wslidar
+                    else:
+
+                        cs_solver(cs, prev_cs)
 
 
-                prevsegid = segment.id
+                    cs.prev_ws = cs.ws
+                    cs.ws = cs.z + cs.y
+                    cs.dif = cs.ws - cs.wslidar
+
+
+                    prevsegid = segment.id
 
 
 
@@ -82,7 +93,7 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
             corrections = []
             # down to up
             for segment, prev_cs, cs in tree.browsepts():
-                if prev_cs != None:
+                if prev_cs != None and not prev_cs.skipped:
                     if prev_cs.z_fill > cs.z:
                         if prev_cs.z == prev_cs.z_fill:
                             # first backwater cell

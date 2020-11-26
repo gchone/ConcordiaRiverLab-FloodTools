@@ -10,6 +10,7 @@
 # v0.0.1 - 13/11/2018 - Création
 # v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
 # v1.0 - Nov 2020 - Ajout de dossier en paramètre de données (kwargs): Crée un dictionnaire avec comme clé le nom de chaque raster du dossier
+#  Ajout de X et Y pour les points
 
 
 import tree.TreeManager as TreeManager
@@ -119,7 +120,8 @@ def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
                             dictdata[raster_name] = {}
                         dictdata[raster_name][paramname] = raster.getValue(currentrow, currentcol)
                 ptprofile = ProfilePoint.ProfilePointMulti(currentrow, currentcol, 0, dictdata)
-
+            ptprofile.X = flowdir.ColtoX(currentcol)
+            ptprofile.Y = flowdir.RowtoY(currentrow)
             newtreeseg.add_ptprofile(ptprofile)
             treated_pts[(currentrow, currentcol)] = segmentid
 
