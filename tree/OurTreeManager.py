@@ -32,11 +32,15 @@ class OurTreeManager(TreeManager.TreeManager):
                     return segment, ptprofil
         return None, None
 
-
     def browsepts(self):
         #   retour de la méthode : Générateur de ProfilePoint
         for l, m, n in self.__recursivetreepts(self.treeroot):
             yield l, m, n
+
+    # def browsepts_bypriority(self, priority_attribute):
+    #     #   retour de la méthode : Générateur de ProfilePoint
+    #     for l, m, n in self.__recursivetreepts_bypriority(self.treeroot, priority_attribute):
+    #         yield l, m, n
 
     def uptodown_browsepts(self):
         #   retour de la méthode : Générateur de ProfilePoint
@@ -68,6 +72,22 @@ class OurTreeManager(TreeManager.TreeManager):
             for l, m, n in self.__recursivetreepts(child):
                 yield l, m, n
 
+
+    # def __recursivetreepts_bypriority(self, treesegment, priority_attribute):
+    #     if treesegment.is_root():
+    #         yield treesegment, None, treesegment.get_profile()[0]
+    #     else:
+    #         yield treesegment, treesegment.get_parent().get_profile()[-1], treesegment.get_profile()[0]
+    #     for i in range(1, len(treesegment.get_profile())):
+    #         yield treesegment, treesegment.get_profile()[i - 1], treesegment.get_profile()[i]
+    #     listchildren = []
+    #     lastprofilevalue= treesegment.get_profile()[-1].getattr(priority_attribute)
+    #     for child in treesegment.get_childrens():
+    #         listchildren.append((child, abs(child.get_profile()[0].getattr(priority_attribute)-lastprofilevalue)))
+    #         #sort list by min dif
+    #         for l, m, n in self.__recursivetreepts_bypriority(child, priority_attribute):
+    #             yield l, m, n
+    #
 
 def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
 

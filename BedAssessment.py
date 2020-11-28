@@ -88,8 +88,6 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
                     prevsegid = segment.id
 
 
-
-
             corrections = []
             # down to up
             for segment, prev_cs, cs in tree.browsepts():
@@ -131,6 +129,7 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
                     for cscorrect in correction:
                         cscorrect.z = cscorrect.z - correcteddif
                     enditeration = False
+
 
 
         for segment in tree.treesegments():

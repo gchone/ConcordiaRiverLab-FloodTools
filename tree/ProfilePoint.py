@@ -41,23 +41,11 @@ class ProfilePoint(object):
 
 class ProfilePoint_data(object):
     def __init__(self, dist, dictdata):
-        self.__dist = dist
+        self.dist = dist
         for key, elem in dictdata.items():
             self.__dict__[key] = elem
 
-    def __getattr__(self, name, ):
-        if name == "dist":
-            return self.__dist
-        else:
-            raise AttributeError
-            return None
 
-    def __setattr__(self, key, value):
-        if key == "dist":
-            raise AttributeError("'dist' is read-only. Set it in the ProfilePointMulti instance.")
-            return None
-        else:
-            super(ProfilePoint_data, self).__setattr__(key, value)
 
 class ProfilePointMulti(ProfilePoint):
 
@@ -80,6 +68,6 @@ class ProfilePointMulti(ProfilePoint):
     def __setattr__(self, key, value):
         if key == "dist":
             for raster_name, PP_data in self.data_dict.items():
-                PP_data.__dist = value
+                PP_data.dist = value
         else:
             super(ProfilePointMulti, self).__setattr__(key, value)
