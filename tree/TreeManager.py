@@ -10,7 +10,7 @@
 ### Historique des versions ###
 # v0.0.1 - 03/10/2017 - Création
 # v0.0.2 - 24/10/2017 - Description modifiée - Guénolé Choné
-
+# v0.1 - Nov 2020 - Ajout du parcours des segments d'amont vers l'aval
 
 
 class TreeManager(object):
@@ -23,12 +23,26 @@ class TreeManager(object):
         for n in self.__recursivetreesegments(self.treeroot):
             yield n
 
+    def treesegments_uptodown(self):
+        #   retour de la méthode : Générateur de TreeSegment
+        for leaf in self.leaves():
+            for n in self.__recursivetreesegments_uptodown(leaf):
+                yield n
+
     def __recursivetreesegments(self, treesegment):
         #   treesegment : TreeSegment - Segment à retourner, ainsi que ces enfants (segments amont)
         #   retour de la méthode : Générateur de TreeSegment
         yield treesegment
         for child in treesegment.get_childrens():
             for n in self.__recursivetreesegments(child):
+                yield n
+
+    def __recursivetreesegments_uptodown(self, treesegment):
+        #   treesegment : TreeSegment - Segment à retourner, ainsi que son parent (segment aval)
+        #   retour de la méthode : Générateur de TreeSegment
+        yield treesegment
+        if not treesegment.is_root():
+            for n in self.__recursivetreesegments_uptodown(treesegment.get_parent()):
                 yield n
 
     def get_treesegment(self, id):

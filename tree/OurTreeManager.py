@@ -10,7 +10,7 @@
 # v0.0.1 - 13/11/2018 - Création
 # v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
 # v1.0 - Nov 2020 - Ajout de dossier en paramètre de données (kwargs): Crée un dictionnaire avec comme clé le nom de chaque raster du dossier
-#  Ajout de X et Y pour les points
+#  Ajout de X et Y pour les points. Ajout de la recherche de points amont avec une donnée.
 
 
 import tree.TreeManager as TreeManager
@@ -59,7 +59,24 @@ class OurTreeManager(TreeManager.TreeManager):
             for l, m, n in self.__recursiveuptodowntreepts(treesegment.get_parent(), treesegment.get_profile()[0]):
                 yield l, m, n
 
+    def points_up_with_data(self, segment, cs, cs_attribute, cs_attribute_nodata_value):
+        csposition = segment.get_ptprofile_pos(cs)
+        for csup in self.__recursive_points_up_with_data(segment, csposition, cs_attribute, cs_attribute_nodata_value):
+            yield csup
 
+    def __recursive_points_up_with_data(self, segment, csposition, cs_attribute, cs_attribute_nodata_value):
+        foundup = False
+        pos = 0
+        for csup in segment.get_profile():
+            if pos > csposition and not foundup:
+                if hasattr(csup, cs_attribute) and getattr(csup, cs_attribute) != cs_attribute_nodata_value:
+                    foundup = True
+                    yield csup
+            pos += 1
+        if not foundup:
+            for child in segment.get_childrens():
+                for csup in self.__recursive_points_up_with_data(child, -1, cs_attribute, cs_attribute_nodata_value):
+                    yield csup
 
     def __recursivetreepts(self, treesegment):
         if treesegment.is_root():

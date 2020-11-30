@@ -10,11 +10,11 @@
 ### Historique des versions ###
 # v0.0.1 - 18/09/2017 - Création - Guénolé Choné
 # v0.0.2 - 24/10/2017 - Description modifiée - Guénolé Choné
-# v0.0.3 - 24/11/2020 - added delete_ptprofile - Guénolé Choné
+# v0.0.3 - 24/11/2020 - Ajout de delete_ptprofile - Guénolé Choné
+# v1.0 - Nov 2020 - Ajout du parcours des points de l'amont vers l'aval
 
 import tree.TreeSegment as TreeSegment
 import tree.ProfilePoint as ProfilePoint
-
 
 class OurTreeSegment(TreeSegment.TreeSegment):
 
@@ -27,10 +27,17 @@ class OurTreeSegment(TreeSegment.TreeSegment):
     def get_profile(self):
         return self.__ptsprofile
 
-    def get_ptprofile(self, id):
-        #   id : int - identifiant d'un point du profil longitudinal
+    def get_ptprofile_pos(self, cs):
+        #   retour de la méthode : position du ProfilePoint
+        return self.__ptsprofile.index(cs)
+
+    def get_ptprofile_bypos(self, pos):
+        #   pos : int - identifiant d'un point du profil longitudinal
         #   retour de la méthode : ProfilePoint
-        return self.__ptsprofile[id]
+        return self.__ptsprofile[pos]
+
+    def get_profile_uptodown(self):
+        return list(reversed(self.__ptsprofile))
 
     def delete_ptprofile(self, pt):
         self.__ptsprofile.remove(pt)
