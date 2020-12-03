@@ -11,6 +11,7 @@
 # v1.2 - Nov 2020 - Création, à partir de BedAssessment.py v1.1
 
 
+
 import os
 import arcpy
 import pickle
@@ -52,7 +53,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
 
     trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict)
-    #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_v6.pkl", "wb"), protocol=2)
+    #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_vhole.pkl", "wb"), protocol=2)
 
     #trees = pickle.load(open(r"D:\InfoCrue\tmp\savetreebed_v6.pkl", "rb"))
 
@@ -96,7 +97,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
         # iterate through each "run"
         print raster_name
         print run_num
-
+        dem_reached = False
         results_dict = {}
 
         # first run: calculate downstream border condition
@@ -107,6 +108,9 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
                 csdata = cs.data_dict[raster_name]
                 csdata.n = manning
+
+                if csdata.run_num == run_num:
+                    dem_reached = True
 
                 # - Calculate bed elevation from other DEMs
                 # - compute hydraulic with the discharge for the current DEM
@@ -124,7 +128,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
                     if prev_cs == None or not prev_cs.valid_data:
 
                         # downstream cs calculation
-                        prevres_csdata.s = downstream_s
+                        prevres_csdata.s = cs.proxy_s
                         manning_solver(prevres_csdata)
                         prevres_csdata.v = prevres_csdata.Q / (prevres_csdata.width * prevres_csdata.y)
                         prevres_csdata.h = prevres_csdata.z + prevres_csdata.y + prevres_csdata.v ** 2 / (2 * g)
@@ -136,9 +140,23 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
                         cs_solver(prevres_csdata, prev_cs.prevres_csdata)
                         prevres_csdata.solver = "regular"
 
+                        cs.proxy_s = prevres_csdata.s
+                else:
+
+                    # slope is passed through the cells, assuming a uniform flow
+                    if prev_cs != None:
+                        cs.proxy_s = prev_cs.proxy_s
+                        if not prev_cs.valid_data and csdata.run_num == run_num:
+                            # Gap: no valid data in any DEM
+                            messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
+
                 if csdata.run_num == run_num:
                     csdata.ws = csdata.wslidar
                     csdata.z = csdata.wslidar
+
+                if prev_cs == None:
+                    cs.proxy_s = downstream_s
+
 
 
 
@@ -157,12 +175,11 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
                     if csdata.run_num == run_num:
 
+
                         # Apply 1D hydraulic
-                        if prev_cs == None or not prev_cs.valid_data:
-                            if prev_cs != None and (not prev_cs.valid_data) and iteration == 1:
-                                messages.addWarningMessage("Gap before raster " + raster_name + ": normal depth applied")
-                            # downstream cs calculation
-                            csdata.s = downstream_s
+                        if prev_cs == None or not prev_cs.valid_data or prev_cs.data_dict[raster_name].run_num == 0:
+
+                            csdata.s = cs.proxy_s
                             manning_solver(csdata)
                             csdata.v = csdata.Q / (csdata.width * csdata.y)
                             csdata.h = csdata.z + csdata.y + csdata.v ** 2 / (2 * g)
@@ -171,24 +188,9 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
                             csdata.type = 0
 
                         else:
-                            prev_csdata = prev_cs.data_dict[raster_name]
-                            if prev_csdata.run_num == 0:
-                                # first cell of a transition between two (or more) rasters
-                                # csdata.s should be already calculated from hydraulic based on average z from
-                                #   previous runs
 
-
-                                csdata.s = cs.prevres_csdata.s
-
-                                manning_solver(csdata)
-                                csdata.v = csdata.Q / (csdata.width * csdata.y)
-                                csdata.h = csdata.z + csdata.y + csdata.v ** 2 / (2 * g)
-                                csdata.Fr = csdata.v / (g * csdata.y) ** 0.5
-                                csdata.solver = "manning"
-                                csdata.type = 0
-                            else:
-                                cs_solver(csdata, prev_csdata)
-                                csdata.solver = "regular"
+                            cs_solver(csdata, prev_cs.data_dict[raster_name])
+                            csdata.solver = "regular"
 
                         csdata.ws_before_correction = csdata.ws
                         csdata.ws = csdata.z + csdata.y
@@ -287,9 +289,10 @@ if __name__ == "__main__":
     r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
     str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
     width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
-    zwater_dir =r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\ResultWSD4"
+    zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWSD4"
     manning = 0.03
-    result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\BedAssessmentD4Res"
+    #result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\BedAssessmentD4Res"
+    result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
     Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
     downstream_s = 0.0001
     # r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
