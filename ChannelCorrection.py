@@ -35,15 +35,15 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, breachedmnt,
     AddField(ends, "dummy", "LONG", field_alias="dummy", field_is_nullable="NULLABLE")
     CalculateField(ends, "dummy", "1", "PYTHON")
 
-    endsras = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
+    endsras = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
     PolylineToRaster(ends, "dummy", endsras, "MAXIMUM_LENGTH", cellsize=demras)
     statpts = FocalStatistics(endsras, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
 
     env.extent = demras
 
-    rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
+    rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
     PolygonToRaster(riverbed, arcpy.Describe(riverbed).OIDFieldName, rasterbed, "CELL_CENTER", cellsize=demras)
-    rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace="in_memory")
+    rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
     PolylineToRaster(rivernet, arcpy.Describe(rivernet).OIDFieldName, rasterline, cellsize=demras)
 
     streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
@@ -69,6 +69,9 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, breachedmnt,
     breachedtemp.save(breachedmnt)
 
     Delete(bedwalls)
+    Delete(endsras)
+    Delete(rasterline)
+    Delete(rasterbed)
     Delete(switchfilled)
     return
 
