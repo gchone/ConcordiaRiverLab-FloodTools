@@ -27,9 +27,9 @@ def execute_ExpandExtent(r_raster_in, raster_out,  messages):
     #newextent = str(newXMin) + " " + str(newYMin) + " " + str(newXMax) + " " + str(newYMax)
 
     #arcpy.Clip_management(r_raster_in, newextent, raster_out, maintain_clipping_extent="NO_MAINTAIN_EXTENT")
-    arcpy.env.extent = arcpy.Extent(newXMin, newYMin, newXMax, newYMax)
-    raster2 = r_raster_in + 0
-    raster2.save(raster_out)
+    with arcpy.EnvManager(extent=arcpy.Extent(newXMin, newYMin, newXMax, newYMax)):
+        raster2 = r_raster_in + 0
+        raster2.save(raster_out)
 
 
 
