@@ -53,7 +53,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
 
     trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict)
-    #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_vhole.pkl", "wb"), protocol=2)
+    #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_bec.pkl", "wb"), protocol=2)
 
     #trees = pickle.load(open(r"D:\InfoCrue\tmp\savetreebed_v6.pkl", "rb"))
 
@@ -309,3 +309,4 @@ if __name__ == "__main__":
 
     execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir,
                                   downstream_s, messages)
+

@@ -23,6 +23,8 @@ def execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe,
     rasterlist = arcpy.ListRasters()
 
     for raster in rasterlist:
+        print raster
+
         channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
 
         execute_ChannelCorrection(arcpy.Raster(raster), polycuts, channelpoly, river_network, os.path.join(output_folder, raster), messages)
@@ -47,12 +49,12 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    correctedDEMs_dir = r"path"
-    channel_poly_dir = r"path"
+    correctedDEMs_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\CorrectedDEMs"
+    channel_poly_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\channel_poly"
     prefixe = "ch_"
-    polycuts = r"path"
-    river_network = r"path"
-    output_folder = r"path"
+    polycuts = r"Z:\Projects\MSP\Etchemin\LisfloodJuly2020\Temp\polycuts_good.shp"
+    river_network = r"Z:\Projects\MSP\Etchemin\LisfloodJuly2020\rnetwork_d.shp"
+    output_folder = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEMforWS"
 
     execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe, polycuts, river_network, output_folder, messages)
 
