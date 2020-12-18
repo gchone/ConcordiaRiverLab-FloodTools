@@ -94,7 +94,10 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
 
     for zone in sortedzones:
         segment = dictsegmentsin[zone]
+        zonename = "zone" + str(point[1])
+
         for point in sorted(segment, key=lambda q: q[2]):
+
 
             if point[3]=="main":
                 if not arcpy.Exists(str_simfolder + "\\elev_zone" + str(point[1])):
@@ -211,7 +214,6 @@ def execute_RunSim(str_zonefolder, str_simfolder, str_lisfloodfolder, r_q, str_l
                     # Conversion des fichiers output
 
                     # on renomme les fichiers créés (nécessaire pour être acceptés par l'outil de convsersion ASCII vers raster)
-                    zonename = "zone"+str(point[1])
 
                     if os.path.exists(str_simfolder + "\\res\\"  + zonename + "elev.txt"):
                         os.remove(str_simfolder + "\\res\\"  + zonename + "elev.txt")
