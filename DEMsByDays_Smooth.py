@@ -63,7 +63,7 @@ if __name__ == "__main__":
     ends_polygons_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEMsOutputCorrections"
     frompoints = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\FromPoints"
     prefixe = "fp_"
-    dems = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\CorrectedDEMs"
+    dems = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEM3m"
     smoothed_output = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\Smoothed"
 
 
