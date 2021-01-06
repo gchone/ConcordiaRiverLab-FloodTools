@@ -52,8 +52,8 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
 
                 if (cs.width == width.nodata or cs.wslidar==zwater.nodata or cs.Q == Q.nodata):
                     cs.skipped = True
-                    if not downstream_end:
-                        messages.addErrorMessage("Missing data at "+str(cs.X)+", "+str(cs.Y))
+                    if not downstream_end and iteration == 1:
+                        messages.addWarningMessage("Missing data at "+str(cs.X)+", "+str(cs.Y))
                 else:
                     cs.skipped = False
                     downstream_end = False
@@ -91,30 +91,31 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
             corrections = []
             # down to up
             for segment, prev_cs, cs in tree.browsepts():
-                if prev_cs != None and not prev_cs.skipped:
-                    if prev_cs.z_fill > cs.z:
-                        if prev_cs.z == prev_cs.z_fill:
-                            # first backwater cell
+                if not cs.skipped:
+                    if prev_cs != None and not prev_cs.skipped:
+                        if prev_cs.z_fill > cs.z:
+                            if prev_cs.z == prev_cs.z_fill:
+                                # first backwater cell
+                                correction = []
+                                corrections.append(correction)
+                                cs.idcorrection = len(corrections) - 1
+                            else:
+                                correction = corrections[prev_cs.idcorrection]
+                                cs.idcorrection = prev_cs.idcorrection
+                            cs.z_fill = prev_cs.z_fill
+                            correction.append(cs)
+                        else:
+                            cs.z_fill = cs.z
                             correction = []
+                            correction.append(cs)
                             corrections.append(correction)
                             cs.idcorrection = len(corrections) - 1
-                        else:
-                            correction = corrections[prev_cs.idcorrection]
-                            cs.idcorrection = prev_cs.idcorrection
-                        cs.z_fill = prev_cs.z_fill
-                        correction.append(cs)
                     else:
                         cs.z_fill = cs.z
                         correction = []
                         correction.append(cs)
                         corrections.append(correction)
                         cs.idcorrection = len(corrections) - 1
-                else:
-                    cs.z_fill = cs.z
-                    correction = []
-                    correction.append(cs)
-                    corrections.append(correction)
-                    cs.idcorrection = len(corrections) - 1
 
             enditeration = True
             for correction in corrections:
@@ -134,7 +135,8 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
 
         for segment in tree.treesegments():
             for pt in segment.get_profile():
-                Result.setValue(pt.row, pt.col, pt.z)
+                if not pt.skipped:
+                    Result.setValue(pt.row, pt.col, pt.z)
 
 
     Result.save()
