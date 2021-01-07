@@ -21,6 +21,8 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
     arcpy.env.workspace = DEMsForWS_dir
     rasterlist = arcpy.ListRasters()
 
+    flowdir_output = arcpy.CreateScratchName("rfdir", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
+
     for raster in rasterlist:
         print raster
 
@@ -33,7 +35,8 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
         fill = arcpy.sa.Fill(newdem)
         #fill.save(os.path.join(fill_output, raster))
         flowdir = arcpy.sa.FlowDirection(fill)
-        #flowdir.save(os.path.join(flowdir_output, raster))
+
+        flowdir.save(os.path.join(flowdir_output, raster))
 
         # Smooth
         str_frompoints = os.path.join(frompoints_dir, prefixe+raster+".shp")
@@ -41,6 +44,7 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
         result = os.path.join(smoothed_output, raster)
         execute_WSsmoothing(flowdir, str_frompoints, fill, dem, result)
 
+    arcpy.Delete_management(flowdir_output)
 
 
 class Messages():
