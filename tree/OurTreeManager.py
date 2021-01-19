@@ -90,6 +90,22 @@ class OurTreeManager(TreeManager.TreeManager):
                 yield l, m, n
 
 
+    def treesegments_prioritize_by_attribute(self, cs_attribute):
+        #   retour de la méthode : Générateur de TreeSegment
+        for n in self.__recursivetreesegments_prioritize_by_attribute(self.treeroot, cs_attribute):
+            yield n
+
+    def __recursivetreesegments_prioritize_by_attribute(self, treesegment, cs_attribute):
+        #   treesegment : TreeSegment - Segment à retourner, ainsi que ces enfants (segments amont)
+        #   retour de la méthode : Générateur de TreeSegment
+        yield treesegment
+        # sorting upstream reaches by an attribute (from higher to lower)
+        upstream_segments = list(treesegment.get_childrens())
+        upstream_segments.sort(key=lambda segment: segment.get_profile()[0].getattr(cs_attribute), reverse=True)
+        for child in upstream_segments:
+            for n in self.__recursivetreesegments_prioritize_by_attribute(child, cs_attribute):
+                yield n
+
     # def __recursivetreepts_bypriority(self, treesegment, priority_attribute):
     #     if treesegment.is_root():
     #         yield treesegment, None, treesegment.get_profile()[0]
