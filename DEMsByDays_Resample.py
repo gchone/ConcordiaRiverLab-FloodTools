@@ -27,12 +27,14 @@ def execute_Resample(resamle_dir, flow_dir, frompoints_dir, prefixe, river_tools
 
     for raster in rasterlist:
         print (raster)
-
-        arcpy.Clip_management(flow_dir, raster, flowdir_output, maintain_clipping_extent="MAINTAIN_EXTENT")
+        tobreach = arcpy.Raster(raster)
+        newextent = str(tobreach.extent.XMin) + " " + str(tobreach.extent.YMin) + " " + str(
+            tobreach.extent.XMax) + " " + str(tobreach.extent.YMax)
+        arcpy.Clip_management(flow_dir, newextent, flowdir_output, maintain_clipping_extent="MAINTAIN_EXTENT")
 
         str_frompoints = os.path.join(frompoints_dir, prefixe + raster + ".shp")
         result = os.path.join(output_folder, raster)
-        execute_Breach(raster, flowdir_output, str_frompoints, result, messages)
+        execute_Breach(tobreach,  arcpy.Raster(flowdir_output), str_frompoints, result, messages)
 
     arcpy.Delete_management(flowdir_output)
 
