@@ -105,7 +105,7 @@ if __name__ == "__main__":
     r_Q = arcpy.Raster(r"D:\InfoCrue\Etchemin\q20b")
     manning = 0.03
     downstream_s = 0.0001
-    result = r"D:\InfoCrue\tmp\test1dhydro"
+    result = r"D:\InfoCrue\Refontebathy\TestEtchemin\test1dhydro"
 
     messages = Messages()
 
