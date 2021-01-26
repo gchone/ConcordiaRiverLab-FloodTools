@@ -1,12 +1,12 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 
 ### Historique des versions ###
-# v0.1 - Nov 2020 - Création. Inspiré de InterpolationProfilsD8D4.py de François Larouche-Tremblay
+# v0.1 - Nov 2020 - CrÃ©ation. InspirÃ© de InterpolationProfilsD8D4.py de FranÃ§ois Larouche-Tremblay
 
 
-import tree.TreeManager as TreeManager
-from tree.LinearTreeSegment import *
+from tree.TreeSegment import *
+from tree.ProfilePoint import *
 import arcpy, os
 import math
 import numpy as np
@@ -14,7 +14,7 @@ import numpy.lib.recfunctions as rfn
 
 
 
-class LinearTreeManager(object):
+class TreeManager(object):
 
     ### Instance attributes ###
     # net: a line shapefile (normally with M)
@@ -26,27 +26,27 @@ class LinearTreeManager(object):
 
 
     def treesegments(self):
-        #   retour de la méthode : Générateur de TreeSegment
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         for n in self.__recursivetreesegments(self.treeroot):
             yield n
 
     def treesegments_uptodown(self):
-        #   retour de la méthode : Générateur de TreeSegment
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         for leaf in self.leaves():
             for n in self.__recursivetreesegments_uptodown(leaf):
                 yield n
 
     def __recursivetreesegments(self, treesegment):
-        #   treesegment : TreeSegment - Segment à retourner, ainsi que ces enfants (segments amont)
-        #   retour de la méthode : Générateur de TreeSegment
+        #   treesegment : TreeSegment - Segment Ã  retourner, ainsi que ces enfants (segments amont)
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         yield treesegment
         for child in treesegment.get_childrens():
             for n in self.__recursivetreesegments(child):
                 yield n
 
     def __recursivetreesegments_uptodown(self, treesegment):
-        #   treesegment : TreeSegment - Segment à retourner, ainsi que son parent (segment aval)
-        #   retour de la méthode : Générateur de TreeSegment
+        #   treesegment : TreeSegment - Segment Ã  retourner, ainsi que son parent (segment aval)
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         yield treesegment
         if not treesegment.is_root():
             for n in self.__recursivetreesegments_uptodown(treesegment.get_parent()):
@@ -54,13 +54,13 @@ class LinearTreeManager(object):
 
     def get_treesegment(self, id):
         #   id : int - Identifiant d'un segment
-        #   retour de la méthode : TreeSegment
+        #   retour de la mÃ©thode : TreeSegment
         for segment in self.treesegments():
             if segment.id == id:
                 return segment
 
     def leaves(self):
-        #   retour de la méthode : liste de Segments (les extrémités amont)
+        #   retour de la mÃ©thode : liste de Segments (les extrÃ©mitÃ©s amont)
         leaves = []
         for segment in self.treesegments():
             if segment.is_leaf():
@@ -72,21 +72,14 @@ class LinearTreeManager(object):
 
 
 
-    def getsegmentbyprofilpt(self, row, col):
-        for segment in self.treesegments():
-            for ptprofil in segment.get_profile():
-                if ptprofil.row == row and ptprofil.col == col:
-                    return segment, ptprofil
-        return None, None
-
     def browsepts(self):
-        #   retour de la méthode : Générateur de ProfilePoint
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de ProfilePoint
         for l, m, n in self.__recursivetreepts(self.treeroot):
             yield l, m, n
 
 
     def uptodown_browsepts(self):
-        #   retour de la méthode : Générateur de ProfilePoint
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de ProfilePoint
         for leaf in self.leaves():
             for l, m, n in self.__recursiveuptodowntreepts(leaf, None):
                 yield l, m, n
@@ -133,13 +126,13 @@ class LinearTreeManager(object):
                 yield l, m, n
 
     def treesegments_prioritize_by_attribute(self, cs_attribute):
-        #   retour de la méthode : Générateur de TreeSegment
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         for n in self.__recursivetreesegments_prioritize_by_attribute(self.treeroot, cs_attribute):
             yield n
 
     def __recursivetreesegments_prioritize_by_attribute(self, treesegment, cs_attribute):
-        #   treesegment : TreeSegment - Segment à retourner, ainsi que ces enfants (segments amont)
-        #   retour de la méthode : Générateur de TreeSegment
+        #   treesegment : TreeSegment - Segment Ã  retourner, ainsi que ces enfants (segments amont)
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de TreeSegment
         yield treesegment
         # sorting upstream reaches by an attribute (from higher to lower)
         upstream_segments = list(treesegment.get_childrens())
@@ -210,6 +203,8 @@ class LinearTreeManager(object):
         return results
 
 
+
+
 def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field):
 
 
@@ -232,7 +227,7 @@ def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orien
 
     for downstream_junction in downstream_junctions:
 
-            newtreeseg = LinearTreeSegment(downstream_junction["ORIG_FID"])
+            newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
             treeseg.add_child(newtreeseg)
 
             __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field)
@@ -308,8 +303,8 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
 
     for downstream_junction in downstream_junctions:
 
-            newtreeseg = LinearTreeSegment(downstream_junction["ORIG_FID"])
-            newtree = LinearTreeManager()
+            newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
+            newtree = TreeManager()
             newtree.treeroot = newtreeseg
 
             newtree.net = rivernet
@@ -325,132 +320,3 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
     return trees
 
 
-def build_trees_from_FlowDir(flowdir, frompoint):
-
-    trees = []
-    segmentid = 0
-
-    treated_pts = {}
-
-    # Traitement effectué pour chaque point de départ
-    frompointcursor = arcpy.da.SearchCursor(frompoint, ["SHAPE@", "OID@"])
-    for frompoint in frompointcursor:
-
-        # On prend l'objet géométrique (le point) associé à la ligne dans la table
-        frompointshape = frompoint[0].firstPoint
-
-        # Conversion des coordonnées
-        currentcol = flowdir.XtoCol(frompointshape.X)
-        currentrow = flowdir.YtoRow(frompointshape.Y)
-
-        # Tests de sécurité pour s'assurer que le point de départ est à l'intérieurs des rasters
-        intheraster = True
-        if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
-            intheraster = False
-        elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow, currentcol) != 2 and
-                      flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
-                                                                                         currentcol) != 8 and
-                      flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
-                                                                                          currentcol) != 32 and flowdir.getValue(
-            currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
-            intheraster = False
-
-        segmentid += 1
-        newtreeseg = OurTreeSegment(segmentid)
-
-
-        # Traitement effectué sur chaque cellule le long de l'écoulement
-        while (intheraster):
-
-
-            dictdata = {}
-            if dtype=="SINGLE":
-                for paramname, param in kwargs.items():
-                    dictdata[paramname] = param.getValue(currentrow, currentcol)
-                ptprofile = ProfilePoint.ProfilePoint(currentrow, currentcol, 0, dictdata)
-            else:
-                # param must be a dictionary of RasterIO object (the data are a collection of rasters in a folder)
-                for paramname, param in kwargs.items():
-                    for raster_name, raster in param.items():
-                        if not dictdata.has_key(raster_name):
-                            dictdata[raster_name] = {}
-                        dictdata[raster_name][paramname] = raster.getValue(currentrow, currentcol)
-                ptprofile = ProfilePoint.ProfilePointMulti(currentrow, currentcol, 0, dictdata)
-            ptprofile.X = flowdir.ColtoX(currentcol)
-            ptprofile.Y = flowdir.RowtoY(currentrow)
-            newtreeseg.add_ptprofile(ptprofile)
-            treated_pts[(currentrow, currentcol)] = segmentid
-
-            # On cherche le prochain point à partir du flow direction
-            direction = flowdir.getValue(currentrow, currentcol)
-            if (direction == 1):
-                currentcol = currentcol + 1
-                currentdistance = flowdir.raster.meanCellWidth
-            if (direction == 2):
-                currentcol = currentcol + 1
-                currentrow = currentrow + 1
-                currentdistance = math.sqrt(
-                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-            if (direction == 4):
-                currentrow = currentrow + 1
-                currentdistance = flowdir.raster.meanCellHeight
-            if (direction == 8):
-                currentcol = currentcol - 1
-                currentrow = currentrow + 1
-                currentdistance = math.sqrt(
-                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-            if (direction == 16):
-                currentcol = currentcol - 1
-                currentdistance = flowdir.raster.meanCellWidth
-            if (direction == 32):
-                currentcol = currentcol - 1
-                currentrow = currentrow - 1
-                currentdistance = math.sqrt(
-                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-            if (direction == 64):
-                currentrow = currentrow - 1
-                currentdistance = flowdir.raster.meanCellHeight
-            if (direction == 128):
-                currentcol = currentcol + 1
-                currentrow = currentrow - 1
-                currentdistance = math.sqrt(
-                    flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
-
-            ptprofile.dist = currentdistance
-
-            # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
-            if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
-                intheraster = False
-            elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow,
-                                                                                     currentcol) != 2 and
-                          flowdir.getValue(currentrow, currentcol) != 4 and flowdir.getValue(currentrow,
-                                                                                             currentcol) != 8 and
-                          flowdir.getValue(currentrow, currentcol) != 16 and flowdir.getValue(currentrow,
-                                                                                              currentcol) != 32 and flowdir.getValue(
-                currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
-                intheraster = False
-
-            if intheraster:
-                if (currentrow, currentcol) in treated_pts:
-                    # Atteinte d'un confluent
-                    nextcellsegment = treated_pts[(currentrow, currentcol)]
-                    intheraster = False
-                    # tree.get_treesegment(nextcellsegment).add_child(fp_tree)
-                    # confluence = True
-                    # confluenceid = nextcellsegment
-                    segmentid += 1
-                    # on cherche l'arbre et le segment que l'on vient de rejoindre
-                    for tree in trees:
-                        oldsegment, ptprofile = tree.getsegmentbyprofilpt(currentrow, currentcol)
-                        if oldsegment is not None:
-                            break
-                    oldsegment.fork(newtreeseg, segmentid, ptprofile)
-
-
-
-            else:
-                tree = OurTreeManager()
-                tree.treeroot = newtreeseg
-                trees.append(tree)
-
-    return trees
