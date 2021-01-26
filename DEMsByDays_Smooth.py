@@ -36,7 +36,7 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
         #fill.save(os.path.join(fill_output, raster))
         flowdir = arcpy.sa.FlowDirection(fill)
 
-        flowdir.save(os.path.join(flowdir_output, raster))
+        flowdir.save(flowdir_output)
 
         # Smooth
         str_frompoints = os.path.join(frompoints_dir, prefixe+raster+".shp")
