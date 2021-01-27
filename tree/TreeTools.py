@@ -149,7 +149,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
 
             else:
                 ptprofile.dist = 0
-                tree = TreeManager()
+                tree = Tree()
                 tree.treeroot = newtreeseg
                 trees.append(tree)
 

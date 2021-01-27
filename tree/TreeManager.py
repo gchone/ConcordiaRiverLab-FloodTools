@@ -14,7 +14,7 @@ import numpy.lib.recfunctions as rfn
 
 
 
-class TreeManager(object):
+class Tree(object):
 
     ### Instance attributes ###
     # net: a line shapefile (normally with M)
@@ -141,15 +141,7 @@ class TreeManager(object):
             for n in self.__recursivetreesegments_prioritize_by_attribute(child, cs_attribute):
                 yield n
 
-    class __PointsData(object):
 
-        def __init__(self, numpydata, id_field, dict_field):
-            self.numpydata = numpydata
-            self.dict_field = dict_field
-            self.id_field = id_field
-
-        def get_item(self, id, key):
-            return self.numpydata[self.numpydata[self.id_field] == id][self.dict_field[key]][0]
 
     def load_points(self, sourcepoints, routeID_field, distance_field, dict_fields):
         """
@@ -161,7 +153,7 @@ class TreeManager(object):
         :return:
         """
         numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, ["OID@", routeID_field, distance_field, routeID_field].extend(dict_fields.values))
-        self.__pointdata = self.__PointsData(numpydata, "OID@", dict_fields)
+        self.__pointdata = PointsData(numpydata, "OID@", dict_fields)
 
 
         # add ProfilePoints
@@ -169,7 +161,7 @@ class TreeManager(object):
             listpts = np.sort(numpydata[numpydata[routeID_field] == segment.id], order=distance_field)
             segment.__ptsprofile=[]
             for pts in listpts:
-                segment.__ptsprofile.append(ProfilePoint(pts))
+                segment.__ptsprofile.append(ProfilePoint(self.__pointdata, pts["OID@"]))
 
 
 
@@ -336,7 +328,7 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
     for downstream_junction in downstream_junctions:
 
             newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
-            newtree = TreeManager()
+            newtree = Tree()
             newtree.treeroot = newtreeseg
 
             newtree.net = rivernet
