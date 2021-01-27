@@ -26,13 +26,7 @@ class ProfilePoint(object):
         self.__dataobj = dataobj
         self.id = dataobj_id
 
-    def __getattr__(self, item):
-        return self.__dataobj.get_item(id, item)
+    def __getattr__(self, key):
+        return self.__dataobj.get_item(self.id, key)
 
 
-class __PointsData(object):
-
-    def __init__(self):
-        pass
-
-    def get_item(id, item):

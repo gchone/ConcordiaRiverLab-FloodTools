@@ -21,6 +21,7 @@ class TreeSegment(object):
         self.id = id
         self.__parent = None
 
+
     def get_parent(self):
         #   retour de la méthode : TreeSegment - le segment parent (segment aval)
         return self.__parent
@@ -63,14 +64,12 @@ class TreeSegment(object):
         return string
 
 
+    def get_profile(self):
+        return self.__ptsprofile
 
-    # *** FONCTION A REMPLACER PAR DES GENERATORS ***
-    # def get_profile(self):
-    #     return self.__ptsprofile
-    #
-    #
-    # def get_profile_uptodown(self):
-    #     return list(reversed(self.__ptsprofile))
+
+    def get_profile_uptodown(self):
+        return list(reversed(self.__ptsprofile))
 
 
 

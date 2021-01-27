@@ -141,6 +141,38 @@ class TreeManager(object):
             for n in self.__recursivetreesegments_prioritize_by_attribute(child, cs_attribute):
                 yield n
 
+    class __PointsData(object):
+
+        def __init__(self, numpydata, id_field, dict_field):
+            self.numpydata = numpydata
+            self.dict_field = dict_field
+            self.id_field = id_field
+
+        def get_item(self, id, key):
+            return self.numpydata[self.numpydata[self.id_field] == id][self.dict_field[key]][0]
+
+    def load_points(self, sourcepoints, routeID_field, distance_field, dict_fields):
+        """
+
+        :param sourcepoints:
+        :param routeID_field:
+        :param distance_field:
+        :param dict_fields:
+        :return:
+        """
+        numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, ["OID@", routeID_field, distance_field, routeID_field].extend(dict_fields.values))
+        self.__pointdata = self.__PointsData(numpydata, "OID@", dict_fields)
+
+
+        # add ProfilePoints
+        for segment in self.treesegments():
+            listpts = np.sort(numpydata[numpydata[routeID_field] == segment.id], order=distance_field)
+            segment.__ptsprofile=[]
+            for pts in listpts:
+                segment.__ptsprofile.append(ProfilePoint(pts))
+
+
+
     def interpolate(self, sourcepoints, value_field, source_meas_field, source_routeID_field, targetpoints, target_meas_field, target_routeID_field):
         """
 
