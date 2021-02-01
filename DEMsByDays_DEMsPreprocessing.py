@@ -26,7 +26,7 @@ def execute_DEMsPreprocessing(dem1m_dir, bridges_poly, river_tools_folder, outpu
     r_demcorrect = arcpy.CreateScratchName("rdem", data_type="RasterDataset",
                                            workspace=arcpy.env.scratchWorkspace)
     for raster in rasterlist:
-        print raster
+        print (raster)
         raster3m = arcpy.sa.Aggregate(raster, 3, aggregation_type="MINIMUM")
 
         execute_BridgeCorrection(raster3m, bridges_poly, r_demcorrect, messages)

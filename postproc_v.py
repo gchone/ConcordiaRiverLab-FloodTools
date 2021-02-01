@@ -59,9 +59,9 @@ def conversion(folder):
 
         for zone in list_zones:
             # For each simulation, get the list of results (i.e. [9999, 0001, 0000])
-            print zone
+            print (zone)
             list_res_num = sorted([x[-7:-3] for x in globres if x.startswith(zone)], reverse=True)
-            print list_res_num
+            print (list_res_num)
             if len(list_res_num) > 0:
                 # Take the fist result of the list and rename the file with a .asc extension
                 os.rename(zone + "-" + list_res_num[0] + ".Qx", zone + "_Qx.asc")
@@ -90,7 +90,7 @@ def postproc_v(width, bed, dem, res_folder):
         tmp_elev_rasters.append(os.path.join(arcpy.env.scratchWorkspace, "tmp_e_"+elev_raster[5:]))
         qx_raster = os.path.join(res_folder, "res", elev_raster[5:] + "_Qx.asc")
         qy_raster = os.path.join(res_folder, "res", elev_raster[5:] + "_Qy.asc")
-        print elev_raster[5:]
+        print (elev_raster[5:])
         ### Computing the velocity
         # replace NoData by 0 (so the mean is than correctly computed)
         qx_raster = arcpy.sa.Con(arcpy.sa.IsNull(qx_raster) == 1, 0, qx_raster)

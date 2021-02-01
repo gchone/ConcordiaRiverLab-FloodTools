@@ -25,7 +25,7 @@ def execute_DEMsDownstreamCorrection(ends_polygons_dir, dem_bridges_dir, output_
     for poly in polylist:
 
         rastername = os.path.splitext(poly)[0]
-        print rastername
+        print (rastername)
         dem = os.path.join(dem_bridges_dir, rastername)
         arcpy.env.extent = dem
 

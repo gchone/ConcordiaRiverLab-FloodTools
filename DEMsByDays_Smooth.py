@@ -24,7 +24,7 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
     flowdir_output = arcpy.CreateScratchName("rfdir", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
 
     for raster in rasterlist:
-        print raster
+        print (raster)
 
         # add 10000m all around the raster, and put NoData at the downstream ends
         downends = os.path.join(ends_polygons_dir, raster)

@@ -44,7 +44,7 @@ def execute_BedAssessment(r_flowdird4, str_frompoint, r_width, r_zwater, manning
         downstream_end = True
         while not enditeration:
             iteration += 1
-            print iteration
+            print (iteration)
 
             # 1D hydraulic calculations
             prevsegid = 0

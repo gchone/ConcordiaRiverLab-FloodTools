@@ -23,7 +23,7 @@ def execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe,
     rasterlist = arcpy.ListRasters()
 
     for raster in rasterlist:
-        print raster
+        print (raster)
 
         channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
 

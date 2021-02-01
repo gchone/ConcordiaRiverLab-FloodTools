@@ -86,7 +86,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
                     csdata.run_num = 0
 
 
-    print runlist
+    print (runlist)
 
     # 1D hydraulic calculations
     # .wslidar: water surface measured on the LiDAR (do not change)
@@ -95,8 +95,8 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
     for raster_name, run_num in runlist:
         # iterate through each "run"
-        print raster_name
-        print run_num
+        print (raster_name)
+        print (run_num)
         dem_reached = False
         results_dict = {}
 
@@ -247,7 +247,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
                             cscorrect.z = cscorrect.z - correcteddif
                         enditeration = False
 
-        print iteration
+        print (iteration)
 
 
 
