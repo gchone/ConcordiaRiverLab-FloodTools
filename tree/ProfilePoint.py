@@ -24,7 +24,7 @@ import collections
 class ProfilePoint(object):
 
 
-    def __init__(self, row, col, dist, dictdata):
+    def __init__(self, X, Y, dist, dictdata):
         #zlidar, width, n, Q:
         #   dist : float - distance (en m) jusqu'à la section aval
         #   zbed : float - elevation du lit (en m)
@@ -33,8 +33,8 @@ class ProfilePoint(object):
         for key, elem in dictdata.items():
             self.__dict__[key] = elem
 
-        self.row = row
-        self.col = col
+        self.X = X
+        self.Y = Y
         # dist = distance to downstream point
         self.dist=dist
 
@@ -49,7 +49,7 @@ class ProfilePoint_data(object):
 
 class ProfilePointMulti(ProfilePoint):
 
-    def __init__(self, row, col, dist, dictdata):
+    def __init__(self, X, Y, dist, dictdata):
 
         # zlidar, width, n, Q:
         #   dist : float - distance (en m) jusqu'à la section aval
@@ -62,8 +62,8 @@ class ProfilePointMulti(ProfilePoint):
             # passed to the __ProfilePoint_data, but kept in the ProfilePointMulti in read only
             self.data_dict[raster_name] = ProfilePoint_data(dist, subdict)
 
-        self.row = row
-        self.col = col
+        self.X = X
+        self.Y = Y
 
     def __setattr__(self, key, value):
         if key == "dist":
