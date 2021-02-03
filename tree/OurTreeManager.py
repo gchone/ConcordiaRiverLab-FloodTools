@@ -116,49 +116,73 @@ class OurTreeManager(TreeManager.TreeManager):
 
         # add ProfilePoints
         for segment in self.treesegments():
-            segment.__ptsprofile = []
+            #segment.__ptsprofile = []
 
             dictdata_byptsid = {}
             firstsourcepoints = True
+
             for sourcepoints in sourcepointslist:
+                sourcepointsname = os.path.splitext(sourcepoints)[0]
 
                 sourcepointsid_name = arcpy.Describe(sourcepoints).OIDFieldName
-                numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, [sourcepointsid_name, routeID_field,
-                                                                             distance_field].extend(dict_fields.values))
-                listpts = np.sort(numpydata[numpydata[routeID_field] == segment.id], order=distance_field)
+                listfields = [sourcepointsid_name, routeID_field, distance_field, X_field, Y_field]
+                listfields.extend(dict_fields.values())
+                numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, listfields)
+                listpts = numpydata[numpydata[routeID_field] == segment.id]
+
                 for pts in listpts:
                     if firstsourcepoints:
-                        firstsourcepoints = False
                         dictdata = {}
-                        dictdata[sourcepoints] = {}
                         dictdata_byptsid[pts[sourcepointsid_name]] = dictdata
                     else:
                         dictdata = dictdata_byptsid[pts[sourcepointsid_name]]
-                    for key, value in dict_fields:
-                        dictdata[sourcepoints][key] = pts[value]
+                    dictdata[sourcepointsname] = {}
+                    for key, value in dict_fields.items():
+                        dictdata[sourcepointsname][key] = pts[value]
+                firstsourcepoints = False
                 lastlistpts = listpts
 
-            for ptid, ptdictdata in dictdata_byptsid:
+            for ptid, ptdictdata in dictdata_byptsid.items():
                 numpyrow = lastlistpts[lastlistpts[sourcepointsid_name] == ptid]
-                ptprofile = ProfilePoint.ProfilePointMulti(numpyrow[X_field], numpyrow[Y_field], numpyrow[distance_field], ptdictdata)
-                segment.__ptsprofile.append(ptprofile)
+                ptprofile = ProfilePoint.ProfilePointMulti(numpyrow[X_field][0], numpyrow[Y_field][0], numpyrow[distance_field][0], ptdictdata)
+                segment.add_ptprofile_inorder(ptprofile)
+
+    def save_multipoints(self, targetpoints_dir, value_name, spatial_ref):
+
+        dict_save = {}
+        for segment in self.treesegments():
+            for pt in segment.get_profile():
+                for rastername, data in pt.data_dict.items():
+                    if not dict_save.has_key(rastername):
+                        dict_save[rastername] = []
+                    if hasattr(data, value_name):
+                        dict_save[rastername].append([pt.X, pt.Y, getattr(data, value_name)])
+
+        for key, data in dict_save.items():
+
+            arcpy.CreateFeatureclass_management(targetpoints_dir,
+                                                os.path.basename(key), "POINT",
+                                                spatial_reference=spatial_ref)
+            str_output_points = os.path.join(targetpoints_dir, key+".shp")
+            arcpy.AddField_management(str_output_points, "value", "FLOAT")
+            pointcursor = arcpy.da.InsertCursor(str_output_points, ["SHAPE@XY", "value"])
+            for X, Y, value in data:
+                pointcursor.insertRow([(X, Y), value])
 
 
 
 
-
-
-def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field):
+def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field, routeID_field):
 
 
     if check_orientation:
         # if the dowstreamn point is a "End" point, orientation is good (=True)
         treeseg.orientation = downstream_junction["ENDTYPE"] == "End"
     else:
-        treeseg.length = np_net[np_net[netid_name] == treeseg.id][length_field][0]
+        treeseg.length = np_net[np_net[netid_name] == treeseg.shapeid][length_field][0]
 
     # Find the upstreams junction for the current reach
-    condition1 = np_junctions["ORIG_FID"] == treeseg.id
+    condition1 = np_junctions["ORIG_FID"] == treeseg.shapeid
     condition2 = np_junctions["FEAT_SEQ"] <> downstream_junction["FEAT_SEQ"]
     upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
 
@@ -170,20 +194,22 @@ def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orien
 
     for downstream_junction in downstream_junctions:
 
-            newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
-            treeseg.add_child(newtreeseg)
+        id = np_net[np_net[netid_name] == downstream_junction["ORIG_FID"]][routeID_field][0]
+        newtreeseg = OurTreeSegment(id)
+        newtreeseg.shapeid = downstream_junction["ORIG_FID"]
+        treeseg.add_child(newtreeseg)
 
-            __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field)
+        __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field, routeID_field)
 
     return
 
 
 
 def build_trees(rivernet, routeID_field, length_field):
-    __generic_build_trees(rivernet, routeID_field, oriented=True, downstream_reach_field=None, length_field=length_field)
+    return __generic_build_trees(rivernet, routeID_field, oriented=True, downstream_reach_field=None, length_field=length_field)
 
 def nonoriented_build_trees(rivernet, routeID_field, downstream_reach_field):
-    __generic_build_trees(rivernet, routeID_field, oriented=False, downstream_reach_field=downstream_reach_field, length_field=None)
+    return __generic_build_trees(rivernet, routeID_field, oriented=False, downstream_reach_field=downstream_reach_field, length_field=None)
 
 def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_field, length_field):
     """
@@ -234,28 +260,31 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
     netid_name = arcpy.Describe(rivernet).OIDFieldName
     if not oriented:
         # get a list of id of downstream reaches
-        np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, downstream_reach_field])
+        np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, downstream_reach_field, routeID_field])
         net_down_id = np.extract(np_net[downstream_reach_field] == 1, np_net)[netid_name]
         # select only the junction from this list
         condition2 = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
     if oriented:
         # just take the 'End' ones
-        np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, length_field])
+        np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, length_field, routeID_field])
         condition2 = np_junctions["ENDTYPE"] == "End"
     downstream_junctions = np.extract(np.logical_and(condition, condition2), np_junctions)
 
+
+
     for downstream_junction in downstream_junctions:
 
-            newtreeseg = OurTreeSegment(downstream_junction["ORIG_FID"])
-            newtree = OurTreeManager()
-            newtree.treeroot = newtreeseg
+        id = np_net[np_net[netid_name] == downstream_junction["ORIG_FID"]][routeID_field][0]
+        newtreeseg = OurTreeSegment(id)
+        newtree = OurTreeManager()
+        newtree.treeroot = newtreeseg
+        newtreeseg.shapeid = downstream_junction["ORIG_FID"]
+        newtree.net = rivernet
+        #newtree.routeID_field = routeID_field
 
-            newtree.net = rivernet
-            newtree.routeID_field = routeID_field
+        trees.append(newtree)
 
-            trees.append(newtree)
-
-            __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, netid_name, length_field)
+        __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, netid_name, length_field, routeID_field)
 
     arcpy.Delete_management(junctions)
     arcpy.Delete_management(junctions_table)

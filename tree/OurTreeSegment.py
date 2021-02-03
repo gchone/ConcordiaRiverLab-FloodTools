@@ -46,6 +46,10 @@ class OurTreeSegment(TreeSegment.TreeSegment):
         #   profilept : ProfilePoint - point du profil transversal à ajouter
         self.__ptsprofile.insert(0,profilept)
 
+    def add_ptprofile_inorder(self, profilept):
+        #   profilept : ProfilePoint - point du profil transversal à ajouter
+        self.__ptsprofile.append(profilept)
+
     def fork(self, segment, newid, ptprofil):
         # the current segment become the downstream (parent) one
         # the added segment is a child

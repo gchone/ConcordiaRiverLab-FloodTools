@@ -23,7 +23,7 @@ from SolverLisflood import *
 import copy
 
 
-def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages):
+def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages):
     # Work as BedAssessment with the following modifications:
     # - width, zwater and Q are folders, with rasters within for each day of LiDAR acquisition (same name for the
     #   rasters of the same day in the different folders)
@@ -34,25 +34,12 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
     # - The results (bed elevation) are also for each day of LiDAR acquisition, so it's a folder to.
 
 
-    flowdir = RasterIO(r_flowdir)
-    width_dict = {}
-    arcpy.env.workspace = width_dir
-    rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        width_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
-    zwater_dict = {}
-    arcpy.env.workspace = zwater_dir
-    rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        zwater_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
-    Q_dict = {}
-    arcpy.env.workspace = Q_dir
-    rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        Q_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
+    dict_fields = { "width":"width", "wslidar":"ws", "Q":"Q"}
+    trees = build_trees(routes, "RouteID", "LENGTH_GEO")
+    for tree in trees:
+        print (tree)
+        tree.load_multipoints(ptsfolder, "RouteID", "dist", "POINT_X", "POINT_Y", dict_fields)
 
-
-    trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict)
     #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_bec.pkl", "wb"), protocol=2)
 
     #trees = pickle.load(open(r"D:\InfoCrue\tmp\savetreebed_v6.pkl", "rb"))
@@ -69,14 +56,14 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
             for raster_name, csdata in cs.data_dict.items():
-                if csdata.wslidar != zwater_dict[raster_name].nodata:
+                if csdata.wslidar != -9999:
                     cs.valid_data = True
                     if prev_cs is None:
                         current_run_num +=1
                         runlist.append((raster_name, current_run_num))
                         csdata.run_num = current_run_num
                     else:
-                        if prev_cs.data_dict[raster_name].wslidar == zwater_dict[raster_name].nodata:
+                        if prev_cs.data_dict[raster_name].wslidar == -9999:
                             current_run_num += 1
                             runlist.append((raster_name, current_run_num))
                             csdata.run_num = current_run_num
@@ -249,24 +236,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
         print (iteration)
 
-
-
-    results_dict = {}
-    arcpy.env.workspace = width_dir
-    rasterlist = arcpy.ListRasters()
-    for str_raster in rasterlist:
-        raster = arcpy.Raster(str_raster)
-        results_dict[raster.name] = RasterIO(r_flowdir, os.path.join(result_dir, raster.name), float, -255)
-
-        for tree in trees:
-            for segment in tree.treesegments():
-                for pt in segment.get_profile():
-                    if pt.data_dict[raster.name].wslidar != zwater_dict[raster.name].nodata:
-                        # saving results only where the DEMs are
-                        results_dict[raster.name].setValue(pt.row, pt.col, pt.data_dict[raster.name].z)
-
-        results_dict[raster.name].save()
-
+        tree.save_multipoints(outptsfolder, "z", arcpy.Describe(routes).spatialReference)
 
     return
 
@@ -284,29 +254,31 @@ class Messages():
 
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
-
+    arcpy.env.overwriteOutput = True
+    messages = Messages()
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
-    str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
-    zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWSD4"
+
+
+    #r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
+    #str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
+    #width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
+    #zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWSD4"
     manning = 0.03
     #result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\BedAssessmentD4Res"
-    result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
-    Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
+    #result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
+    #Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
     downstream_s = 0.0001
-    # r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
-    # str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    # width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\width"
-    # zwater_dir =r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\ws"
-    # manning = 0.03
-    # result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\res"
-    # Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\q"
-    # downstream_s = 0.0001
 
 
+    frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
+    #flowdir = arcpy.Raster(r"D:\InfoCrue\Refontebathy\Inputs\d4fd")
+    ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
+    routes = r"D:\InfoCrue\Refontebathy\routesflowdir2.shp"
     messages = Messages()
 
-    execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir,
-                                  downstream_s, messages)
+    outptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\OutPoints"
+
+    execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
+
+    #execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages)
 
