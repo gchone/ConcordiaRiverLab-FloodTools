@@ -160,8 +160,9 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                                         os.path.basename(str_output_points), "POINT", spatial_reference=r_flowdir)
 
     arcpy.AddField_management(str_output_points, "dist", "FLOAT")
+    arcpy.AddField_management(str_output_points, "totald", "FLOAT")
     arcpy.AddField_management(str_output_points, routeID_field, "LONG")
-    pointcursor = arcpy.da.InsertCursor(str_output_points, ["SHAPE@XY", "dist", routeID_field])
+    pointcursor = arcpy.da.InsertCursor(str_output_points, ["SHAPE@XY", "dist", "totald", routeID_field])
 
     arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=r_flowdir)
     lines = "in_memory\LINES"
@@ -170,14 +171,14 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
     linecursor = arcpy.da.InsertCursor(lines, ["SHAPE@", routeID_field])
     for tree in trees:
         for segment in tree.treesegments():
-            #totaldist = 0
+            totaldist = 0
             vertices = []
             if not segment.is_root():
                 # les lignes commencent au dernier point du segment précédent
                 vertices.append(arcpy.Point(segment.get_parent().__ptsprofile[-1].X, segment.get_parent().__ptsprofile[-1].Y))
             for pt in segment.__ptsprofile:
-                #totaldist += pt.dist
-                pointcursor.insertRow([(pt.X, pt.Y), pt.dist, segment.id])
+                totaldist += pt.dist
+                pointcursor.insertRow([(pt.X, pt.Y), pt.dist, totaldist, segment.id])
                 vertices.append(arcpy.Point(pt.X, pt.Y))
             arc_vertices = arcpy.Array()
             vertices.reverse()
@@ -230,16 +231,16 @@ if __name__ == "__main__":
     arcpy.env.overwriteOutput = True
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    flowdir = arcpy.Raster(r"D:\InfoCrue\Refontebathy\Inputs\d4fd")
-    ptsout = r"D:\InfoCrue\Refontebathy\ptsflowdir2.shp"
-    routesout = r"D:\InfoCrue\Refontebathy\routesflowdir2.shp"
+    frompoints = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
+    flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
+    ptsout = r"D:\InfoCrue\tmp\testbed\ptsflowdir.shp"
+    routesout = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
     messages = Messages()
 
-    #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
 
-    ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
+    ptsfolder = r"D:\InfoCrue\tmp\testbed\PathPoints"
     Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
-    width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4b"
+    width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
     ws_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\ResultWSD4"
     execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)

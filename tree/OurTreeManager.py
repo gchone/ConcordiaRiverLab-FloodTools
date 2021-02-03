@@ -109,7 +109,7 @@ class OurTreeManager(TreeManager.TreeManager):
 
 
 
-    def load_multipoints(self, sourcepoints_dir, routeID_field, distance_field, X_field, Y_field, dict_fields):
+    def load_multipoints(self, sourcepoints_dir, routeID_field, distance_field, ordering_dist_field, X_field, Y_field, dict_fields):
 
         arcpy.env.workspace = sourcepoints_dir
         sourcepointslist = arcpy.ListFeatureClasses()
@@ -125,10 +125,11 @@ class OurTreeManager(TreeManager.TreeManager):
                 sourcepointsname = os.path.splitext(sourcepoints)[0]
 
                 sourcepointsid_name = arcpy.Describe(sourcepoints).OIDFieldName
-                listfields = [sourcepointsid_name, routeID_field, distance_field, X_field, Y_field]
+                listfields = [sourcepointsid_name, routeID_field, distance_field, ordering_dist_field, X_field, Y_field]
                 listfields.extend(dict_fields.values())
                 numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, listfields)
-                listpts = numpydata[numpydata[routeID_field] == segment.id]
+                listpts = np.flipud(np.sort(numpydata[numpydata[routeID_field] == segment.id], order=ordering_dist_field))
+
 
                 for pts in listpts:
                     if firstsourcepoints:

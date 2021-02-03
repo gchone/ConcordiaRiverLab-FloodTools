@@ -38,7 +38,7 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
     trees = build_trees(routes, "RouteID", "LENGTH_GEO")
     for tree in trees:
         print (tree)
-        tree.load_multipoints(ptsfolder, "RouteID", "dist", "POINT_X", "POINT_Y", dict_fields)
+        tree.load_multipoints(ptsfolder, "RouteID", "dist", "totald", "POINT_X", "POINT_Y", dict_fields)
 
     #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_bec.pkl", "wb"), protocol=2)
 
@@ -259,26 +259,20 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
 
 
-    #r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
-    #str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    #width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
-    #zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWSD4"
+
+    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+
+
     manning = 0.03
-    #result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\BedAssessmentD4Res"
-    #result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
-    #Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
+
+
     downstream_s = 0.0001
 
-
     frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    #flowdir = arcpy.Raster(r"D:\InfoCrue\Refontebathy\Inputs\d4fd")
-    ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
-    routes = r"D:\InfoCrue\Refontebathy\routesflowdir2.shp"
+    ptsfolder = r"D:\InfoCrue\tmp\testbed\PathPoints"
+    routes = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\OutPoints"
+    outptsfolder = r"D:\InfoCrue\tmp\testbed\OutPoints"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
-
-    #execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages)
-
