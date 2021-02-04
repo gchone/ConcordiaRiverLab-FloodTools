@@ -275,6 +275,6 @@ if __name__ == "__main__":
     routes = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\tmp\testbed\OutPoints"
+    outptsfolder = r"D:\InfoCrue\tmp\testbed\OutPoints2"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
