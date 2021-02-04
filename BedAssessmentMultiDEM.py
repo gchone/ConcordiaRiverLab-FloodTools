@@ -270,7 +270,7 @@ if __name__ == "__main__":
 
     downstream_s = 0.0001
 
-    frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
+    #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
     ptsfolder = r"D:\InfoCrue\tmp\testbed\PathPoints"
     routes = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
     messages = Messages()

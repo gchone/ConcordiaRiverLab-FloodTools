@@ -243,4 +243,5 @@ if __name__ == "__main__":
     Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
     width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
     ws_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\ResultWSD4"
+
     execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)
