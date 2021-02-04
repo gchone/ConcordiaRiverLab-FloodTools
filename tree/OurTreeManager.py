@@ -117,7 +117,7 @@ class OurTreeManager(TreeManager.TreeManager):
         # add ProfilePoints
         for segment in self.treesegments():
             #segment.__ptsprofile = []
-
+            listid = []
             dictdata_byptsid = {}
             firstsourcepoints = True
 
@@ -128,6 +128,7 @@ class OurTreeManager(TreeManager.TreeManager):
                 listfields = [sourcepointsid_name, routeID_field, distance_field, ordering_dist_field, X_field, Y_field]
                 listfields.extend(dict_fields.values())
                 numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, listfields)
+
                 listpts = np.flipud(np.sort(numpydata[numpydata[routeID_field] == segment.id], order=ordering_dist_field))
 
 
@@ -135,6 +136,7 @@ class OurTreeManager(TreeManager.TreeManager):
                     if firstsourcepoints:
                         dictdata = {}
                         dictdata_byptsid[pts[sourcepointsid_name]] = dictdata
+                        listid.append(pts[sourcepointsid_name])
                     else:
                         dictdata = dictdata_byptsid[pts[sourcepointsid_name]]
                     dictdata[sourcepointsname] = {}
@@ -143,10 +145,11 @@ class OurTreeManager(TreeManager.TreeManager):
                 firstsourcepoints = False
                 lastlistpts = listpts
 
-            for ptid, ptdictdata in dictdata_byptsid.items():
+            for ptid in listid:
                 numpyrow = lastlistpts[lastlistpts[sourcepointsid_name] == ptid]
-                ptprofile = ProfilePoint.ProfilePointMulti(numpyrow[X_field][0], numpyrow[Y_field][0], numpyrow[distance_field][0], ptdictdata)
+                ptprofile = ProfilePoint.ProfilePointMulti(numpyrow[X_field][0], numpyrow[Y_field][0], numpyrow[distance_field][0],  dictdata_byptsid[ptid])
                 segment.add_ptprofile_inorder(ptprofile)
+
 
     def save_multipoints(self, targetpoints_dir, value_name, spatial_ref):
 
