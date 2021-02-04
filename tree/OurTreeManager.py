@@ -145,6 +145,7 @@ class OurTreeManager(TreeManager.TreeManager):
                 firstsourcepoints = False
                 lastlistpts = listpts
 
+            listid.reverse()
             for ptid in listid:
                 numpyrow = lastlistpts[lastlistpts[sourcepointsid_name] == ptid]
                 ptprofile = ProfilePoint.ProfilePointMulti(numpyrow[X_field][0], numpyrow[Y_field][0], numpyrow[distance_field][0],  dictdata_byptsid[ptid])

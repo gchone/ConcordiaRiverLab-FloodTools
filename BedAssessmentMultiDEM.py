@@ -55,6 +55,8 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
     for tree in trees:
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
+            if segment.id == 21 or segment.id == 20:
+                pass
             for raster_name, csdata in cs.data_dict.items():
                 if csdata.wslidar != -9999:
                     cs.valid_data = True
