@@ -1,7 +1,7 @@
 # coding: latin-1
 
 # v0.2 Nov 2020. Clarification du nom des variables
-
+# v0.21 Nov 2020. Avec un vrai solver
 
 # Solver sous-critique uniquement
 
