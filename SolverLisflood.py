@@ -21,6 +21,7 @@ def manning_solver(cs):
         return manning
 
     cs.y = fsolve(equations, 1)[0]
+
     cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
 
 

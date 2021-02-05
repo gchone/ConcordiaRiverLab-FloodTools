@@ -231,17 +231,17 @@ if __name__ == "__main__":
     arcpy.env.overwriteOutput = True
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    frompoints = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
-    ptsout = r"D:\InfoCrue\tmp\testbed\ptsflowdir.shp"
-    routesout = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
+    frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
+    flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
+    ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
+    routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
     messages = Messages()
 
     execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
 
-    ptsfolder = r"D:\InfoCrue\tmp\testbed\PathPoints"
-    Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
-    width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
-    ws_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\ResultWSD4"
+    ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
+    Q_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Q"
+    width_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\W"
+    ws_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Z"
 
     execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)

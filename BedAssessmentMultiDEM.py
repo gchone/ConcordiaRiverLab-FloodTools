@@ -55,8 +55,6 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
     for tree in trees:
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
-            if segment.id == 21 or segment.id == 20:
-                pass
             for raster_name, csdata in cs.data_dict.items():
                 if csdata.wslidar != -9999:
                     cs.valid_data = True
@@ -179,6 +177,7 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
                         else:
 
                             cs_solver(csdata, prev_cs.data_dict[raster_name])
+
                             csdata.solver = "regular"
 
                         csdata.ws_before_correction = csdata.ws
@@ -271,10 +270,10 @@ if __name__ == "__main__":
     downstream_s = 0.0001
 
     #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    ptsfolder = r"D:\InfoCrue\tmp\testbed\PathPoints"
-    routes = r"D:\InfoCrue\tmp\testbed\routesflowdir.shp"
+    ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
+    routes = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\tmp\testbed\OutPoints2"
+    outptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\OutPoints"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
