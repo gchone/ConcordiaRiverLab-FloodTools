@@ -27,6 +27,10 @@ class OurTreeSegment(TreeSegment.TreeSegment):
     def get_profile(self):
         return self.__ptsprofile
 
+    def set_profile(self, profile):
+        self.__ptsprofile = profile
+        return
+
     def get_ptprofile_pos(self, cs):
         #   retour de la méthode : position du ProfilePoint
         return self.__ptsprofile.index(cs)

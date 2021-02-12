@@ -9,25 +9,15 @@
 from tree.OurTreeManager import *
 from RasterIO import *
 
-
-def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeID_field, str_output_points, messages):
-    """
-    Create a tree structure following the Flow Direction from the From points.
-
-    :param r_flowdir:
-    :param str_frompoints:
-    :param str_output_routes:
-    :param str_output_points:
-    :return:
-    """
+def load_trees_from_FlowDir(r_flowdir, str_frompoints):
     flowdir = RasterIO(r_flowdir)
     trees = []
     segmentid = 0
 
     treated_pts = {}
 
-    class tmp_ProfilePoint(object):
-        pass
+    #class tmp_ProfilePoint(object):
+    #   pass
 
     # Traitement effectué pour chaque point de départ
     frompointcursor = arcpy.da.SearchCursor(str_frompoints, ["SHAPE@", "OID@"])
@@ -54,21 +44,20 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
 
         segmentid += 1
         newtreeseg = OurTreeSegment(segmentid)
-        newtreeseg.__ptsprofile = []
-
 
         # Traitement effectué sur chaque cellule le long de l'écoulement
         while (intheraster):
 
-            ptprofile = tmp_ProfilePoint()
+            ptprofile = ProfilePoint.ProfilePoint(newtreeseg, flowdir.ColtoX(currentcol), flowdir.RowtoY(currentrow), 0, {})
 
-            ptprofile.X = flowdir.ColtoX(currentcol)
-            ptprofile.Y = flowdir.RowtoY(currentrow)
+            #ptprofile.X = flowdir.ColtoX(currentcol)
+            #ptprofile.Y = flowdir.RowtoY(currentrow)
             ptprofile.row = currentrow
             ptprofile.col = currentcol
 
-            newtreeseg.__ptsprofile.insert(0, ptprofile)
-            treated_pts[(currentrow, currentcol)] = newtreeseg
+
+            treated_pts[(currentrow, currentcol)] = ptprofile
+            newtreeseg.get_profile().insert(0, ptprofile)
 
             # On cherche le prochain point à partir du flow direction
             direction = flowdir.getValue(currentrow, currentcol)
@@ -105,8 +94,6 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                 currentdistance = math.sqrt(
                     flowdir.raster.meanCellWidth * flowdir.raster.meanCellWidth + flowdir.raster.meanCellHeight * flowdir.raster.meanCellHeight)
 
-
-
             # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
                 intheraster = False
@@ -119,14 +106,19 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                 currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
                 intheraster = False
 
+
             if intheraster:
                 ptprofile.dist = currentdistance
+
+
                 if (currentrow, currentcol) in treated_pts:
+                    existingpt = treated_pts[(currentrow, currentcol)]
                     # Atteinte d'un confluent
                     intheraster = False
                     segmentid += 1
                     # on cherche l'arbre et le segment que l'on vient de rejoindre
-                    oldsegment = treated_pts[(currentrow, currentcol)]
+                    #oldsegment = treated_pts[(currentrow, currentcol)]
+                    oldsegment = existingpt.segment
 
                     # fork
                     newchild = OurTreeSegment(segmentid)
@@ -139,12 +131,17 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                     oldsegment.add_child(newchild)
                     oldsegment.add_child(newtreeseg)
 
-                    for i in range(len(oldsegment.__ptsprofile)):
-                        pt = oldsegment.__ptsprofile[i]
+                    for i in range(len(oldsegment.get_profile())):
+                        pt = oldsegment.get_profile()[i]
                         if pt.row == currentrow and pt.col == currentcol:
-                           break
-                    newchild.__ptsprofile = oldsegment.__ptsprofile[i + 1:]
-                    oldsegment.__ptsprofile = oldsegment.__ptsprofile[:i + 1]
+                            break
+                    newchild.set_profile(oldsegment.get_profile()[i + 1:])
+                    oldsegment.set_profile(oldsegment.get_profile()[:i + 1])
+                    for pt in newchild.get_profile():
+                        pt.segment = newchild
+
+
+
 
 
             else:
@@ -153,8 +150,17 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                 tree.treeroot = newtreeseg
                 trees.append(tree)
 
-    for tree in trees:
-        print (tree)
+
+    return trees
+
+def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeID_field, str_output_points, messages):
+    """
+    Create a tree structure following the Flow Direction from the From points.
+
+
+    """
+
+    trees = load_trees_from_FlowDir(r_flowdir, str_frompoints)
 
     arcpy.CreateFeatureclass_management(os.path.dirname(str_output_points),
                                         os.path.basename(str_output_points), "POINT", spatial_reference=r_flowdir)
@@ -175,8 +181,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
             vertices = []
             if not segment.is_root():
                 # les lignes commencent au dernier point du segment précédent
-                vertices.append(arcpy.Point(segment.get_parent().__ptsprofile[-1].X, segment.get_parent().__ptsprofile[-1].Y))
-            for pt in segment.__ptsprofile:
+                vertices.append(arcpy.Point(segment.get_parent().get_profile()[-1].X, segment.get_parent().get_profile()[-1].Y))
+            for pt in segment.get_profile():
                 totaldist += pt.dist
                 pointcursor.insertRow([(pt.X, pt.Y), pt.dist, totaldist, segment.id])
                 vertices.append(arcpy.Point(pt.X, pt.Y))
@@ -231,17 +237,50 @@ if __name__ == "__main__":
     arcpy.env.overwriteOutput = True
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
-    flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
-    ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
-    routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
+    frompoints = r"D:\InfoCrue\Chaudiere\dep_pts.shp"
+    flowdir = arcpy.Raster(r"D:\InfoCrue\Chaudiere\lidar10m_fd")
+
     messages = Messages()
 
-    execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    from datetime import datetime
 
-    ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
-    Q_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Q"
-    width_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\W"
-    ws_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Z"
+    now = datetime.now()
 
-    execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)
+
+    trees = load_trees_from_FlowDir(flowdir, frompoints)
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)
+
+    ptsout = r"D:\InfoCrue\Chaudiere\testtree\ptsflowdir.shp"
+    routesout = r"D:\InfoCrue\Chaudiere\testtree\routesflowdir.shp"
+
+    i = 0
+    for tree in trees:
+        for segment, prev, cs in tree.browsepts():
+            i += 1
+    #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    print i
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)
+
+    # arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    # frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
+    # #flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
+    # ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
+    # routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
+    # messages = Messages()
+    #
+    # #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    #
+    # ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
+    # Q_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Q"
+    # width_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\W"
+    # ws_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Z"
+
+    #execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)

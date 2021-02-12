@@ -24,7 +24,7 @@ import collections
 class ProfilePoint(object):
 
 
-    def __init__(self, X, Y, dist, dictdata):
+    def __init__(self, segment, X, Y, dist, dictdata):
         #zlidar, width, n, Q:
         #   dist : float - distance (en m) jusqu'à la section aval
         #   zbed : float - elevation du lit (en m)
@@ -33,6 +33,7 @@ class ProfilePoint(object):
         for key, elem in dictdata.items():
             self.__dict__[key] = elem
 
+        self.segment = segment
         self.X = X
         self.Y = Y
         # dist = distance to downstream point

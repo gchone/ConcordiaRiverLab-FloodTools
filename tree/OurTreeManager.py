@@ -91,6 +91,7 @@ class OurTreeManager(TreeManager.TreeManager):
                 yield l, m, n
 
 
+
     # def __recursivetreepts_bypriority(self, treesegment, priority_attribute):
     #     if treesegment.is_root():
     #         yield treesegment, None, treesegment.get_profile()[0]
