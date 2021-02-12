@@ -47,9 +47,9 @@ def execute_Resample(smoothed_dir, dem3m_dir, flow_dir, frompoints_dir, prefixe,
 
         execute_Breach(arcpy.Raster(temp_tobreach), arcpy.Raster(flowdir_output), str_frompoints, result, messages)
 
-    #arcpy.Delete_management(flowdir_output)
-    #arcpy.Delete_management(temp_resample)
-    #arcpy.Delete_management(temp_tobreach)
+    arcpy.Delete_management(flowdir_output)
+    arcpy.Delete_management(temp_resample)
+    arcpy.Delete_management(temp_tobreach)
 
 class Messages():
     def addErrorMessage(self, text):
