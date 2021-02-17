@@ -270,10 +270,10 @@ if __name__ == "__main__":
     downstream_s = 0.0001
 
     #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
-    routes = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
+    ptsfolder = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\bed_pathpoints"
+    routes = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\OutPoints"
+    outptsfolder = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\testbed"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
