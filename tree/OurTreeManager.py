@@ -214,11 +214,7 @@ def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
             if intheraster:
                 if (currentrow, currentcol) in treated_pts:
                     # Atteinte d'un confluent
-                    nextcellsegment = treated_pts[(currentrow, currentcol)]
                     intheraster = False
-                    # tree.get_treesegment(nextcellsegment).add_child(fp_tree)
-                    # confluence = True
-                    # confluenceid = nextcellsegment
                     segmentid += 1
                     # on cherche l'arbre et le segment que l'on vient de rejoindre
                     for tree in trees:
@@ -227,8 +223,9 @@ def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
                             break
                     oldsegment.fork(newtreeseg, segmentid, ptprofile)
                     # update des treated_pts
-                    for pt in tree.get_treesegment(segmentid).get_profile():
-                        treated_pts[(pt.row, pt.col)] = segmentid
+                    for tree in trees:
+                        for pt in tree.get_treesegment(segmentid).get_profile():
+                            treated_pts[(pt.row, pt.col)] = segmentid
 
 
 
