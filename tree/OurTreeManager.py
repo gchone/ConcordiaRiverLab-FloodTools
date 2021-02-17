@@ -125,7 +125,7 @@ class OurTreeManager(TreeManager.TreeManager):
             for sourcepoints in sourcepointslist:
                 sourcepointsname = os.path.splitext(sourcepoints)[0]
 
-                sourcepointsid_name = arcpy.Describe(sourcepoints).OIDFieldName
+                sourcepointsid_name = "PointID"
                 listfields = [sourcepointsid_name, routeID_field, distance_field, ordering_dist_field, X_field, Y_field]
                 listfields.extend(dict_fields.values())
                 numpydata = arcpy.da.FeatureClassToNumPyArray(sourcepoints, listfields)

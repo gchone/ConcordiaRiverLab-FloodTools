@@ -203,6 +203,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
     arcpy.AddGeometryAttributes_management(str_output_routes, "LENGTH_GEODESIC")
 
     arcpy.AddXY_management(str_output_points)
+    arcpy.AddField_management(str_output_points, "PointID", "LONG")
+    arcpy.CalculateField_management(str_output_points, "PointID",  "!" + arcpy.Describe(str_output_points).OIDFieldName + "!", "PYTHON")
 
 
 def execute_Q_width_ws_to_shapefile(pts, Q_dir, width_dir, ws_dir, output_folder, messages):
@@ -262,7 +264,7 @@ if __name__ == "__main__":
     for tree in trees:
         for segment, prev, cs in tree.browsepts():
             i += 1
-    #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
     print i
 
     now = datetime.now()
