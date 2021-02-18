@@ -23,7 +23,7 @@ from SolverLisflood import *
 import copy
 
 
-def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages):
+def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages):
     # Work as BedAssessment with the following modifications:
     # - width, zwater and Q are folders, with rasters within for each day of LiDAR acquisition (same name for the
     #   rasters of the same day in the different folders)
@@ -35,16 +35,16 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
 
     flowdir = RasterIO(r_flowdir)
-    width_dict = {}
-    arcpy.env.workspace = width_dir
-    rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        width_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
+
     zwater_dict = {}
+    width = RasterIO(r_width)
+    width_dict = {}
     arcpy.env.workspace = zwater_dir
     rasterlist = arcpy.ListRasters()
     for raster in rasterlist:
         zwater_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
+        # creating the dictionnary for the width. Not a good solution to copy all these data
+        width_dict[arcpy.Raster(raster).name] = width
     Q_dict = {}
     arcpy.env.workspace = Q_dir
     rasterlist = arcpy.ListRasters()
@@ -252,7 +252,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_di
 
 
     results_dict = {}
-    arcpy.env.workspace = width_dir
+    arcpy.env.workspace = zwater_dir
     rasterlist = arcpy.ListRasters()
     for str_raster in rasterlist:
         raster = arcpy.Raster(str_raster)
@@ -286,12 +286,12 @@ if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
+    r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\Lidar10m_fd")
     str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    width_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Widthcalc\WidthD4"
-    zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWSD4"
+    r_width = arcpy.Raster(r"D:\InfoCrue\Etchemin\Widthcalc\Width")
+    zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWS"
     manning = 0.03
-    #result_dir = r"D:\InfoCrue\Etchemin\DEMbydays\wscorrectionprise4\BedAssessmentD4Res"
+
     result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
     Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
     downstream_s = 0.0001
@@ -307,6 +307,6 @@ if __name__ == "__main__":
 
     messages = Messages()
 
-    execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, width_dir, zwater_dir, manning, result_dir, Q_dir,
+    execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir, manning, result_dir, Q_dir,
                                   downstream_s, messages)
 
