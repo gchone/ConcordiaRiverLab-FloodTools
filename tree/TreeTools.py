@@ -239,8 +239,8 @@ if __name__ == "__main__":
     arcpy.env.overwriteOutput = True
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    frompoints = r"D:\InfoCrue\Chaudiere\dep_pts.shp"
-    flowdir = arcpy.Raster(r"D:\InfoCrue\Chaudiere\lidar10m_fd")
+    frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
+    flowdir = arcpy.Raster(r"D:\InfoCrue\Refontebathy\Inputs\d4fd")
 
     messages = Messages()
 
@@ -257,8 +257,8 @@ if __name__ == "__main__":
     current_time = now.strftime("%H:%M:%S")
     print("Current Time =", current_time)
 
-    ptsout = r"D:\InfoCrue\Chaudiere\testtree\ptsflowdir.shp"
-    routesout = r"D:\InfoCrue\Chaudiere\testtree\routesflowdir.shp"
+    ptsout = r"D:\InfoCrue\Refontebathy\ptsflowdir.shp"
+    routesout = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
 
     i = 0
     for tree in trees:
@@ -271,18 +271,18 @@ if __name__ == "__main__":
     current_time = now.strftime("%H:%M:%S")
     print("Current Time =", current_time)
 
-    # arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    # frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
-    # #flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
-    # ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
-    # routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
-    # messages = Messages()
-    #
-    # #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
-    #
-    # ptsfolder = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\PathPoints"
-    # Q_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Q"
-    # width_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\W"
-    # ws_dir = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\Z"
+    #arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    #frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
+    #flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
+    #ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
+    #routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
+    #messages = Messages()
 
-    #execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)
+    #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+
+    ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
+    Q_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\q"
+    width_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\w"
+    ws_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\ws"
+
+    execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)

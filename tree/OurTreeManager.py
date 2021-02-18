@@ -80,12 +80,14 @@ class OurTreeManager(TreeManager.TreeManager):
                     yield csup
 
     def __recursivetreepts(self, treesegment):
-        if treesegment.is_root():
-            yield treesegment, None, treesegment.get_profile()[0]
-        else:
-            yield treesegment, treesegment.get_parent().get_profile()[-1], treesegment.get_profile()[0]
-        for i in range(1, len(treesegment.get_profile())):
-            yield treesegment, treesegment.get_profile()[i - 1], treesegment.get_profile()[i]
+        if len(treesegment.get_profile())>0:
+            if treesegment.is_root():
+                yield treesegment, None, treesegment.get_profile()[0]
+            else:
+                if len(treesegment.get_parent().get_profile())>0:
+                    yield treesegment, treesegment.get_parent().get_profile()[-1], treesegment.get_profile()[0]
+            for i in range(1, len(treesegment.get_profile())):
+                yield treesegment, treesegment.get_profile()[i - 1], treesegment.get_profile()[i]
         for child in treesegment.get_childrens():
             for l, m, n in self.__recursivetreepts(child):
                 yield l, m, n

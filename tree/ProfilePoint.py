@@ -41,15 +41,17 @@ class ProfilePoint(object):
 
 
 class ProfilePoint_data(object):
+    __slots__ = ["n", "Q", "z", "h", "width", "y", "s", "ws", "z_fill", "proxy_s", "ws_before_correction", "run_num", "dist", "wslidar", "dif", "idcorrection"]
     def __init__(self, dist, dictdata):
         self.dist = dist
         for key, elem in dictdata.items():
-            self.__dict__[key] = elem
+            setattr(self, key, elem)
+            #self.__dict__[key] = elem
 
 
 
 class ProfilePointMulti(ProfilePoint):
-
+    __slots__ = ["X", "Y", "dist", "data_dict", "row", "col"]
     def __init__(self, X, Y, dist, dictdata):
 
         # zlidar, width, n, Q:

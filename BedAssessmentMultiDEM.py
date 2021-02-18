@@ -117,15 +117,15 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
                         # downstream cs calculation
                         prevres_csdata.s = cs.proxy_s
                         manning_solver(prevres_csdata)
-                        prevres_csdata.v = prevres_csdata.Q / (prevres_csdata.width * prevres_csdata.y)
-                        prevres_csdata.h = prevres_csdata.z + prevres_csdata.y + prevres_csdata.v ** 2 / (2 * g)
-                        prevres_csdata.Fr = prevres_csdata.v / (g * prevres_csdata.y) ** 0.5
-                        prevres_csdata.solver = "manning"
-                        prevres_csdata.type = 0
+                        #prevres_csdata.v = prevres_csdata.Q / (prevres_csdata.width * prevres_csdata.y)
+                        #prevres_csdata.h = prevres_csdata.z + prevres_csdata.y + prevres_csdata.v ** 2 / (2 * g)
+                        #prevres_csdata.Fr = prevres_csdata.v / (g * prevres_csdata.y) ** 0.5
+                        #prevres_csdata.solver = "manning"
+                        #prevres_csdata.type = 0
 
                     else:
                         cs_solver(prevres_csdata, prev_cs.prevres_csdata)
-                        prevres_csdata.solver = "regular"
+                        #prevres_csdata.solver = "regular"
 
                         cs.proxy_s = prevres_csdata.s
                 else:
@@ -168,17 +168,17 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
 
                             csdata.s = cs.proxy_s
                             manning_solver(csdata)
-                            csdata.v = csdata.Q / (csdata.width * csdata.y)
-                            csdata.h = csdata.z + csdata.y + csdata.v ** 2 / (2 * g)
-                            csdata.Fr = csdata.v / (g * csdata.y) ** 0.5
-                            csdata.solver = "manning"
-                            csdata.type = 0
+                            #csdata.v = csdata.Q / (csdata.width * csdata.y)
+                            #csdata.h = csdata.z + csdata.y + csdata.v ** 2 / (2 * g)
+                            #csdata.Fr = csdata.v / (g * csdata.y) ** 0.5
+                            #csdata.solver = "manning"
+                            #csdata.type = 0
 
                         else:
 
                             cs_solver(csdata, prev_cs.data_dict[raster_name])
 
-                            csdata.solver = "regular"
+                            #csdata.solver = "regular"
 
                         csdata.ws_before_correction = csdata.ws
                         csdata.ws = csdata.z + csdata.y
@@ -275,5 +275,9 @@ if __name__ == "__main__":
     messages = Messages()
 
     outptsfolder = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\testbed"
+
+    #ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
+    #routes = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
+    #outptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\OutPoints"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)

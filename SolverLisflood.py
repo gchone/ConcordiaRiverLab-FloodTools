@@ -21,8 +21,9 @@ def manning_solver(cs):
         return manning
 
     cs.y = fsolve(equations, 1)[0]
-
-    cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
+    v = cs.Q / (cs.width * cs.y)
+    cs.h = cs.z + cs.y + v ** 2 / (2 * g)
+    #cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
 
 
 
@@ -34,7 +35,7 @@ def cs_solver(cs_up, cs_down):
 
     def equations(y):
 
-        if y < cs_tosolve.ycrit:
+        if y < ycrit:
             # constraint simulation
             return 9999
         R = (cs_tosolve.width * y) / (cs_tosolve.width + 2 * y)
@@ -46,17 +47,17 @@ def cs_solver(cs_up, cs_down):
         return energy
 
     # premier estimé : y = y_crit
-    cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
-    cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
+    ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
+    cs_tosolve.y = fsolve(equations, ycrit)[0]
 
 
 
-    cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
-    cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
+    R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
+    v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
     #cs_tosolve.h = cs_tosolve.z + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
     cs_tosolve.h = cs_tosolve.z + cs_tosolve.y
-    cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
-    cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
+    cs_tosolve.s = (cs_tosolve.n ** 2 * v ** 2) / (R ** (4. / 3.))
+    #cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
 
 
 
