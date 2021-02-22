@@ -224,8 +224,9 @@ def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
                     oldsegment.fork(newtreeseg, segmentid, ptprofile)
                     # update des treated_pts
                     for tree in trees:
-                        for pt in tree.get_treesegment(segmentid).get_profile():
-                            treated_pts[(pt.row, pt.col)] = segmentid
+                        if tree.get_treesegment(segmentid) is not None:
+                            for pt in tree.get_treesegment(segmentid).get_profile():
+                                treated_pts[(pt.row, pt.col)] = segmentid
 
 
 
