@@ -133,6 +133,8 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
                     # slope is passed through the cells, assuming a uniform flow
                     if prev_cs != None:
                         cs.proxy_s = prev_cs.proxy_s
+                        # If it's lakes, it's better to use the default value
+                        cs.proxy_s = downstream_s
                         if not prev_cs.valid_data and csdata.run_num == run_num:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
