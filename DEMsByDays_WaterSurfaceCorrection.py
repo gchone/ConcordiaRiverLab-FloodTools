@@ -22,12 +22,15 @@ def execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe,
     arcpy.env.workspace = correctedDEMs_dir
     rasterlist = arcpy.ListRasters()
 
+    started = False
     for raster in rasterlist:
         print (raster)
+        if raster == "dem_18_09_09":
+            started = True
+        if started:
+            channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
 
-        channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
-
-        execute_ChannelCorrection(arcpy.Raster(raster), polycuts, channelpoly, river_network, os.path.join(output_folder, raster), messages)
+            execute_ChannelCorrection2(arcpy.Raster(raster), polycuts, channelpoly, river_network, os.path.join(output_folder, raster), messages)
 
 
 
@@ -49,12 +52,12 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    correctedDEMs_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\CorrectedDEMs"
-    channel_poly_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\channel_poly"
+    correctedDEMs_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step2"
+    channel_poly_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\channelpoly"
     prefixe = "ch_"
-    polycuts = r"Z:\Projects\MSP\Etchemin\LisfloodJuly2020\Temp\polycuts_good.shp"
-    river_network = r"Z:\Projects\MSP\Etchemin\LisfloodJuly2020\rnetwork_d.shp"
-    output_folder = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEMforWS"
+    polycuts = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\focal_cuts"
+    river_network = r"D:\InfoCrue\Nicolet\BathyFev2021\reaches_line_modifg.shp"
+    output_folder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step3"
 
     execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe, polycuts, river_network, output_folder, messages)
 

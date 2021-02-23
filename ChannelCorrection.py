@@ -75,3 +75,47 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, breachedmnt,
     Delete(switchfilled)
     return
 
+
+def execute_ChannelCorrection2(demras, boundary, riverbed, rivernet, breachedmnt, messages):
+
+    arcpy.env.outputCoordinateSystem = demras.spatialReference
+    env.snapRaster = demras
+
+
+
+
+
+
+    env.extent = demras
+
+    rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    PolygonToRaster(riverbed, arcpy.Describe(riverbed).OIDFieldName, rasterbed, "CELL_CENTER", cellsize=demras)
+    rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    PolylineToRaster(rivernet, arcpy.Describe(rivernet).OIDFieldName, rasterline, cellsize=demras)
+
+    streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
+
+    bedwalls = FocalStatistics(streambed, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+
+    env.extent = bedwalls
+
+    chanelev = Con(streambed, demras)
+    chanmax = chanelev.maximum
+    chanwalls = chanelev.minimum - 100
+    switchtemp = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    switchelev = -1 * (Con(IsNull(streambed), Con(bedwalls, Con(IsNull(boundary), chanwalls)), chanelev) - chanmax)
+    switchelev.save(switchtemp)
+    Delete(chanelev)
+
+    switchfilled = Fill(switchtemp)
+    Delete(switchtemp)
+
+    env.extent = demras
+    breachedtemp = Con(IsNull(streambed), demras, (-1*switchfilled) + chanmax)
+    breachedtemp.save(breachedmnt)
+
+    Delete(bedwalls)
+    Delete(rasterline)
+    Delete(rasterbed)
+    Delete(switchfilled)
+    return

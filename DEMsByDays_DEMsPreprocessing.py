@@ -54,10 +54,10 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    dem1m_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Original1mdems"
-    bridges_poly = r"Z:\Projects\MSP\Etchemin\LisfloodJuly2020\Bridges_Polygon.shp"
+    dem1m_dir = r"D:\InfoCrue\Noire\bathy\dem1m"
+    bridges_poly = r"D:\InfoCrue\Noire\bridges_all.shp"
     river_tools_folder = r"F:\PyCharm\GISTools\RiversTools"
-    output_folder = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEM3m"
+    output_folder = r"D:\InfoCrue\Noire\bathy\dem3m"
 
     execute_DEMsPreprocessing(dem1m_dir, bridges_poly, river_tools_folder, output_folder, messages)
 

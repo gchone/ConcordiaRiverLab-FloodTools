@@ -63,12 +63,12 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    DEMsForWS_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEMforWS"
-    ends_polygons_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEMsOutputCorrections"
-    frompoints = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\FromPoints"
+    DEMsForWS_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step3"
+    ends_polygons_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\ends_poly"
+    frompoints = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\frompoints"
     prefixe = "fp_"
-    dems = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEM3m"
-    smoothed_output = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\Smoothed"
+    dems = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\dem3mb"
+    smoothed_output = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Smoothed"
 
 
 
