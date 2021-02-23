@@ -22,15 +22,14 @@ def execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe,
     arcpy.env.workspace = correctedDEMs_dir
     rasterlist = arcpy.ListRasters()
 
-    started = False
+
     for raster in rasterlist:
         print (raster)
         if raster == "dem_18_09_09":
-            started = True
-        if started:
-            channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
 
-            execute_ChannelCorrection2(arcpy.Raster(raster), polycuts, channelpoly, river_network, os.path.join(output_folder, raster), messages)
+        channelpoly = os.path.join(channel_poly_dir, prefixe+raster+".shp")
+
+        execute_ChannelCorrection2(arcpy.Raster(raster), polycuts, channelpoly, river_network, os.path.join(output_folder, raster), messages)
 
 
 
