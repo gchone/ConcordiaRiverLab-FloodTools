@@ -25,9 +25,11 @@ def execute_Resample(smoothed_dir, dem3m_dir, flow_dir, frompoints_dir, prefixe,
     arcpy.env.workspace = smoothed_dir
     rasterlist = arcpy.ListRasters()
 
-    flowdir_output = arcpy.CreateScratchName("rres1", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
-    temp_resample = arcpy.CreateScratchName("rres2", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
-    temp_tobreach = arcpy.CreateScratchName("rres3", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
+    flowdir_output = arcpy.CreateScratchName("rres", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
+    temp_resample = arcpy.CreateScratchName("rres", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
+    temp_tobreach = arcpy.CreateScratchName("rres", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
+
+    arcpy.env.extent = flow_dir
 
     for raster in rasterlist:
         print (raster)
@@ -45,7 +47,8 @@ def execute_Resample(smoothed_dir, dem3m_dir, flow_dir, frompoints_dir, prefixe,
         str_frompoints = os.path.join(frompoints_dir, prefixe + raster + ".shp")
         result = os.path.join(output_folder, raster)
 
-        execute_Breach(arcpy.Raster(temp_tobreach), arcpy.Raster(flowdir_output), str_frompoints, result, messages)
+        with arcpy.EnvManager(extent=flow_dir):
+            execute_Breach(arcpy.Raster(temp_tobreach), arcpy.Raster(flowdir_output), str_frompoints, result, messages)
 
     arcpy.Delete_management(flowdir_output)
     arcpy.Delete_management(temp_resample)
@@ -67,13 +70,13 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    smoothed_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\Smoothed"
-    dem3m_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\DEM3m"
-    flow_dir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\lidar10m_fd")
-    frompoints_dir = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\FromPoints"
+    smoothed_dir = r"D:\InfoCrue\Noire\bathy\Smoothed"
+    dem3m_dir = r"D:\InfoCrue\Noire\bathy\dem3m"
+    flow_dir = arcpy.Raster(r"F:\MSP2\LargeScaleFloodMapping_may2020\Example_RiviereNoire\DEMs\lidar10m_fd")
+    frompoints_dir = r"D:\InfoCrue\Noire\bathy\frompoints"
     prefixe = "fp_"
     river_tools_folder = r"F:\PyCharm\GISTools\RiversTools"
-    output_folder = r"D:\InfoCrue\Etchemin\DEMbydays\PythonProcessing\ResultWS"
+    output_folder = r"D:\InfoCrue\Noire\bathy\ResultWS_2"
 
     execute_Resample(smoothed_dir, dem3m_dir, flow_dir, frompoints_dir, prefixe, river_tools_folder, output_folder, messages)
 

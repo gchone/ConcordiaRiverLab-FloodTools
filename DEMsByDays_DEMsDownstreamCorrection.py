@@ -67,9 +67,9 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    ends_polygons_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\ends_poly"
-    dem_bridges_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\dem3mb"
-    output_folder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step2"
+    ends_polygons_dir = r"D:\InfoCrue\Noire\bathy\downpoly"
+    dem_bridges_dir = r"D:\InfoCrue\Noire\bathy\dem3m"
+    output_folder = r"D:\InfoCrue\Noire\bathy\ws_step2"
 
     execute_DEMsDownstreamCorrection(ends_polygons_dir, dem_bridges_dir, output_folder, messages)
 

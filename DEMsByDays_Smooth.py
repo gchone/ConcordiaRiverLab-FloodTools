@@ -26,6 +26,7 @@ def execute_Smooth(DEMsForWS_dir, ends_polygons_dir, frompoints_dir, prefixe, de
     for raster in rasterlist:
         print (raster)
 
+
         # add 10000m all around the raster, and put NoData at the downstream ends
         downends = os.path.join(ends_polygons_dir, raster)
         focal = arcpy.sa.FocalStatistics(raster, arcpy.sa.NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
@@ -63,12 +64,12 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    DEMsForWS_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step3"
-    ends_polygons_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\ends_poly"
-    frompoints = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\frompoints"
+    DEMsForWS_dir = r"D:\InfoCrue\Noire\bathy\ws_step3"
+    ends_polygons_dir = r"D:\InfoCrue\Noire\bathy\downpoly"
+    frompoints = r"D:\InfoCrue\Noire\bathy\frompoints"
     prefixe = "fp_"
-    dems = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\dem3mb"
-    smoothed_output = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Smoothed"
+    dems = r"D:\InfoCrue\Noire\bathy\dem3m"
+    smoothed_output = r"D:\InfoCrue\Noire\bathy\Smoothed"
 
 
 

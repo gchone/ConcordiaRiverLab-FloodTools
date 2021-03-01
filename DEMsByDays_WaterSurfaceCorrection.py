@@ -50,12 +50,12 @@ if __name__ == "__main__":
     arcpy.env.scratchWorkspace = r"F:\MSP2\tmp"
     messages = Messages()
 
-    correctedDEMs_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step2"
-    channel_poly_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\channelpoly"
+    correctedDEMs_dir = r"D:\InfoCrue\Noire\bathy\ws_step2"
+    channel_poly_dir = r"D:\InfoCrue\Noire\bathy\channelpoly"
     prefixe = "ch_"
-    polycuts = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\focal_cuts"
-    river_network = r"D:\InfoCrue\Nicolet\BathyFev2021\reaches_line_modifg.shp"
-    output_folder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\step3"
+    polycuts = r"D:\InfoCrue\Noire\bathy\focal_cuts"
+    river_network = r"D:\InfoCrue\Noire\river_network.shp"
+    output_folder = r"D:\InfoCrue\Noire\bathy\ws_step3"
 
     execute_WaterSurfaceCorrection(correctedDEMs_dir, channel_poly_dir, prefixe, polycuts, river_network, output_folder, messages)
 

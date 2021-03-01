@@ -66,6 +66,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
     runlist = []
     current_run_num = 0
     for tree in trees:
+        print (tree)
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
             for raster_name, csdata in cs.data_dict.items():
@@ -286,14 +287,14 @@ if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
 
     arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\Lidar10m_fd")
-    str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
-    r_width = arcpy.Raster(r"D:\InfoCrue\Etchemin\Widthcalc\Width")
-    zwater_dir =r"D:\InfoCrue\tmp\testbed\ResultWS"
+    r_flowdir = arcpy.Raster(r"F:\MSP2\LargeScaleFloodMapping_may2020\Example_RiviereNoire\DEMs\lidar10m_fd")
+    str_frompoint = r"D:\InfoCrue\Noire\frompoints.shp"
+    r_width = arcpy.Raster(r"D:\InfoCrue\Noire\largeur\widthD8")
+    zwater_dir =r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM"
     manning = 0.03
 
-    result_dir = r"D:\InfoCrue\tmp\testbed\restest2"
-    Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\Qlidar\QLiDAR_dir_buf"
+    result_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\Results_bathy"
+    Q_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\qlidar\qlidar"
     downstream_s = 0.0001
     # r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
     # str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
