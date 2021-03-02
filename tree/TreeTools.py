@@ -271,18 +271,18 @@ if __name__ == "__main__":
     current_time = now.strftime("%H:%M:%S")
     print("Current Time =", current_time)
 
-    #arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    #frompoints = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\dep_pts.shp"
-    #flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\lidar10m_fd")
-    #ptsout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\ptsflowdir.shp"
-    #routesout = r"D:\InfoCrue\Nicolet\FichierBedAsses_Pour-GC\FichierBedAsses_Pour-GC\routesflowdir.shp"
-    #messages = Messages()
+    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    frompoints = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\dep_pts.shp"
+    flowdir = arcpy.Raster(r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\lidar10m_fd")
+    ptsout = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\ptsflowdir.shp"
+    routesout = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\routesflowdir.shp"
+    messages = Messages()
 
-    #execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
+    execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)
 
-    ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
-    Q_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\q"
-    width_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\w"
-    ws_dir = r"D:\InfoCrue\Refontebathy\TestShapeLoad\ws"
+    ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints"
+    Q_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Q"
+    width_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\largeur"
+    ws_dir = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\ResultWS"
 
     execute_Q_width_ws_to_shapefile(ptsout, Q_dir, width_dir, ws_dir, ptsfolder, messages)

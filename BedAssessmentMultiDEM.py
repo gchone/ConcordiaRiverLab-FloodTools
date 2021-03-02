@@ -272,11 +272,11 @@ if __name__ == "__main__":
     downstream_s = 0.0001
 
     #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    ptsfolder = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\bed_pathpoints"
-    routes = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\routesflowdir.shp"
+    ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints"
+    routes = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\Chaudiere\testtree\DebugJulia\testbed"
+    outptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Results_bathy_lakes"
 
     #ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
     #routes = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
