@@ -134,7 +134,7 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
                     if prev_cs != None:
                         cs.proxy_s = prev_cs.proxy_s
                         # If it's lakes, it's better to use the default value
-                        cs.proxy_s = downstream_s
+                        #cs.proxy_s = downstream_s
                         if not prev_cs.valid_data and csdata.run_num == run_num:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
@@ -272,11 +272,11 @@ if __name__ == "__main__":
     downstream_s = 0.0001
 
     #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints"
+    ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints_correct171130"
     routes = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Results_bathy_lakes"
+    outptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Results_bathy_gaps_171130"
 
     #ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
     #routes = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
