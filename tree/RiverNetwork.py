@@ -5,8 +5,6 @@
 # v2.0 - Fev 2020 - Création
 
 
-from tree.Reach import *
-from tree.DataPoint import *
 import arcpy
 import numpy as np
 import numpy.lib.recfunctions as rfn
@@ -18,19 +16,31 @@ class RiverNetwork(object):
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 
-        self.__dict_attr_fields = dict_attr_fields
-        self.__dict_points_collection = {}
+        self._dict_attr_fields = dict_attr_fields
+        self._dict_points_collection = {}
 
         # on initialise les matrices Numpy
-        self.__numpyarray = arcpy.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
-        self.__numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
+        self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
+
+        self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
 
 
         # on ajoute un champ contenant une nouvelle instance de Reach
-        object_column = np.empty(self.__numpyarray.shape[0], 'object', dtype=object)
-        self.__numpyarray = rfn.merge_arrays((self.__numpyarray, object_column), flatten=True)
-        for row in self.__numpyarray:
-            row['object'] = Reach(self, row[self.__dict_attr_fields[self.idkey]])
+        object_column = np.empty(self._numpyarray.shape[0], dtype=[("object", 'O')])
+        #object_column = np.empty(self.__numpyarray.shape[0], dtype=object)
+        #object_column = np.full(self._numpyarray.shape[0], 4, dtype=[("sdads",'<i4')])
+        #object_column = np.empty(self._numpyarray.shape[0], dtype=[("sdads", '<i4')])
+
+        #object_column = np.array([Reach(self, row[self._dict_attr_fields[Reach.idkey]]) for row in self._numpyarray])
+        print self._numpyarray
+        print self._numpyarray.dtype
+        print object_column
+        print object_column.dtype
+        #self._numpyarray = rfn.merge_arrays([self._numpyarray, object_column], flatten=True)
+        rfn.append_fields(self._numpyarray, "object", object_column)
+
+        for row in self._numpyarray:
+            row['object'] = Reach(self, row[self._dict_attr_fields[Reach.idkey]])
 
 
     def __get_downstream_reach(self, id):
@@ -70,48 +80,51 @@ class RiverNetwork(object):
         return
 
 
-class NumpyArrayFedObject(object):
+class _NumpyArrayFedObject(object):
 
-    idkey = "id"
+    idkey = "tableid"
 
     def __init__(self, numpyarray_holder):
-        self.__numpyarray_holder = numpyarray_holder
+        # Appel à __dict__ fait pour éviter la récursion infinie liée à __getattr__/__setattr__
+        self.__dict__["_numpyarray_holder"] = numpyarray_holder
 
-    def __getattribute__(self, name):
-        try:
-            # retourne la valeur lue dans la matrice Numpy
-            array = self.numpyarray_holder.__numpyarray
-            # champ pour l'id:
-            idfield = self.numpyarray_holder.__dict_attr_fields[self.idkey]
-            # champ pour la valeur:
-            valuefield = self.numpyarray_holder.__dict_attr_fields[name]
 
-            return array[array[idfield] == self.id][valuefield][0]
-        except KeyError:
-            # si ce n'est pas dans la matrice numpy, on regarde dans les attributs normaux
-            return super(NumpyArrayFedObject, self).__getattribute__(name)
+    def __getattr__(self, name):
+        # if name == "id" or name == "__numpyarray_holder" or name not in self.__numpyarray_holder.keys():
+        #     return super(NumpyArrayFedObject, self).__getattribute__(name)
+        # else:
+        # retourne la valeur lue dans la matrice Numpy
+        array = self._numpyarray_holder._numpyarray
+        # champ pour l'id:
+        idfield = self._numpyarray_holder._dict_attr_fields[self.idkey]
+        # champ pour la valeur:
+        valuefield = self._numpyarray_holder._dict_attr_fields[name]
+
+        return array[array[idfield] == self.id][valuefield][0]
+
 
     def __setattr__(self, name, value):
-        try:
+        if name in self._numpyarray_holder._dict_attr_fields.keys():
             # change la valeur dans la matrice Numpy pour
-            array = self.numpyarray_holder.__numpyarray
+            array = self._numpyarray_holder._numpyarray
             # champ pour l'id:
-            idfield = self.numpyarray_holder.__dict_attr_fields[self.idkey]
+            idfield = self._numpyarray_holder._dict_attr_fields[self.idkey]
             # champ pour la valeur:
-            valuefield = self.numpyarray_holder.__dict_attr_fields[name]
+            valuefield = self._numpyarray_holder._dict_attr_fields[name]
             array[array[idfield] == self.id][valuefield] = value
-        except KeyError:
-            # si ce n'est pas dans la matrice numpy, on modifie les attributs normaux
-            super(NumpyArrayFedObject, self).__setattr__(name, value)
+        else:
+            super(_NumpyArrayFedObject, self).__setattr__(name, value)
 
 
-class Reach(NumpyArrayFedObject):
+
+class Reach(_NumpyArrayFedObject):
 
     def __init__(self, rivernetwork, id):
         #   id : int - identifiant du segment
-        self.id = id
+        _NumpyArrayFedObject.__init__(self, rivernetwork)
         self.rivernetwork = rivernetwork
-        NumpyArrayFedObject.__init__(self, rivernetwork)
+        self.id = id
+
 
     def get_downstream_reach(self):
         # doit trouver le parent dans rivernetwork
@@ -130,7 +143,8 @@ class Reach(NumpyArrayFedObject):
         return len(self.get_uptream_reaches()) == 0
 
     def __str__(self):
-        return self.__recursiveprint("")
+        #return self.__recursiveprint("")
+        return "0"
 
     def __recursiveprint(self, prefix):
         string = prefix + str(self.id) + "\n"
@@ -147,13 +161,13 @@ class Points_collection(object):
     def __init__(self, points_shapefile, dict_attr_fields):
         ### on initialise la matrice Numpy, avec un champ supplémentaire contenant une nouvelle instance de DataPoint ###
         ### self.__numpyarray =
-        self.__dict_attr_fields = dict_attr_fields
+        self._dict_attr_fields = dict_attr_fields
 
 
-class DataPoint(NumpyArrayFedObject):
+class DataPoint(_NumpyArrayFedObject):
     def __init__(self, id, downstream_point, reach, pointscollection):
         self.downstream_point = downstream_point
         self.id = id
         self.reach = reach
         self.pointscollection = pointscollection
-        NumpyArrayFedObject.__init__(self, pointscollection)
+        _NumpyArrayFedObject.__init__(self, pointscollection)
