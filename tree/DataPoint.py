@@ -7,10 +7,10 @@ from tree.NumpyArrayFedObject import *
 
 class DataPoint(NumpyArrayFedObject):
 
-    def __init__(self, id, downstream_point, reach, distance, offset):
+    def __init__(self, id, downstream_point, reach, pointscollection):
         self.downstream_point = downstream_point
         self.id = id
         self.reach = reach
-        self.dist = distance
-        self.offset = offset
+        self.pointscollection = pointscollection
+        NumpyArrayFedObject.__init__(self, pointscollection)
 

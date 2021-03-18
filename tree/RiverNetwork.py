@@ -7,16 +7,24 @@
 
 from tree.Reach import *
 from tree.DataPoint import *
-
+import arcpy
 
 
 class RiverNetwork(object):
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
-        ### on initialise la matrice Numpy, avec un champ supplémentaire contenant une nouvelle instance de Reach ###
-        ### self.__numpyarray =
+
         self.__dict_attr_fields = dict_attr_fields
         self.__dict_points_collection = {}
+
+        # on joint les deux tables
+
+
+        # on initialise la matrice Numpy
+        self.__numpyarray = arcpy.FeatureClassToNumPyArray(reaches_shapefile, [self.idfield, self.lenfield], null_value=-9999)
+
+        # on ajoute un champ contenant une nouvelle instance de Reach
+
 
     def __get_downstream_reach(self, id):
         ### trouve et retourne le segment aval d'un segment dans la matrice Numpy  ###

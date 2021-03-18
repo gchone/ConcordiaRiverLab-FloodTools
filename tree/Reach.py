@@ -14,6 +14,7 @@ class Reach(NumpyArrayFedObject):
         #   id : int - identifiant du segment
         self.id = id
         self.rivernetwork = rivernetwork
+        NumpyArrayFedObject.__init__(self, rivernetwork)
 
     def get_downstream_reach(self):
         # doit trouver le parent dans rivernetwork
