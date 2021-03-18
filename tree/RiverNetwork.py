@@ -23,7 +23,7 @@ class RiverNetwork(object):
 
         # on initialise les matrices Numpy
         self.__numpyarray = arcpy.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
-        self.__numpyarraylinks = arcpy.TableTo
+        self.__numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
 
 
         # on ajoute un champ contenant une nouvelle instance de Reach
