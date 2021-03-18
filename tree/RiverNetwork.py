@@ -21,8 +21,10 @@ class RiverNetwork(object):
         self.__dict_attr_fields = dict_attr_fields
         self.__dict_points_collection = {}
 
-        # on initialise la matrice Numpy
+        # on initialise les matrices Numpy
         self.__numpyarray = arcpy.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
+        self.__numpyarraylinks = arcpy.TableTo
+
 
         # on ajoute un champ contenant une nouvelle instance de Reach
         object_column = np.empty(self.__numpyarray.shape[0], 'object', dtype=object)
