@@ -63,6 +63,10 @@ class RiverNetwork(object):
         ### sauvegarde les points dans un nouveau shapefile
         return
 
+    def __str__(self):
+        for downstream_end in self.get_downstream_ends():
+            return downstream_end._recursiveprint("")
+
 
 class _NumpyArrayFedObject(object):
 
@@ -137,11 +141,10 @@ class Reach(_NumpyArrayFedObject):
         return len(self.get_uptream_reaches()) == 0
 
     def __str__(self):
-        #return self.__recursiveprint("")
         return str(self.id)
 
-    def __recursiveprint(self, prefix):
-        string = prefix + str(self.id) + "\n"
+    def _recursiveprint(self, prefix):
+        string = prefix + str(self) + "\n"
         for child in self.get_uptream_reaches():
             string += child.__recursiveprint(prefix + "- ")
         return string
