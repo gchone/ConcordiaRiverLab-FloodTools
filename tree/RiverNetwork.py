@@ -12,8 +12,8 @@ import numpy.lib.recfunctions as rfn
 
 class RiverNetwork(object):
 
-    _reaches_linkfieldup = "UpstreamRID"
-    _reaches_linkfielddown = "DownstreamRID"
+    reaches_linkfieldup = "UpstreamRID"
+    reaches_linkfielddown = "DownstreamRID"
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 
@@ -24,7 +24,7 @@ class RiverNetwork(object):
         # matrice de base
         self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
         # matrice des liaisons amont-aval
-        self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self._reaches_linkfielddown, self._reaches_linkfieldup])
+        self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
         # matrice contenant les instances de Reach
         self._reaches = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'),('object', 'O')])
         for i in range(self._numpyarray.shape[0]):
@@ -37,13 +37,13 @@ class RiverNetwork(object):
     def get_downstream_ends(self):
         # Générateur. Retourne la liste des tronçons extrémités aval
         # Ce sont ceux qui ne sont pas présents dans "UpstreamRID" de _numpyarraylinks
-        for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self._reaches_linkfieldup]):
+        for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self.reaches_linkfieldup]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
     def get_upstream_ends(self):
         # Générateur. Retourne la liste des tronçons extrémités amont
         # Ce sont ceux qui ne sont pas présents dans "DownsstreamRID" de _numpyarraylinks
-        for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self._reaches_linkfielddown]):
+        for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self.reaches_linkfielddown]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
     def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = "MAIN", prioritize_points_attribute  = None, reverse = False):

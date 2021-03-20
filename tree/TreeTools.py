@@ -190,13 +190,12 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
 
 
 
-def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field):
+def __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, linkcursor):
 
     if downstream_junction["ENDTYPE"] == "End":
         # The line should be flipped
         expression =  netid_name + " = " + str(downstream_junction["ORIG_FID"])
         arcpy.SelectLayerByAttribute_management("netlyr", "ADD_TO_SELECTION", expression)
-
 
     # Find the upstream junction for the current reach
     condition1 = np_junctions["ORIG_FID"] == downstream_junction["ORIG_FID"]
@@ -210,19 +209,16 @@ def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orien
     other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
 
     for upstream_junction in other_upstream_junctions:
-
-            __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field)
+            # Add a row in the links table
+            linkcursor.insertRow([downstream_junction["ORIG_FID"],upstream_junction["ORIG_FID"]])
+            # Apply recursively
+            __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, linkcursor)
 
     return
 
 
-def build_trees(rivernet, routeID_field, length_field):
-    __generic_build_trees(rivernet, routeID_field, oriented=True, downstream_reach_field=None, length_field=length_field)
 
-def nonoriented_build_trees(rivernet, routeID_field, downstream_reach_field):
-    __generic_build_trees(rivernet, routeID_field, oriented=False, downstream_reach_field=downstream_reach_field, length_field=None)
-
-def __generic_build_trees(rivernet, routeID_field, downstream_reach_field):
+def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field):
 
     try:
 
@@ -260,37 +256,40 @@ def __generic_build_trees(rivernet, routeID_field, downstream_reach_field):
         condition = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
         downstream_junctions = np.extract(condition, np_junctions)
 
-
-
-        # Make a layer from a copy of the feature class
+        # Make a layer from a copy of the feature class (used for flipping lines)
         rivernetcopy = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         arcpy.CopyFeatures_management(rivernet, rivernetcopy)
         arcpy.MakeFeatureLayer_management(rivernetcopy, "netlyr")
         arcpy.SelectLayerByAttribute_management("netlyr", "CLEAR_SELECTION")
 
+        # create the links table
+        if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
+            arcpy.Delete_management(routelinks_table)
+        arcpy.CreateTable_management(os.path.dirname(routelinks_table), os.path.basename(routelinks_table))
+        arcpy.AddField_management(rivernetcopy, RiverNetwork.reaches_linkfielddown, "LONG")
+        arcpy.AddField_management(rivernetcopy, RiverNetwork.reaches_linkfieldup, "LONG")
+        linkcursor = arcpy.da.InsertCursor(rivernetcopy, [RiverNetwork.reaches_linkfielddown, RiverNetwork.reaches_linkfieldup])
 
         for downstream_junction in downstream_junctions:
-
-
-
-                __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, arcpy.Describe(rivernetcopy).OIDFieldName, length_field)
+            __recursivebuildtree(downstream_junction, np_junctions, np_net, arcpy.Describe(rivernetcopy).OIDFieldName, linkcursor)
 
         # Flip the wrongly orientated lines
         arcpy.FlipLine_edit("netlyr")
         # Create routes from start point to end point
-        arcpy.AddField_management(newnet, routeID_field, "LONG")
-        arcpy.CalculateField_management(newnet, routeID_field, "!" + idname + "!", "PYTHON")
-        arcpy.AddField_management(newnet, "FromF", "FLOAT")
-        arcpy.CalculateField_management(newnet, "FromF", "0", "PYTHON")
-        arcpy.AddGeometryAttributes_management(newnet, "LENGTH_GEODESIC")
-        arcpy.CreateRoutes_lr(newnet, routeID_field, orientated_net, "TWO_FIELDS", from_measure_field="FromF",
-                              to_measure_field="LENGTH_GEO")
+        arcpy.AddField_management(rivernetcopy, routeID_field, "LONG")
+        arcpy.CalculateField_management(rivernetcopy, routeID_field, "!" + netid_name + "!", "PYTHON")
+        arcpy.AddField_management(rivernetcopy, "FromF", "FLOAT")
+        arcpy.CalculateField_management(rivernetcopy, "FromF", "0", "PYTHON")
+        arcpy.AddGeometryAttributes_management(rivernetcopy, "LENGTH")
+        arcpy.CreateRoutes_lr(rivernetcopy, routeID_field, route_shapefile, "TWO_FIELDS", from_measure_field="FromF",
+                              to_measure_field="LENGTH")
 
-        arcpy.DeleteField_management(orientated_net, ["FromF"])
+        arcpy.DeleteField_management(route_shapefile, ["FromF"])
+        arcpy.DeleteField_management(route_shapefile, ["LENGTH"])
     finally:
         gc.CleanTempFiles()
 
-def execute_CreateTreeFromShapefile():
+
 
 
 
