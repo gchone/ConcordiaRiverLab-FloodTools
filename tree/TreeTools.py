@@ -6,9 +6,9 @@
 # ArcGIS tools for tree manipulation
 
 
-from tree.TreeManager import *
+from tree.RiverNetwork import *
 from RasterIO import *
-
+import ArcpyGarbageCollector as gc
 
 def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeID_field, str_output_points, messages):
     """
@@ -190,28 +190,106 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
 
 
 
+def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field):
+
+
+    if check_orientation:
+        # if the dowstreamn point is a "End" point, orientation is good (=True)
+        treeseg.orientation = downstream_junction["ENDTYPE"] == "End"
+    else:
+        treeseg.length = np_net[np_net[netid_name] == treeseg.id][length_field][0]
+
+    # Find the upstreams junction for the current reach
+    condition1 = np_junctions["ORIG_FID"] == treeseg.id
+    condition2 = np_junctions["FEAT_SEQ"] <> downstream_junction["FEAT_SEQ"]
+    upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
+
+    # Find other junctions at the same place
+    condition1 = np_junctions["FEAT_SEQ"] == upstream_junction["FEAT_SEQ"]
+    condition2 = np_junctions["ORIG_FID"] <> upstream_junction["ORIG_FID"]
+
+    downstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
+
+    for downstream_junction in downstream_junctions:
+
+            newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
+            treeseg.add_child(newtreeseg)
+
+            __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field)
+
+    return
+
+
+def build_trees(rivernet, routeID_field, length_field):
+    __generic_build_trees(rivernet, routeID_field, oriented=True, downstream_reach_field=None, length_field=length_field)
+
+def nonoriented_build_trees(rivernet, routeID_field, downstream_reach_field):
+    __generic_build_trees(rivernet, routeID_field, oriented=False, downstream_reach_field=downstream_reach_field, length_field=None)
+
+def __generic_build_trees(rivernet, routeID_field, downstream_reach_field):
+
+    try:
+
+        # Create Junction points: two points created by reach, at both end of the line
+        # (done separately with "END" and "START", rather than with "BOTH_ENDS", to keep track of what point is at which extremity)
+        with arcpy.EnvManager(outputMFlag="Disabled"):
+            with arcpy.EnvManager(outputZFlag="Disabled"):
+                # Do not included Z and M values in the points, as it will mess with the grouping by Shape step (it should only be based on X and Y position)
+                junctions_end = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+                arcpy.FeatureVerticesToPoints_management(rivernet, junctions_end, "END")
+                junctions_start = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+                arcpy.FeatureVerticesToPoints_management(rivernet, junctions_start, "START")
+        arcpy.AddField_management(junctions_end, "ENDTYPE", "TEXT", field_length=10)
+        arcpy.AddField_management(junctions_start, "ENDTYPE", "TEXT", field_length=10)
+        arcpy.CalculateField_management(junctions_end, "ENDTYPE", "'End'", "PYTHON")
+        arcpy.CalculateField_management(junctions_start, "ENDTYPE", "'Start'", "PYTHON")
+        junctions = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.Merge_management([junctions_end, junctions_start], junctions)
+        junctionid_name = arcpy.Describe(junctions).OIDFieldName
+
+        #   Add a id ("FEAT_SEQ") to the junction grouping junctions at the same place (same place = same id))
+        junctions_table = gc.CreateScratchName("net", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        arcpy.FindIdentical_management(junctions, junctions_table, ["Shape"])
+        arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
+        np_junctions = arcpy.da.FeatureClassToNumPyArray(junctions, [junctionid_name, "ORIG_FID", "FEAT_SEQ", "ENDTYPE"])
+
+
+        # Find downstream ends
+        # count the number of junctions at the same place
+        u, indices, count = np.unique(np_junctions["FEAT_SEQ"], return_index=True, return_counts=True)
+        # select only the ones with one junction only
+        condition = np.array([item in u[count == 1] for item in np_junctions["FEAT_SEQ"]])
+        netid_name = arcpy.Describe(rivernet).OIDFieldName
+
+        # get a list of id of downstream reaches
+        np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, downstream_reach_field])
+        net_down_id = np.extract(np_net[downstream_reach_field] == 1, np_net)[netid_name]
+        # select only the junction from this list
+        condition2 = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
+
+        downstream_junctions = np.extract(np.logical_and(condition, condition2), np_junctions)
+
+        for downstream_junction in downstream_junctions:
+
+                newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
+                newtree = Tree()
+                newtree.treeroot = newtreeseg
+
+                newtree.net = rivernet
+                newtree.routeID_field = routeID_field
+
+                trees.append(newtree)
+
+                __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, netid_name, length_field)
+
+
+
+    finally:
+        gc.CleanTempFiles()
+
+def execute_CreateTreeFromShapefile():
 
 
 
 
 
-
-class Messages():
-    def addErrorMessage(self, text):
-        print (text)
-
-    def addMessage(self, text):
-        print (text)
-
-if __name__ == "__main__":
-    arcpy.CheckOutExtension("Spatial")
-    arcpy.env.overwriteOutput = True
-
-    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    flowdir = arcpy.Raster(r"D:\InfoCrue\Refontebathy\Inputs\d4fd")
-    ptsout = r"D:\InfoCrue\Refontebathy\ptsflowdir.shp"
-    routesout = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
-    messages = Messages()
-
-    execute_TreeFromFlowDir(flowdir, frompoints, routesout, "RouteID", ptsout, messages)

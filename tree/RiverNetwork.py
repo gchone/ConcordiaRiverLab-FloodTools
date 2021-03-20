@@ -7,6 +7,7 @@
 
 import arcpy
 import numpy as np
+import os
 import numpy.lib.recfunctions as rfn
 
 class RiverNetwork(object):
@@ -39,13 +40,24 @@ class RiverNetwork(object):
         for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self._reaches_linkfieldup]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
+    def get_upstream_ends(self):
+        # Générateur. Retourne la liste des tronçons extrémités amont
+        # Ce sont ceux qui ne sont pas présents dans "DownsstreamRID" de _numpyarraylinks
+        for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self._reaches_linkfielddown]):
+            yield self._reaches[self._reaches['id'] == id]['object'][0]
+
     def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = "MAIN", prioritize_points_attribute  = None, reverse = False):
         # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
         # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée. Optionnellement, si
         #     prioritize_points_attribute != None, l'ordre des tronçons retournés aux confluences est aussi déterminé.
-        for downstream_end in self.get_downstream_ends():
-            for item in downstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
-                yield item
+        if orientation=="DOWN_TO_UP":
+            for downstream_end in self.get_downstream_ends():
+                for item in downstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
+                    yield item
+        else:
+            for upstream_end in self.get_upstream_ends():
+                for item in upstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
+                    yield item
 
     def add_points_collection(self, points_shapefile, dict_attr_fields, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
@@ -59,9 +71,28 @@ class RiverNetwork(object):
         # encapsultion du dictionnaire _dict_points_collection
         return self._dict_points_collection[name]
 
-    def save_points(self, target_shapefile, dict_attr_fields, points_collection_name="MAIN"):
-        ### sauvegarde les points dans un nouveau shapefile
-        return
+    def save_points(self, target_table, dict_attr_fields, points_collection_name="MAIN"):
+        # sauvegarde les points dans une nouvelle table
+        if arcpy.Exists(target_table) and arcpy.env.overwriteOutput == True:
+            arcpy.Delete_management(target_table)
+        arcpy.CreateTable_management(os.path.dirname(target_table), os.path.basename(target_table))
+
+        listfields = []
+        for attribute, addfield_params in dict_attr_fields.items():
+            listfields.append(addfield_params[0])
+            if addfield_params[1] == "TEXT":
+                arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1],
+                                          field_length=addfield_params[2])
+            else:
+                arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1])
+        pointcursor = arcpy.da.InsertCursor(target_table, listfields)
+
+        for point in self._dict_points_collection[points_collection_name]._points['object']:
+            datalist = []
+            for attribute, addfield_params in dict_attr_fields.items():
+                datalist.append(getattr(point, attribute))
+            pointcursor.insertRow(datalist)
+
 
     def __str__(self):
         for downstream_end in self.get_downstream_ends():
@@ -78,9 +109,6 @@ class _NumpyArrayFedObject(object):
 
 
     def __getattr__(self, name):
-        # if name == "id" or name == "__numpyarray_holder" or name not in self.__numpyarray_holder.keys():
-        #     return super(NumpyArrayFedObject, self).__getattribute__(name)
-        # else:
         # retourne la valeur lue dans la matrice Numpy
         array = self._numpyarray_holder._numpyarray
         # champ pour l'id:
@@ -115,14 +143,24 @@ class Reach(_NumpyArrayFedObject):
     def _recursive_browse_reaches(self, orientation, prioritize_points_collection,
                                    prioritize_points_attribute, reverse):
         yield self
-        for reach in self.get_uptream_reaches():
-            for item in reach._recursive_browse_reaches(orientation, prioritize_points_collection,
-                                   prioritize_points_attribute, reverse):
+        if orientation == "DOWN_TO_UP":
+            for reach in self.get_uptream_reaches():
+                for item in reach._recursive_browse_reaches(orientation, prioritize_points_collection,
+                                       prioritize_points_attribute, reverse):
+                    yield item
+        else:
+            for item in self.get_downstream_reach()._recursive_browse_reaches(orientation, prioritize_points_collection,
+                                       prioritize_points_attribute, reverse):
                 yield item
 
     def get_downstream_reach(self):
         # doit trouver le parent dans rivernetwork
-        return self.rivernetwork._get_downstream_reach(self.id)
+        list_iddown = self.rivernetwork._numpyarraylinks[self.rivernetwork._numpyarraylinks[self.rivernetwork._reaches_linkfieldup] == self.id][
+            self.rivernetwork._reaches_linkfielddown]
+        if len(list_iddown)>0:
+            return list_iddown[0]
+        else:
+            return None
 
     def get_uptream_reaches(self):
         #   Générateur de Reach
