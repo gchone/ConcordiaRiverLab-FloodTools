@@ -192,28 +192,24 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
 
 def __recursivebuildtree(treeseg, downstream_junction, np_junctions, check_orientation, np_net, netid_name, length_field):
 
+    if downstream_junction["ENDTYPE"] == "End":
+        # The line should be flipped
+        expression =  netid_name + " = " + str(downstream_junction["ORIG_FID"])
+        arcpy.SelectLayerByAttribute_management("netlyr", "ADD_TO_SELECTION", expression)
 
-    if check_orientation:
-        # if the dowstreamn point is a "End" point, orientation is good (=True)
-        treeseg.orientation = downstream_junction["ENDTYPE"] == "End"
-    else:
-        treeseg.length = np_net[np_net[netid_name] == treeseg.id][length_field][0]
 
-    # Find the upstreams junction for the current reach
-    condition1 = np_junctions["ORIG_FID"] == treeseg.id
+    # Find the upstream junction for the current reach
+    condition1 = np_junctions["ORIG_FID"] == downstream_junction["ORIG_FID"]
     condition2 = np_junctions["FEAT_SEQ"] <> downstream_junction["FEAT_SEQ"]
-    upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
+    current_upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
 
     # Find other junctions at the same place
-    condition1 = np_junctions["FEAT_SEQ"] == upstream_junction["FEAT_SEQ"]
-    condition2 = np_junctions["ORIG_FID"] <> upstream_junction["ORIG_FID"]
+    condition1 = np_junctions["FEAT_SEQ"] == current_upstream_junction["FEAT_SEQ"]
+    condition2 = np_junctions["ORIG_FID"] <> current_upstream_junction["ORIG_FID"]
 
-    downstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
+    other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
 
-    for downstream_junction in downstream_junctions:
-
-            newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
-            treeseg.add_child(newtreeseg)
+    for upstream_junction in other_upstream_junctions:
 
             __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, check_orientation,  np_net, netid_name, length_field)
 
@@ -254,36 +250,43 @@ def __generic_build_trees(rivernet, routeID_field, downstream_reach_field):
         np_junctions = arcpy.da.FeatureClassToNumPyArray(junctions, [junctionid_name, "ORIG_FID", "FEAT_SEQ", "ENDTYPE"])
 
 
-        # Find downstream ends
-        # count the number of junctions at the same place
-        u, indices, count = np.unique(np_junctions["FEAT_SEQ"], return_index=True, return_counts=True)
-        # select only the ones with one junction only
-        condition = np.array([item in u[count == 1] for item in np_junctions["FEAT_SEQ"]])
-        netid_name = arcpy.Describe(rivernet).OIDFieldName
 
-        # get a list of id of downstream reaches
+        # Find downstream ends
+        netid_name = arcpy.Describe(rivernet).OIDFieldName
         np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, downstream_reach_field])
         net_down_id = np.extract(np_net[downstream_reach_field] == 1, np_net)[netid_name]
-        # select only the junction from this list
-        condition2 = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
 
-        downstream_junctions = np.extract(np.logical_and(condition, condition2), np_junctions)
+        # select only the junction from this list
+        condition = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
+        downstream_junctions = np.extract(condition, np_junctions)
+
+
+
+        # Make a layer from a copy of the feature class
+        rivernetcopy = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.CopyFeatures_management(rivernet, rivernetcopy)
+        arcpy.MakeFeatureLayer_management(rivernetcopy, "netlyr")
+        arcpy.SelectLayerByAttribute_management("netlyr", "CLEAR_SELECTION")
+
 
         for downstream_junction in downstream_junctions:
 
-                newtreeseg = TreeSegment(downstream_junction["ORIG_FID"])
-                newtree = Tree()
-                newtree.treeroot = newtreeseg
-
-                newtree.net = rivernet
-                newtree.routeID_field = routeID_field
-
-                trees.append(newtree)
-
-                __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, netid_name, length_field)
 
 
+                __recursivebuildtree(newtreeseg, downstream_junction, np_junctions, not oriented, np_net, arcpy.Describe(rivernetcopy).OIDFieldName, length_field)
 
+        # Flip the wrongly orientated lines
+        arcpy.FlipLine_edit("netlyr")
+        # Create routes from start point to end point
+        arcpy.AddField_management(newnet, routeID_field, "LONG")
+        arcpy.CalculateField_management(newnet, routeID_field, "!" + idname + "!", "PYTHON")
+        arcpy.AddField_management(newnet, "FromF", "FLOAT")
+        arcpy.CalculateField_management(newnet, "FromF", "0", "PYTHON")
+        arcpy.AddGeometryAttributes_management(newnet, "LENGTH_GEODESIC")
+        arcpy.CreateRoutes_lr(newnet, routeID_field, orientated_net, "TWO_FIELDS", from_measure_field="FromF",
+                              to_measure_field="LENGTH_GEO")
+
+        arcpy.DeleteField_management(orientated_net, ["FromF"])
     finally:
         gc.CleanTempFiles()
 
