@@ -12,8 +12,8 @@ import numpy.lib.recfunctions as rfn
 
 class RiverNetwork(object):
 
-    reaches_linkfieldup = "UpstreamRID"
-    reaches_linkfielddown = "DownstreamRID"
+    reaches_linkfieldup = "UpRID"
+    reaches_linkfielddown = "DownRID"
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 

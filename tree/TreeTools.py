@@ -245,16 +245,20 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
         np_junctions = arcpy.da.FeatureClassToNumPyArray(junctions, [junctionid_name, "ORIG_FID", "FEAT_SEQ", "ENDTYPE"])
 
-
-
         # Find downstream ends
+        # count the number of junctions at the same place
+        u, indices, count = np.unique(np_junctions["FEAT_SEQ"], return_index=True, return_counts=True)
+        # select only the ones with one junction only
+        condition = np.array([item in u[count == 1] for item in np_junctions["FEAT_SEQ"]])
+
+        # get a list of id of downstream reaches
         netid_name = arcpy.Describe(rivernet).OIDFieldName
         np_net = arcpy.da.FeatureClassToNumPyArray(rivernet, [netid_name, downstream_reach_field])
         net_down_id = np.extract(np_net[downstream_reach_field] == 1, np_net)[netid_name]
-
         # select only the junction from this list
-        condition = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
-        downstream_junctions = np.extract(condition, np_junctions)
+        condition2 = np.array([item in net_down_id for item in np_junctions["ORIG_FID"]])
+
+        downstream_junctions = np.extract(np.logical_and(condition, condition2), np_junctions)
 
         # Make a layer from a copy of the feature class (used for flipping lines)
         rivernetcopy = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
