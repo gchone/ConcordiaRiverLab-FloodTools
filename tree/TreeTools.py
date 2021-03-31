@@ -212,7 +212,7 @@ def __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, 
             # Add a row in the links table
             linkcursor.insertRow([downstream_junction["ORIG_FID"],upstream_junction["ORIG_FID"]])
             # Apply recursively
-            __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, linkcursor)
+            __recursivebuildtree(upstream_junction, np_junctions, np_net, netid_name, linkcursor)
 
     return
 
@@ -274,24 +274,41 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         arcpy.AddField_management(rivernetcopy, RiverNetwork.reaches_linkfieldup, "LONG")
         linkcursor = arcpy.da.InsertCursor(rivernetcopy, [RiverNetwork.reaches_linkfielddown, RiverNetwork.reaches_linkfieldup])
 
+        netcopyid_name = arcpy.Describe(rivernetcopy).OIDFieldName
         for downstream_junction in downstream_junctions:
-            __recursivebuildtree(downstream_junction, np_junctions, np_net, arcpy.Describe(rivernetcopy).OIDFieldName, linkcursor)
+            __recursivebuildtree(downstream_junction, np_junctions, np_net, netcopyid_name, linkcursor)
 
         # Flip the wrongly orientated lines
         arcpy.FlipLine_edit("netlyr")
-        # Create routes from start point to end point
-        arcpy.AddField_management(rivernetcopy, routeID_field, "LONG")
-        arcpy.CalculateField_management(rivernetcopy, routeID_field, "!" + netid_name + "!", "PYTHON")
-        arcpy.AddField_management(rivernetcopy, "FromF", "FLOAT")
-        arcpy.CalculateField_management(rivernetcopy, "FromF", "0", "PYTHON")
-        arcpy.AddGeometryAttributes_management(rivernetcopy, "LENGTH")
-        arcpy.CreateRoutes_lr(rivernetcopy, routeID_field, route_shapefile, "TWO_FIELDS", from_measure_field="FromF",
-                              to_measure_field="LENGTH")
 
-        arcpy.DeleteField_management(route_shapefile, ["FromF"])
-        arcpy.DeleteField_management(route_shapefile, ["LENGTH"])
+        # Create routes from start point to end point
+
+        arcpy.AddField_management(rivernetcopy, routeID_field, "LONG")
+        arcpy.CalculateField_management(rivernetcopy, routeID_field, "!" + netcopyid_name + "!", "PYTHON")
+        arcpy.AddField_management(rivernetcopy, "FromF", "FLOAT")
+
+        if arcpy.Describe(arcpy.env.scratchWorkspace).dataType=="Folder":
+            # if the scrach workspace is a folder, the copy of the river network is a shapefile (else, it's within a
+            # File geodatabase and already has a Length field)
+            arcpy.CalculateField_management(rivernetcopy, "FromF", "0", "PYTHON")
+            #arcpy.AddGeometryAttributes_management(rivernetcopy, "LENGTH") # "LENGTH" is not an available option and I can't get why
+            arcpy.AddField_management(rivernetcopy, "LENGTH", "DOUBLE")
+            arcpy.CalculateField_management(rivernetcopy, "LENGTH", "!shape.length!", "PYTHON")
+            #arcpy.CalculateGeometryAttributes_management(rivernetcopy, [["LENGTH", "LENGTH"]])
+            Lengthfield = "LENGTH"
+        else:
+            Lengthfield = "SHAPE_LENGTH"
+        arcpy.CreateRoutes_lr(rivernetcopy, routeID_field, route_shapefile, "TWO_FIELDS",
+                                 from_measure_field="FromF",
+                                 to_measure_field=Lengthfield)
+
+        #arcpy.DeleteField_management(route_shapefile, ["FromF"])
+
+        #arcpy.DeleteField_management(route_shapefile, ["LENGTH"])
+
     finally:
         gc.CleanTempFiles()
+
 
 
 
