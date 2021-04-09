@@ -1,16 +1,16 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 # Fichier TreeManager.py
 # v0.0.2 - 24/10/2017
 
 ### Contenu ###
-# classe OurTreeManager : Classe de gestion générique d'un arbre avec OurTreeSegments
+# classe OurTreeManager : Classe de gestion gÃ©nÃ©rique d'un arbre avec OurTreeSegments
 
 ### Historique des versions ###
-# v0.0.1 - 13/11/2018 - Création
-# v0.1 - 22/05/2020 - Modification pour création d'arbre multiples
-# v1.0 - Nov 2020 - Ajout de dossier en paramètre de données (kwargs): Crée un dictionnaire avec comme clé le nom de chaque raster du dossier
-#  Ajout de X et Y pour les points. Ajout de la recherche de points amont avec une donnée.
+# v0.0.1 - 13/11/2018 - CrÃ©ation
+# v0.1 - 22/05/2020 - Modification pour crÃ©ation d'arbre multiples
+# v1.0 - Nov 2020 - Ajout de dossier en paramÃ¨tre de donnÃ©es (kwargs): CrÃ©e un dictionnaire avec comme clÃ© le nom de chaque raster du dossier
+#  Ajout de X et Y pour les points. Ajout de la recherche de points amont avec une donnÃ©e.
 
 
 import tree.TreeManager as TreeManager
@@ -34,17 +34,17 @@ class OurTreeManager(TreeManager.TreeManager):
         return None, None
 
     def browsepts(self):
-        #   retour de la méthode : Générateur de ProfilePoint
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de ProfilePoint
         for l, m, n in self.__recursivetreepts(self.treeroot):
             yield l, m, n
 
     # def browsepts_bypriority(self, priority_attribute):
-    #     #   retour de la méthode : Générateur de ProfilePoint
+    #     #   retour de la mÃ©thode : GÃ©nÃ©rateur de ProfilePoint
     #     for l, m, n in self.__recursivetreepts_bypriority(self.treeroot, priority_attribute):
     #         yield l, m, n
 
     def uptodown_browsepts(self):
-        #   retour de la méthode : Générateur de ProfilePoint
+        #   retour de la mÃ©thode : GÃ©nÃ©rateur de ProfilePoint
         for leaf in self.leaves():
             for l, m, n in self.__recursiveuptodowntreepts(leaf, None):
                 yield l, m, n
@@ -308,18 +308,18 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
 #
 #     treated_pts = {}
 #
-#     # Traitement effectué pour chaque point de départ
+#     # Traitement effectuÃ© pour chaque point de dÃ©part
 #     frompointcursor = arcpy.da.SearchCursor(frompoint, ["SHAPE@", "OID@"])
 #     for frompoint in frompointcursor:
 #
-#         # On prend l'objet géométrique (le point) associé à la ligne dans la table
+#         # On prend l'objet gÃ©omÃ©trique (le point) associÃ© Ã  la ligne dans la table
 #         frompointshape = frompoint[0].firstPoint
 #
-#         # Conversion des coordonnées
+#         # Conversion des coordonnÃ©es
 #         currentcol = flowdir.XtoCol(frompointshape.X)
 #         currentrow = flowdir.YtoRow(frompointshape.Y)
 #
-#         # Tests de sécurité pour s'assurer que le point de départ est à l'intérieurs des rasters
+#         # Tests de sÃ©curitÃ© pour s'assurer que le point de dÃ©part est Ã  l'intÃ©rieurs des rasters
 #         intheraster = True
 #         if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
 #             intheraster = False
@@ -335,7 +335,7 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
 #         newtreeseg = OurTreeSegment(segmentid)
 #
 #
-#         # Traitement effectué sur chaque cellule le long de l'écoulement
+#         # Traitement effectuÃ© sur chaque cellule le long de l'Ã©coulement
 #         while (intheraster):
 #
 #
@@ -357,7 +357,7 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
 #             newtreeseg.add_ptprofile(ptprofile)
 #             treated_pts[(currentrow, currentcol)] = segmentid
 #
-#             # On cherche le prochain point à partir du flow direction
+#             # On cherche le prochain point Ã  partir du flow direction
 #             direction = flowdir.getValue(currentrow, currentcol)
 #             if (direction == 1):
 #                 currentcol = currentcol + 1
@@ -394,7 +394,7 @@ def __generic_build_trees(rivernet, routeID_field, oriented, downstream_reach_fi
 #
 #             ptprofile.dist = currentdistance
 #
-#             # Tests de sécurité pour s'assurer que l'on ne sorte pas des rasters
+#             # Tests de sÃ©curitÃ© pour s'assurer que l'on ne sorte pas des rasters
 #             if currentcol < 0 or currentcol >= flowdir.raster.width or currentrow < 0 or currentrow >= flowdir.raster.height:
 #                 intheraster = False
 #             elif (flowdir.getValue(currentrow, currentcol) != 1 and flowdir.getValue(currentrow,

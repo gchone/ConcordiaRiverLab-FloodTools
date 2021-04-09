@@ -1,14 +1,14 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 #####################################################
-# Guénolé Choné
+# GuÃ©nolÃ© ChonÃ©
 # Concordia University
 # Geography, Planning and Environment Department
 # guenole.chone@concordia.ca
 #####################################################
 
 # Versions
-# v1.2 - Nov 2020 - Création, à partir de BedAssessment.py v1.1
+# v1.2 - Nov 2020 - CrÃ©ation, Ã  partir de BedAssessment.py v1.1
 
 
 
@@ -34,7 +34,7 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
     # - The results (bed elevation) are also for each day of LiDAR acquisition, so it's a folder to.
 
 
-    dict_fields = { "width":"width", "wslidar":"ws", "Q":"Q"}
+    dict_fields = { "width":"width", "wslidar":"ws", "Q":"NewQ"}
     trees = build_trees(routes, "RouteID", "LENGTH_GEO")
     for tree in trees:
         print (tree)
@@ -132,9 +132,9 @@ def execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s,
 
                     # slope is passed through the cells, assuming a uniform flow
                     if prev_cs != None:
-                        cs.proxy_s = prev_cs.proxy_s
+                        #cs.proxy_s = prev_cs.proxy_s
                         # If it's lakes, it's better to use the default value
-                        #cs.proxy_s = downstream_s
+                        cs.proxy_s = downstream_s
                         if not prev_cs.valid_data and csdata.run_num == run_num:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
@@ -259,11 +259,11 @@ if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
     arcpy.env.overwriteOutput = True
     messages = Messages()
-    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    #arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
 
 
 
-    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    arcpy.env.scratchWorkspace = r"E:\Guenole\temp"
 
 
     manning = 0.03
@@ -272,14 +272,18 @@ if __name__ == "__main__":
     downstream_s = 0.0001
 
     #frompoints = r"D:\InfoCrue\Refontebathy\Inputs\dep_pts_simp.shp"
-    ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints_correct171130"
-    routes = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\routesflowdir.shp"
+    #ptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\PathPoints_correct171130"
+    #routes = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\routesflowdir.shp"
     messages = Messages()
 
-    outptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Results_bathy_gaps_171130"
+    #outptsfolder = r"D:\InfoCrue\Nicolet\BathyFev2021\newbathy_assessment\Results_bathy_gaps_171130"
 
     #ptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\PathPoints"
     #routes = r"D:\InfoCrue\Refontebathy\routesflowdir.shp"
     #outptsfolder = r"D:\InfoCrue\Refontebathy\TestShapeLoad\OutPoints"
+
+    ptsfolder = r"E:\Guenole\Chaudiere\qlidar_correctionAvril2021\bed_pathpoints_sub2"
+    routes = r"E:\Guenole\Chaudiere\qlidar_correctionAvril2021\routesflowdir.shp"
+    outptsfolder = r"E:\Guenole\Chaudiere\qlidar_correctionAvril2021\bed_calc_lake"
 
     execute_BedAssessmentMultiDEM(routes, ptsfolder, outptsfolder, downstream_s, manning, messages)
