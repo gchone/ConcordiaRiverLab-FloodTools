@@ -41,7 +41,7 @@ class ProfilePoint(object):
 
 
 class ProfilePoint_data(object):
-    __slots__ = ["n", "Q", "z", "h", "width", "y", "s", "ws", "z_fill", "proxy_s", "ws_before_correction", "run_num", "dist", "wslidar", "dif", "idcorrection"]
+    __slots__ = ["n", "Q", "z", "h", "width", "y", "s", "ws", "z_fill", "proxy_s", "ws_before_correction", "run_num", "dist", "wslidar", "dif", "idcorrection", "inlake"]
     def __init__(self, dist, dictdata):
         self.dist = dist
         for key, elem in dictdata.items():
