@@ -23,7 +23,7 @@ from SolverLisflood import *
 import copy
 
 
-def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir, manning, result_dir, Q_dir, downstream_s, messages):
+def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir, manning, result_dir, Q_dir, downstream_s, r_lakes, messages):
     # Work as BedAssessment with the following modifications:
     # - width, zwater and Q are folders, with rasters within for each day of LiDAR acquisition (same name for the
     #   rasters of the same day in the different folders)
@@ -39,12 +39,15 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
     zwater_dict = {}
     width = RasterIO(r_width)
     width_dict = {}
+    lakes = RasterIO(r_lakes)
+    lakes_dict = {}
     arcpy.env.workspace = zwater_dir
     rasterlist = arcpy.ListRasters()
     for raster in rasterlist:
         zwater_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
-        # creating the dictionnary for the width. Not a good solution to copy all these data
+        # creating the dictionnary for the width and the lakes. Not a good solution to copy all these data
         width_dict[arcpy.Raster(raster).name] = width
+        lakes_dict[arcpy.Raster(raster).name] = lakes
     Q_dict = {}
     arcpy.env.workspace = Q_dir
     rasterlist = arcpy.ListRasters()
@@ -52,7 +55,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
         Q_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
 
 
-    trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict)
+    trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict, inlake=lakes_dict)
     #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_bec.pkl", "wb"), protocol=2)
 
     #trees = pickle.load(open(r"D:\InfoCrue\tmp\savetreebed_v6.pkl", "rb"))
@@ -146,7 +149,12 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
 
                     # slope is passed through the cells, assuming a uniform flow
                     if prev_cs != None:
-                        cs.proxy_s = prev_cs.proxy_s
+                        if csdata.inlake == 1:
+                            # if we pass through a lake than we use the very gentle downstream slope
+                            cs.proxy_s = downstream_s
+                        else:
+                            # else we just copy the slope from the downstream cell
+                            cs.proxy_s = prev_cs.proxy_s
                         if not prev_cs.valid_data and csdata.run_num == run_num:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
@@ -286,15 +294,18 @@ class Messages():
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
 
-    arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
-    r_flowdir = arcpy.Raster(r"F:\MSP2\LargeScaleFloodMapping_may2020\Example_RiviereNoire\DEMs\lidar10m_fd")
-    str_frompoint = r"D:\InfoCrue\Noire\frompoints.shp"
-    r_width = arcpy.Raster(r"D:\InfoCrue\Noire\largeur\widthD8")
-    zwater_dir =r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM"
-    manning = 0.03
+    # arcpy.env.scratchWorkspace = r"D:\InfoCrue\tmp"
+    # r_flowdir = arcpy.Raster(r"F:\MSP2\LargeScaleFloodMapping_may2020\Example_RiviereNoire\DEMs\lidar10m_fd")
+    # str_frompoint = r"D:\InfoCrue\Noire\frompoints.shp"
+    # r_width = arcpy.Raster(r"D:\InfoCrue\Noire\largeur\widthD8")
+    # zwater_dir =r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM"
+    # manning = 0.03
+    #
+    # result_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\Results_bathy"
+    # Q_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\qlidar\qlidar"
+    #
 
-    result_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\Results_bathy"
-    Q_dir = r"D:\InfoCrue\Noire\bathy_ForetOuverteDEM\qlidar\qlidar"
+
     downstream_s = 0.0001
     # r_flowdir = arcpy.Raster(r"D:\InfoCrue\Etchemin\DEMbydays\d4fd")
     # str_frompoint = r"D:\InfoCrue\Etchemin\DEMbydays\dep_pts.shp"
@@ -305,9 +316,18 @@ if __name__ == "__main__":
     # Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\q"
     # downstream_s = 0.0001
 
+    arcpy.env.scratchWorkspace = r"E:\Guenole\temp"
+    r_flowdir = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\flowdir")
+    str_frompoint = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\pts_dep.shp"
+    r_width = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\profil_w")
+    zwater_dir =r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\zwater"
+    manning = 0.03
+    lakes = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\bin_lakes")
+    result_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\Results_bathy"
+    Q_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\qlidar"
 
     messages = Messages()
 
     execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir, manning, result_dir, Q_dir,
-                                  downstream_s, messages)
+                                  downstream_s, lakes, messages)
 

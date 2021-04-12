@@ -102,6 +102,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
         currentsimfolder = str_simfolder + "\\" + simname
         currentresult = str_simfolder + "\\res_" + simname
         simq = float(cvsrow["q"])
+        skipsim = False
 
         if not os.path.isdir(currentsimfolder):
             os.makedirs(currentsimfolder)
@@ -110,7 +111,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
             segment = dictsegmentsin[zone]
             for point in sorted(segment, key=lambda q: q[2]):
 
-                if point[3]=="main":
+                if point[3]=="main" and not skipsim:
                     try:
                         if not arcpy.Exists(currentsimfolder + "\\elev_zone" + str(point[1])):
 
@@ -137,7 +138,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                                     hfix = res_downstream.getValue(res_downstream.YtoRow(outpointshape.Y), res_downstream.XtoCol(outpointshape.X))
                                     if hfix == res_downstream.nodata:
                                         messages.addErrorMessage("Condition limite aval non trouvée : zone " + str(point[1]))
-                                    arcpy.Delete_management(currentsimfolder + "\\tmp_zone"  + str(point[1]))
+                                    #arcpy.Delete_management(currentsimfolder + "\\tmp_zone" + str(point[1]))
 
 
 
@@ -232,7 +233,8 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                             progres += 1
                             arcpy.SetProgressorPosition(progres)
 
-
+                            if arcpy.Exists(currentsimfolder + "\\tmp_zone" + str(point[1])):
+                                arcpy.Delete_management(currentsimfolder + "\\tmp_zone" + str(point[1]))
 
                             # Conversion des fichiers output
 
@@ -248,7 +250,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                             else:
                                 os.rename(currentsimfolder  + "\\" + zonename + "-0001.elev",
                                           currentsimfolder + "\\" + zonename + "elev.txt")
-                                filelog.write("Steady state not reached : " + zonename + ", sim " + simname)
+                                filelog.write("Steady state not reached : " + zonename + ", sim " + simname+ "\n")
                                 messages.addWarningMessage("Steady state not reached : " + zonename + ", sim " + simname)
 
                             if os.path.exists(currentsimfolder + "\\" + zonename + "-9999.Vx") or os.path.exists(currentsimfolder + "\\"  + zonename + "-0001.Vx"):
@@ -301,7 +303,9 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_c
                             #                                    number_of_bands=1)
 
                     except BaseException as e:
-                        filelog.write("ERREUR in " + simname + ": sim aborded during zone "+ str(point[1]) + "\n")
+                        filelog.write("ERREUR in " + simname + ": sim aborded during zone "+ str(point[1]) + ", " + simname + ":\n")
+                        filelog.write(str(e))
                         messages.addWarningMessage("Some simulations skipped. See log file.")
+                        skipsim = True
     return
 
