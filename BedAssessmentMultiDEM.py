@@ -41,19 +41,40 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
     width_dict = {}
     lakes = RasterIO(r_lakes)
     lakes_dict = {}
+    try:
+        lakes.checkMatch(width)
+    except Exception, e:
+        messages.addErrorMessage("Lakes and width files resolution or extent do not match")
+        raise RuntimeError
     arcpy.env.workspace = zwater_dir
     rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        zwater_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
-        # creating the dictionnary for the width and the lakes. Not a good solution to copy all these data
-        width_dict[arcpy.Raster(raster).name] = width
-        lakes_dict[arcpy.Raster(raster).name] = lakes
+    try:
+        for raster in rasterlist:
+            zwater_raster = RasterIO(arcpy.Raster(raster))
+            raster_name = zwater_raster.raster.name
+            zwater_dict[raster_name] = zwater_raster
+            width.checkMatch(zwater_raster)
+            # creating the dictionnary for the width and the lakes. Not a good solution to copy all these data
+            width_dict[raster_name] = width
+            lakes_dict[raster_name] = lakes
+    except Exception, e:
+        messages.addErrorMessage("Water surface file "+raster_name+" and width resolution or extent do not match")
+        raise RuntimeError
     Q_dict = {}
     arcpy.env.workspace = Q_dir
     rasterlist = arcpy.ListRasters()
-    for raster in rasterlist:
-        Q_dict[arcpy.Raster(raster).name] = RasterIO(arcpy.Raster(raster))
-
+    try:
+        for raster in rasterlist:
+            q_raster = RasterIO(arcpy.Raster(raster))
+            raster_name = q_raster.raster.name
+            Q_dict[raster_name] = q_raster
+            width.checkMatch(q_raster)
+    except Exception, e:
+        messages.addErrorMessage("Discharge file " + raster_name + " and width resolution or extent do not match")
+        raise RuntimeError
+    if set(Q_dict.keys()) != set(zwater_dict.keys()):
+        messages.addErrorMessage("List of discharge rasters and list of water surface rasters do not match")
+        raise RuntimeError
 
     trees = build_trees(flowdir, str_frompoint, dtype="MULTI", width=width_dict, wslidar=zwater_dict, Q=Q_dict, inlake=lakes_dict)
     #pickle.dump(trees, open(r"D:\InfoCrue\tmp\savetreebed_bec.pkl", "wb"), protocol=2)
@@ -73,14 +94,14 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
             for raster_name, csdata in cs.data_dict.items():
-                if csdata.wslidar != zwater_dict[raster_name].nodata:
+                if csdata.wslidar != zwater_dict[raster_name].nodata and csdata.Q != Q_dict[raster_name].nodata and csdata.inlake != 1:
                     cs.valid_data = True
                     if prev_cs is None:
                         current_run_num +=1
                         runlist.append((raster_name, current_run_num))
                         csdata.run_num = current_run_num
                     else:
-                        if prev_cs.data_dict[raster_name].wslidar == zwater_dict[raster_name].nodata:
+                        if not (csdata.wslidar != zwater_dict[raster_name].nodata and csdata.Q != Q_dict[raster_name].nodata and csdata.inlake != 1):
                             current_run_num += 1
                             runlist.append((raster_name, current_run_num))
                             csdata.run_num = current_run_num
@@ -115,6 +136,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
 
                 if csdata.run_num == run_num:
                     dem_reached = True
+
 
                 # - Calculate bed elevation from other DEMs
                 # - compute hydraulic with the discharge for the current DEM
@@ -155,7 +177,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
                         else:
                             # else we just copy the slope from the downstream cell
                             cs.proxy_s = prev_cs.proxy_s
-                        if not prev_cs.valid_data and csdata.run_num == run_num:
+                        if not prev_cs.valid_data and csdata.run_num == run_num and cs.proxy_s != downstream_s:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
 
@@ -175,7 +197,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
 
             while not enditeration:
                 iteration += 1
-
+                print iteration
 
                 for segment, prev_cs, cs in tree.browsepts():
 
@@ -316,15 +338,29 @@ if __name__ == "__main__":
     # Q_dir = r"D:\InfoCrue\Etchemin\DEMbydays\testfauxmulti\q"
     # downstream_s = 0.0001
 
+    # arcpy.env.scratchWorkspace = r"E:\Guenole\temp"
+    # r_flowdir = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\flowdir_c")
+    # str_frompoint = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\pts_dep.shp"
+    # r_width = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\profil_w4")
+    # zwater_dir =r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\zwater"
+    # manning = 0.03
+    # lakes = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\bin_lakes_c")
+    # result_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\Results_bathy"
+    # Q_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\qlidar"
+
+
     arcpy.env.scratchWorkspace = r"E:\Guenole\temp"
-    r_flowdir = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\flowdir")
-    str_frompoint = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\pts_dep.shp"
-    r_width = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\profil_w")
-    zwater_dir =r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\zwater"
+    r_flowdir = arcpy.Raster(r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\lidar10m_fd")
+    str_frompoint = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\dep_pts.shp"
+    r_width = arcpy.Raster(r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\widthd8")
+
+    zwater_dir =r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\DEMs_watersurface_final"
+    #zwater_dir = r"E:\Guenole\testBathyDuLoup\DEMs_wrong_watersurface"
+    Q_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\forbathy_qlidar_newext"
     manning = 0.03
-    lakes = arcpy.Raster(r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\bin_lakes")
-    result_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\Results_bathy"
-    Q_dir = r"E:\Guenole\Appli_methodo_DEH_Chaudiere\bathy\qlidar"
+    lakes = arcpy.Raster(r"E:\Guenole\testBathyDuLoup\lacs\bin_lakes")
+    result_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\Results_bathy"
+
 
     messages = Messages()
 
