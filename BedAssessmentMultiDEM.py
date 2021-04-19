@@ -94,14 +94,17 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
         for segment, prev_cs, cs in tree.browsepts():
             cs.valid_data = False
             for raster_name, csdata in cs.data_dict.items():
-                if csdata.wslidar != zwater_dict[raster_name].nodata and csdata.Q != Q_dict[raster_name].nodata and csdata.inlake != 1:
+                if csdata.Q == Q_dict[raster_name].nodata:
+                    messages.addErrorMessage("Error: missing discharges for raster "+raster_name)
+                    raise RuntimeError()
+                if csdata.wslidar != zwater_dict[raster_name].nodata and csdata.inlake != 1:
                     cs.valid_data = True
                     if prev_cs is None:
                         current_run_num +=1
                         runlist.append((raster_name, current_run_num))
                         csdata.run_num = current_run_num
                     else:
-                        if not (csdata.wslidar != zwater_dict[raster_name].nodata and csdata.Q != Q_dict[raster_name].nodata and csdata.inlake != 1):
+                        if not (prev_cs.data_dict[raster_name].wslidar != zwater_dict[raster_name].nodata and prev_cs.data_dict[raster_name].inlake != 1):
                             current_run_num += 1
                             runlist.append((raster_name, current_run_num))
                             csdata.run_num = current_run_num
@@ -141,6 +144,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
                 # - Calculate bed elevation from other DEMs
                 # - compute hydraulic with the discharge for the current DEM
                 list_avg_z = []
+
                 for otherraster_name, othercsdata in cs.data_dict.items():
                     if othercsdata.run_num != 0 and othercsdata.run_num < run_num:
                         # already treated csdata
@@ -177,6 +181,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
                         else:
                             # else we just copy the slope from the downstream cell
                             cs.proxy_s = prev_cs.proxy_s
+
                         if not prev_cs.valid_data and csdata.run_num == run_num and cs.proxy_s != downstream_s:
                             # Gap: no valid data in any DEM
                             messages.addWarningMessage("Gap at " + str(cs.X) + ", " + str(cs.Y) + ". Normal depth applied based on downstream slope")
@@ -197,7 +202,6 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
 
             while not enditeration:
                 iteration += 1
-                print iteration
 
                 for segment, prev_cs, cs in tree.browsepts():
 
@@ -292,9 +296,10 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
         for tree in trees:
             for segment in tree.treesegments():
                 for pt in segment.get_profile():
-                    if pt.data_dict[raster.name].wslidar != zwater_dict[raster.name].nodata:
+                    csdata = pt.data_dict[raster.name]
+                    if csdata.wslidar != zwater_dict[raster_name].nodata and csdata.inlake != 1:
                         # saving results only where the DEMs are
-                        results_dict[raster.name].setValue(pt.row, pt.col, pt.data_dict[raster.name].z)
+                        results_dict[raster.name].setValue(pt.row, pt.col, csdata.z)
 
         results_dict[raster.name].save()
 
@@ -354,12 +359,12 @@ if __name__ == "__main__":
     str_frompoint = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\dep_pts.shp"
     r_width = arcpy.Raster(r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\widthd8")
 
-    zwater_dir =r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\DEMs_watersurface_final"
+    zwater_dir =r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\DEMs_watersurface_tests"
     #zwater_dir = r"E:\Guenole\testBathyDuLoup\DEMs_wrong_watersurface"
-    Q_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\forbathy_qlidar_newext"
+    Q_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\forbathy_qlidar_test"
     manning = 0.03
     lakes = arcpy.Raster(r"E:\Guenole\testBathyDuLoup\lacs\bin_lakes")
-    result_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\Results_bathy"
+    result_dir = r"E:\Guenole\testBathyDuLoup\inputs_bedelevation_duloup\bathy_test_all_gaps"
 
 
     messages = Messages()
