@@ -12,8 +12,8 @@ import numpy.lib.recfunctions as rfn
 
 class RiverNetwork(object):
 
-    reaches_linkfieldup = "UpRID"
-    reaches_linkfielddown = "DownRID"
+    reaches_linkfieldup = "UpstreamRID"
+    reaches_linkfielddown = "DownstreamRID"
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 
@@ -149,23 +149,25 @@ class Reach(_NumpyArrayFedObject):
                                        prioritize_points_attribute, reverse):
                     yield item
         else:
-            for item in self.get_downstream_reach()._recursive_browse_reaches(orientation, prioritize_points_collection,
-                                       prioritize_points_attribute, reverse):
-                yield item
+            downstreamreach = self.get_downstream_reach()
+            if downstreamreach is not None:
+                for item in downstreamreach._recursive_browse_reaches(orientation, prioritize_points_collection,
+                                           prioritize_points_attribute, reverse):
+                    yield item
 
     def get_downstream_reach(self):
         # doit trouver le parent dans rivernetwork
-        list_iddown = self.rivernetwork._numpyarraylinks[self.rivernetwork._numpyarraylinks[self.rivernetwork._reaches_linkfieldup] == self.id][
-            self.rivernetwork._reaches_linkfielddown]
+        list_iddown = self.rivernetwork._numpyarraylinks[self.rivernetwork._numpyarraylinks[self.rivernetwork.reaches_linkfieldup] == self.id][
+            self.rivernetwork.reaches_linkfielddown]
         if len(list_iddown)>0:
-            return list_iddown[0]
+            return self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == list_iddown[0]]['object'][0]
         else:
             return None
 
     def get_uptream_reaches(self):
         #   Générateur de Reach
-        list_idup = self.rivernetwork._numpyarraylinks[self.rivernetwork._numpyarraylinks[self.rivernetwork._reaches_linkfielddown] == self.id][
-            self.rivernetwork._reaches_linkfieldup]
+        list_idup = self.rivernetwork._numpyarraylinks[self.rivernetwork._numpyarraylinks[self.rivernetwork.reaches_linkfielddown] == self.id][
+            self.rivernetwork.reaches_linkfieldup]
         for id in list_idup:
             yield self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == id]['object'][0]
 
@@ -176,7 +178,7 @@ class Reach(_NumpyArrayFedObject):
 
     def is_upstream_end(self):
         # retour de la méthode : booléen
-        return len(self.get_uptream_reaches()) == 0
+        return len(list(self.get_uptream_reaches())) == 0
 
     def __str__(self):
         return str(self.id)
@@ -190,11 +192,26 @@ class Reach(_NumpyArrayFedObject):
     def browse_points(self, points_collection="MAIN", orientation="DOWN_TO_UP"):
         #   Générateur de DataPoint
         collection = self.rivernetwork._dict_points_collection[points_collection]
-        sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
+        if orientation == "DOWN_TO_UP":
+            sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
+        else:
+            sortedlist = np.sort(
+                collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
+                order=collection._dict_attr_fields['dist'])
+            sortedlist=np.flipud(sortedlist)
         for id in sortedlist[collection._dict_attr_fields['id']]:
            yield collection._points[collection._points['id'] == id]['object'][0]
 
-
+    def get_last_point(self, points_collection="MAIN"):
+        collection = self.rivernetwork._dict_points_collection[points_collection]
+        sortedlist = np.sort(
+            collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
+            order=collection._dict_attr_fields['dist'])
+        if len(sortedlist) > 0:
+            lastid = sortedlist[collection._dict_attr_fields['id']][-1]
+            return collection._points[collection._points['id'] == lastid]['object'][0]
+        else:
+            return None
 
 class Points_collection(object):
 

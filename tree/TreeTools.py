@@ -199,12 +199,12 @@ def __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, 
 
     # Find the upstream junction for the current reach
     condition1 = np_junctions["ORIG_FID"] == downstream_junction["ORIG_FID"]
-    condition2 = np_junctions["FEAT_SEQ"] <> downstream_junction["FEAT_SEQ"]
+    condition2 = np_junctions["FEAT_SEQ"] != downstream_junction["FEAT_SEQ"]
     current_upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
 
     # Find other junctions at the same place
     condition1 = np_junctions["FEAT_SEQ"] == current_upstream_junction["FEAT_SEQ"]
-    condition2 = np_junctions["ORIG_FID"] <> current_upstream_junction["ORIG_FID"]
+    condition2 = np_junctions["ORIG_FID"] != current_upstream_junction["ORIG_FID"]
 
     other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
 
