@@ -1,15 +1,12 @@
 # coding: latin-1
 
-# v0.2 Nov 2020. Clarification du nom des variables
-# v0.21 Nov 2020. Avec un vrai solver
-
 # Solver sous-critique uniquement
 
 g = 9.81
 #Froude_limite = 0.94
 import warnings
 warnings.simplefilter("error", RuntimeWarning)
-import tree.ProfilePoint
+
 from scipy.optimize import fsolve
 
 def manning_solver(cs):
@@ -28,8 +25,8 @@ def manning_solver(cs):
 def cs_solver(cs_up, cs_down):
 
 
-    cs_tosolve = cs_up
-    cs_ref = cs_down
+    cs_tosolve = cs_down
+    cs_ref = cs_up
 
     def equations(y):
 
@@ -38,22 +35,27 @@ def cs_solver(cs_up, cs_down):
             return 9999
         R = (cs_tosolve.width * y) / (cs_tosolve.width + 2 * y)
         v = cs_tosolve.Q / (cs_tosolve.width * y)
-        h = cs_tosolve.z + y
         s = (cs_tosolve.n ** 2 * v ** 2) / (R ** (4. / 3.))
-        friction_h = (cs_up.dist - cs_down.dist) * s
-        energy = cs_ref.h + friction_h - h
+        z = cs_tosolve.wslidar - y
+        h = cs_tosolve.wslidar
+        # with kinetic energy?
+        h = h + v ** 2 / (2 * g)
+        # slope calculation:
+        #friction_h = (cs_up.dist - cs_down.dist) * s
+        friction_h = (cs_up.dist - cs_down.dist) * (s+cs_ref.s)/2.
+        energy = h + friction_h - cs_up.h
         return energy
 
     # premier estimé : y = y_crit
     cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
     cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
 
-
-
     cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
     cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
-    #cs_tosolve.h = cs_tosolve.z + cs_tosolve.y + cs_tosolve.v ** 2 / (2 * g)
-    cs_tosolve.h = cs_tosolve.z + cs_tosolve.y
+    cs_tosolve.z = cs_tosolve.wslidar - cs_tosolve.y
+    cs_tosolve.h = cs_tosolve.wslidar
+    # with kinetic energy?
+    cs_tosolve.h = cs_tosolve.h + cs_tosolve.v ** 2 / (2 * g)
     cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
     cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
 
