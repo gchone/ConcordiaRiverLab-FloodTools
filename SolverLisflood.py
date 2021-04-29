@@ -25,10 +25,10 @@ def manning_solver(cs):
         cs.h = cs.z + cs.y + v ** 2 / (2 * g)
         #cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
     except RuntimeWarning as e:
-        print cs.wslidar
-        print cs.width
-        print cs.Q
-        print e
+        print (cs.wslidar)
+        print (cs.width)
+        print (cs.Q)
+        print (e)
         raise e
 
 
@@ -56,10 +56,10 @@ def cs_solver(cs_up, cs_down):
         ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
         cs_tosolve.y = fsolve(equations, ycrit)[0]
     except RuntimeWarning as e:
-        print cs_tosolve.wslidar
-        print cs_tosolve.width
-        print cs_tosolve.Q
-        print e
+        print (cs_tosolve.wslidar)
+        print (cs_tosolve.width)
+        print (cs_tosolve.Q)
+        print (e)
         raise e
 
     R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)

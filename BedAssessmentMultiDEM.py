@@ -43,7 +43,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
     lakes_dict = {}
     try:
         lakes.checkMatch(width)
-    except Exception, e:
+    except Exception as e:
         messages.addErrorMessage("Lakes and width files resolution or extent do not match")
         raise RuntimeError
     arcpy.env.workspace = zwater_dir
@@ -57,7 +57,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
             # creating the dictionnary for the width and the lakes. Not a good solution to copy all these data
             width_dict[raster_name] = width
             lakes_dict[raster_name] = lakes
-    except Exception, e:
+    except Exception as e:
         messages.addErrorMessage("Water surface file "+raster_name+" and width resolution or extent do not match")
         raise RuntimeError
     Q_dict = {}
@@ -69,7 +69,7 @@ def execute_BedAssessmentMultiDEM(r_flowdir, str_frompoint, r_width, zwater_dir,
             raster_name = q_raster.raster.name
             Q_dict[raster_name] = q_raster
             width.checkMatch(q_raster)
-    except Exception, e:
+    except Exception as e:
         messages.addErrorMessage("Discharge file " + raster_name + " and width resolution or extent do not match")
         raise RuntimeError
     if set(Q_dict.keys()) != set(zwater_dict.keys()):
