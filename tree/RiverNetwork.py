@@ -6,6 +6,7 @@
 
 
 import arcpy
+import numpy
 import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
@@ -59,9 +60,11 @@ class RiverNetwork(object):
                 for item in upstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
                     yield item
 
-    def add_points_collection(self, points_shapefile, dict_attr_fields, points_collection_name="MAIN"):
+    def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self._dict_points_collection[points_collection_name] = Points_collection(points_shapefile, dict_attr_fields)
+        self._dict_points_collection[points_collection_name] = _Points_collection(points_collection_name, points_table, dict_attr_fields)
+
+
 
     def get_points_collections_names(self):
         # encapsultion du dictionnaire _dict_points_collection
@@ -213,17 +216,35 @@ class Reach(_NumpyArrayFedObject):
         else:
             return None
 
-class Points_collection(object):
+    def add_point(self, datapoint, points_collection="MAIN"):
+        collection = self.rivernetwork._dict_points_collection[points_collection]
 
-    def __init__(self, points_shapefile, dict_attr_fields):
-        self._dict_attr_fields = dict_attr_fields
-        # matrice de base
-        self._numpyarray = arcpy.da.TableToNumPyArray(points_shapefile, dict_attr_fields.values(), null_value=-9999)
-        # matrice contenant les instances de DataPoint
-        self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
-        for i in range(self._numpyarray.shape[0]):
-            self._points[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
-            self._points[i]['object'] = DataPoint(self, self._numpyarray[i][self._dict_attr_fields['id']])
+        #to_add = np.array([(2, Points_collection("ff"))], dtype=a.dtype)
+
+
+class _Points_collection(object):
+
+    def __init__(self, name, points_table=None, dict_attr_fields=None):
+        self.name = name
+        if points_table is not None and dict_attr_fields is not None:
+            self._dict_attr_fields = dict_attr_fields
+            # matrice de base
+            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, dict_attr_fields.values(), null_value=-9999)
+            print self._numpyarray
+            print self._numpyarray.dtype
+            print self._numpyarray.shape
+            # matrice contenant les instances de DataPoint
+            self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
+            for i in range(self._numpyarray.shape[0]):
+                self._points[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
+                self._points[i]['object'] = DataPoint(self, self._numpyarray[i][self._dict_attr_fields['id']])
+        else:
+            self._dict_attr_fields = {"id": "id",
+                                      "reach_id": "RID",
+                                      "dist": "dist",
+                                      "offset": "offset",}
+            self._numpyarray = np.empty(0, dtype=[('id', 'i4'), ('RID', 'i4'), ('dist', 'f4'), ('offset', 'f4')])
+            self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
 
 class DataPoint(_NumpyArrayFedObject):
     def __init__(self, pointscollection, id):

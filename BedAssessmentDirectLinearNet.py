@@ -56,6 +56,12 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
                     cs_solver(prev_cs, cs)
                     cs.solver = "regular"
                     cs.type = 1
+
+                    # Adding a cross-section if the Froude number varies too much
+                    if (cs.Fr - prev_cs.Fr)/prev_cs.Fr > 0.1:
+                        # add a point in the middle
+                        pass
+
                 else:
                     cs.z = -9999
                     cs.v = 0
