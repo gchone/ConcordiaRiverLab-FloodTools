@@ -216,8 +216,12 @@ class Reach(_NumpyArrayFedObject):
         else:
             return None
 
-    def add_point(self, datapoint, points_collection="MAIN"):
+    def add_point(self, data, points_collection="MAIN"):
         collection = self.rivernetwork._dict_points_collection[points_collection]
+        #Find the max currently used id in the collection
+        collection._numpyarray
+        datapoint = DataPoint(collection)
+        for attribute, value in data.__dict__.items():
 
         #to_add = np.array([(2, Points_collection("ff"))], dtype=a.dtype)
 
