@@ -23,7 +23,8 @@ class RiverNetwork(object):
 
         # on initialise les matrices Numpy
         # matrice de base
-        self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, dict_attr_fields.values(), null_value=-9999)
+        print (dict_attr_fields.values())
+        self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, list(dict_attr_fields.values()), null_value=-9999)
         # matrice des liaisons amont-aval
         self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
         # matrice contenant les instances de Reach
@@ -221,7 +222,7 @@ class Reach(_NumpyArrayFedObject):
         #Find the max currently used id in the collection
         collection._numpyarray
         datapoint = DataPoint(collection)
-        for attribute, value in data.__dict__.items():
+        #for attribute, value in data.__dict__.items():
 
         #to_add = np.array([(2, Points_collection("ff"))], dtype=a.dtype)
 
@@ -233,10 +234,7 @@ class _Points_collection(object):
         if points_table is not None and dict_attr_fields is not None:
             self._dict_attr_fields = dict_attr_fields
             # matrice de base
-            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, dict_attr_fields.values(), null_value=-9999)
-            print self._numpyarray
-            print self._numpyarray.dtype
-            print self._numpyarray.shape
+            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(dict_attr_fields.values()), null_value=-9999)
             # matrice contenant les instances de DataPoint
             self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
             for i in range(self._numpyarray.shape[0]):
