@@ -153,7 +153,7 @@ def build_trees(flowdir, frompoint, dtype="SINGLE", **kwargs):
                 # param must be a dictionary of RasterIO object (the data are a collection of rasters in a folder)
                 for paramname, param in kwargs.items():
                     for raster_name, raster in param.items():
-                        if not dictdata.has_key(raster_name):
+                        if not raster_name in dictdata.keys():
                             dictdata[raster_name] = {}
                         dictdata[raster_name][paramname] = raster.getValue(currentrow, currentcol)
                 ptprofile = ProfilePoint.ProfilePointMulti(currentrow, currentcol, 0, dictdata)
