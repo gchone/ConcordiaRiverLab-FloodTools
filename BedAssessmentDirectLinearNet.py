@@ -13,6 +13,7 @@ import arcpy
 import pickle
 from RasterIO import *
 from tree.RiverNetwork import *
+from tree.TreeTools import *
 #from Solver2 import *
 from SolverDirect import *
 
@@ -53,14 +54,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
             else:
 
                 if cs.wslidar < prev_cs.wslidar:
-                    cs_solver(prev_cs, cs)
-                    cs.solver = "regular"
-                    cs.type = 1
-
-                    # Adding a cross-section if the Froude number varies too much
-                    if (cs.Fr - prev_cs.Fr)/prev_cs.Fr > 0.1:
-                        # add a point in the middle
-                        pass
+                    __recursive_inverse1Dhydro(cs, prev_cs)
 
                 else:
                     cs.z = -9999
@@ -75,5 +69,34 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
 
     return
 
+def __recursive_inverse1Dhydro(cs, prev_cs):
+    cs_solver(prev_cs, cs)
+    cs.solver = "regular"
+    cs.type = 1
 
+    # Adding a cross-section if the Froude number varies too much
+    if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 : #and prev_cs.dist - cs.dist > 0.01:
+        # add a point in the middle
+        if cs.reach == prev_cs.reach:
+            newdist = (cs.dist + prev_cs.dist) / 2.
+            newcs = cs.reach.add_point(newdist, 0, cs.pointscollection)
+            # TODO:
+            # Temporary. Certainly not the cleanest way to proceed
+            a = (cs.width - prev_cs.width) / (cs.dist - prev_cs.dist)
+            newcs.width = a * newcs.dist + cs.width - a * cs.dist
+            a = (cs.Q - prev_cs.Q) / (cs.dist - prev_cs.dist)
+            newcs.Q = a * newcs.dist + cs.Q - a * cs.dist
+            a = (cs.wslidar - prev_cs.wslidar) / (cs.dist - prev_cs.dist)
+            newcs.wslidar = a* newcs.dist + cs.wslidar - a* cs.dist
+            newcs.n = cs.n
+
+            __recursive_inverse1Dhydro(newcs, prev_cs)
+            newcs.solver = "added"
+            cs.type = 3
+            __recursive_inverse1Dhydro(cs, newcs)
+
+        else:
+            # TODO:
+            # case where the interpolation takes place between two reaches
+            pass
 
