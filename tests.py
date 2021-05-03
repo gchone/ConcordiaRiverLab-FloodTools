@@ -160,6 +160,7 @@ def test_1Dhydro():
 
 if __name__ == "__main__":
     # test comment
+    # test2
     messages = Messages()
     arcpy.env.overwriteOutput = True
 
