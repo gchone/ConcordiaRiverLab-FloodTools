@@ -18,14 +18,20 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
     :param str_output_points:
     :return:
     """
+
+    # Homemade simple tree structure:
+    class tmp_TreeSegment(object):
+        pass
+    class tmp_ProfilePoint(object):
+        pass
+
     flowdir = RasterIO(r_flowdir)
     trees = []
     segmentid = 0
 
     treated_pts = {}
 
-    class tmp_ProfilePoint(object):
-        pass
+
 
     # Traitement effectué pour chaque point de départ
     frompointcursor = arcpy.da.SearchCursor(str_frompoints, ["SHAPE@", "OID@"])
@@ -51,8 +57,9 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
             intheraster = False
 
         segmentid += 1
-        newtreeseg = TreeSegment(segmentid)
-        newtreeseg.__ptsprofile = []
+        newtreeseg = tmp_TreeSegment()
+        newtreeseg.id = segmentid
+        newtreeseg.ptsprofile = []
 
 
         # Traitement effectué sur chaque cellule le long de l'écoulement
@@ -65,7 +72,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
             ptprofile.row = currentrow
             ptprofile.col = currentcol
 
-            newtreeseg.__ptsprofile.insert(0, ptprofile)
+            newtreeseg.ptsprofile.insert(0, ptprofile)
             treated_pts[(currentrow, currentcol)] = newtreeseg
 
             # On cherche le prochain point à partir du flow direction
@@ -127,7 +134,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, str_output_routes, routeI
                     oldsegment = treated_pts[(currentrow, currentcol)]
 
                     # fork
-                    newchild = TreeSegment(segmentid)
+                    newchild = tmp_TreeSegment()
+                    newchild.id = segmentid
                     childrenlist = []
                     for child in oldsegment.get_childrens():
                         childrenlist.append(child)
@@ -300,9 +308,7 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
                                  from_measure_field="FromF",
                                  to_measure_field=Lengthfield)
 
-        #arcpy.DeleteField_management(route_shapefile, ["FromF"])
 
-        #arcpy.DeleteField_management(route_shapefile, ["LENGTH"])
 
     finally:
         gc.CleanTempFiles()
