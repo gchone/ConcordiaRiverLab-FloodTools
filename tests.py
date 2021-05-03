@@ -98,8 +98,6 @@ def test_bed_assess():
                        "Q": "q",
                        "width": "w"
                        }
-
-
     rivernet.add_points_collection(points1, dict_attr_field, "data")
 
 
@@ -157,6 +155,7 @@ def test_1Dhydro():
                        }
 
     rivernet.save_points(createtable, dict_attr_field, "data")
+
 
 
 if __name__ == "__main__":
