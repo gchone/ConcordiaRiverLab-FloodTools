@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-### Historique des versions ###
-# v1.0 - Jan 2021 - Création - Guénolé Choné
 
 # ArcGIS tools for tree manipulation
 

@@ -1,15 +1,14 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
-# v0.2 Nov 2020. Clarification du nom des variables
-# v0.21 Nov 2020. Avec un vrai solver
 
 # Solver sous-critique uniquement
 
 g = 9.81
-#Froude_limite = 0.94
+
 import warnings
+# fsolve can produce warnings. This line turns them into an Exception
 warnings.simplefilter("error", RuntimeWarning)
-import tree.ProfilePoint
+
 from scipy.optimize import fsolve
 
 def manning_solver(cs):
@@ -44,7 +43,7 @@ def cs_solver(cs_up, cs_down):
         energy = cs_ref.h + friction_h - h
         return energy
 
-    # premier estimé : y = y_crit
+    # premier estimÃ© : y = y_crit
     cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
     cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
 

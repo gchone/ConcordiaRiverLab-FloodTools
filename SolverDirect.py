@@ -1,4 +1,4 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 # Solver sous-critique uniquement
 
@@ -46,7 +46,7 @@ def cs_solver(cs_up, cs_down):
         energy = h + friction_h - cs_up.h
         return energy
 
-    # premier estimé : y = y_crit
+    # premier estimÃ© : y = y_crit
     cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
     cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
 

@@ -1,7 +1,7 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 #####################################################
-# Guénolé Choné
+# GuÃ©nolÃ© ChonÃ©
 # Concordia University
 # Geography, Planning and Environment Department
 # guenole.chone@concordia.ca
@@ -25,7 +25,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
 
     # TODO:
     # upstream_s : prendre la pente de la surface avec le point downstream.
-
+    # when passing a second time on a downstream reach, stop if the bed calculated is close to the previously calculated one
 
     # 1D hydraulic calculations
     for reach in rivernet.browse_reaches(orientation="UP_TO_DOWN"):
@@ -79,7 +79,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
         # add a point in the middle
         if cs.reach == prev_cs.reach:
             newdist = (cs.dist + prev_cs.dist) / 2.
-            newcs = cs.reach.add_point(newdist, 0, cs.pointscollection)
+            newcs = cs.reach.add_point(newdist, 0, cs.pointscollection.name)
             # TODO:
             # Temporary. Certainly not the cleanest way to proceed
             a = (cs.width - prev_cs.width) / (cs.dist - prev_cs.dist)

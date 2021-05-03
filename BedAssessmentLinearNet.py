@@ -1,14 +1,11 @@
-# coding: latin-1
+# -*- coding: utf-8 -*-
 
 #####################################################
-# Guénolé Choné
+# GuÃ©nolÃ© ChonÃ©
 # Concordia University
 # Geography, Planning and Environment Department
 # guenole.chone@concordia.ca
 #####################################################
-
-# Versions
-# v1.2 - Nov 2020 - Création. Fork à partir de la 1.1. de BedAssessment
 
 
 import os

@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-### Historique des versions ###
-# v2.0 - Fev 2020 - Création
-
-
 import arcpy
 import numpy
 import numpy as np
@@ -28,10 +24,19 @@ class RiverNetwork(object):
         self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
         # matrice contenant les instances de Reach
         self._reaches = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'),('object', 'O')])
-        for i in range(self._numpyarray.shape[0]):
-            self._reaches[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
-            self._reaches[i]['object'] = Reach(self, self._numpyarray[i][self._dict_attr_fields['id']])
-        # Tried different things to add a field with the objects to the _numpyarray but did not succeed
+        # In order to populate the self._reaches array, we could iterate through the self._numpyarray
+        # It's quicker, but with the SearchCursor we ca retrieve the Shape object, which could be needed
+        reachescursor = arcpy.da.SearchCursor(reaches_shapefile, [self._dict_attr_fields['id'], "SHAPE@"])
+        i = 0
+        for reach in reachescursor:
+            self._reaches[i]['id'] = reach[0]
+            self._reaches[i]['object'] = Reach(self, reach[0], reach[1])
+            i+=1
+        # for i in range(self._numpyarray.shape[0]):
+        #     self._reaches[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
+        #     self._reaches[i]['object'] = Reach(self, self._numpyarray[i][self._dict_attr_fields['id']])
+
+        # Tried different things to add a field with the objects to the _numpyarray but did not succeed:
         #self._numpyarray = rfn.merge_arrays([self._numpyarray, object_column], flatten=True)
         #rfn.append_fields(self._numpyarray, 'object', list)
 
@@ -70,7 +75,7 @@ class RiverNetwork(object):
         # encapsultion du dictionnaire _dict_points_collection
         return self._dict_points_collection.keys()
 
-    def get_points_collection(self, name="MAIN"):
+    def _get_points_collection(self, name="MAIN"):
         # encapsultion du dictionnaire _dict_points_collection
         return self._dict_points_collection[name]
 
@@ -176,10 +181,11 @@ class _NumpyArrayFedObject(object):
 
 class Reach(_NumpyArrayFedObject):
 
-    def __init__(self, rivernetwork, id):
+    def __init__(self, rivernetwork, id, shape):
         #   id : int - identifiant du segment
         _NumpyArrayFedObject.__init__(self, rivernetwork, id)
         self.rivernetwork = rivernetwork
+        self.shape = shape
 
     def _recursive_browse_reaches(self, orientation, prioritize_points_collection,
                                    prioritize_points_attribute, reverse):
@@ -254,8 +260,9 @@ class Reach(_NumpyArrayFedObject):
         else:
             return None
 
-    def add_point(self, distance, offset, collection):
+    def add_point(self, distance, offset, points_collection):
 
+        collection = self.rivernetwork._get_points_collection(points_collection)
         #Find the max currently used id in the collection, and add 1
         newid = numpy.max(collection._numpyarray[collection._dict_attr_fields['id']]) + 1
         #Add a row in the two numpy arrays
@@ -270,6 +277,14 @@ class Reach(_NumpyArrayFedObject):
         collection._points = numpy.append(collection._points, to_add)
 
         return datapoint
+
+
+    def delete_point(self, datapoint):
+        collection = datapoint._pointscollection
+        collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
+        collection._points = collection._points[collection._numpyarray['id']!=datapoint.id]
+        if datapoint.reach != self:
+            raise (RuntimeWarning("Deleted point outside of reach"))
 
 
 class Points_collection(object):
@@ -299,5 +314,5 @@ class Points_collection(object):
 class DataPoint(_NumpyArrayFedObject):
     def __init__(self, pointscollection, id, reach):
         _NumpyArrayFedObject.__init__(self, pointscollection, id)
-        self.pointscollection = pointscollection
+        self._pointscollection = pointscollection
         self.reach = reach
