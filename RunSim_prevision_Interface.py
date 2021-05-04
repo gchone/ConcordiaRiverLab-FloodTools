@@ -95,7 +95,7 @@ class RunSim2D_prevision(object):
             name="log",
             datatype="DEFile",
             parameterType="Required",
-            direction="Outpur")
+            direction="Output")
 
 
         param_channelmanning.value = 0.03
