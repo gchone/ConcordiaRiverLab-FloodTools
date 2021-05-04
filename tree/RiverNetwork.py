@@ -112,7 +112,7 @@ class RiverNetwork(object):
         idfield = None
         for field, value in dict_attr_fields.items():
             if value[1] == "FLOAT":
-                newdtype.append((value[0], 'f4'))
+                newdtype.append((value[0], 'f8'))
             if value[1] == "LONG":
                 newdtype.append((value[0], 'i4'))
             if value[1] == "TEXT":
