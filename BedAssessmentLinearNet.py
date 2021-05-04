@@ -14,7 +14,7 @@ import pickle
 from RasterIO import *
 from tree.RiverNetwork import *
 #from Solver2 import *
-from SolverLisflood import *
+from Solver1Dnormal import *
 
 
 def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages):

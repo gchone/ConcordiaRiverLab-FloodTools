@@ -11,7 +11,7 @@
 import os
 import arcpy
 
-from SolverLisflood import *
+from Solver1Dnormal import *
 
 
 def execute_Simple1Dhydraulic(rivernet, points_coll, manning, downstream_s, messages):
@@ -20,12 +20,12 @@ def execute_Simple1Dhydraulic(rivernet, points_coll, manning, downstream_s, mess
     # create a new attribute: "ws"
 
 
-    for reach in rivernet.browse_reaches(orientation="UP_TO_DOWN"):
+    for reach in rivernet.browse_reaches(orientation="DOWN_TO_UP"):
         # Looking for the upstream datapoint
         if reach.is_upstream_end():
             prev_cs = None
 
-        for cs in reach.browse_points(points_collection=points_coll):
+        for cs in reach.browse_points(points_collection=points_coll, orientation="DOWN_TO_UP"):
 
             cs.n = manning
 
