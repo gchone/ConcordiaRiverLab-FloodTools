@@ -26,14 +26,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     segmentid = 0
     pointid = 0
 
-    # create the links table
-    if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
-        arcpy.Delete_management(routelinks_table)
-    arcpy.CreateTable_management(os.path.dirname(routelinks_table), os.path.basename(routelinks_table))
-    arcpy.AddField_management(routelinks_table, RiverNetwork.reaches_linkfielddown, "LONG")
-    arcpy.AddField_management(routelinks_table, RiverNetwork.reaches_linkfieldup, "LONG")
-    linkcursor = arcpy.da.InsertCursor(routelinks_table,
-                                       [RiverNetwork.reaches_linkfielddown, RiverNetwork.reaches_linkfieldup])
+    # create the links table as a numpy array
+    links = np.empty(0, dtype=[(RiverNetwork.reaches_linkfielddown, 'i4'), (RiverNetwork.reaches_linkfieldup, 'i4')])
 
     # For efficiency, the points table is managed as a numpy array (and latter converted into a table)
     pointstype = [("id", 'i4'), ("RID", 'i4'), ("dist", 'f4'), ("offset", 'f4'), ("X", 'f8'), ("Y", 'f8'), ("row", 'i4'), ("col", 'i4')]
@@ -144,7 +138,11 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     # A new RID is assigned to the upstream part of this reach
                     matchingrid = pointsarray["RID"] == confluencepoint["RID"]
                     matchingdist = pointsarray["dist"] > confluencepoint["dist"]
-                    pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid +1
+                    pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
+
+                    # The link table need to be updated too (new RID for the upstream part of the met reach)
+                    links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
+
                     # Adding the pointslist to the pointsarray
                     #   but first, the distance value must be reverse (it was computed backward. It must be from downstream to upstream), and the points must be tuples
                     pointslisttuple = []
@@ -154,8 +152,11 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
 
                     # Adding the confluence info in the link table
-                    linkcursor.insertRow([confluencepoint["RID"], segmentid])
-                    linkcursor.insertRow([confluencepoint["RID"], segmentid +1])
+                    to_add = numpy.empty(2, dtype=links.dtype)
+                    to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
+                    to_add[RiverNetwork.reaches_linkfieldup][0] = segmentid
+                    to_add[RiverNetwork.reaches_linkfieldup][1] = segmentid + 1
+                    links = numpy.append(links, to_add)
 
                     # Storing the downstream point of the upstream reach
                     initialpoint[segmentid] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
@@ -171,6 +172,10 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4], point[5], point[6], point[7]))
                 pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
 
+    # Saving the links
+    if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
+        arcpy.Delete_management(routelinks_table)
+    arcpy.da.NumPyArrayToTable(links, routelinks_table)
 
     # Saving the points
     if arcpy.Exists(str_output_points) and arcpy.env.overwriteOutput == True:
@@ -297,6 +302,10 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         arcpy.CreateTable_management(os.path.dirname(routelinks_table), os.path.basename(routelinks_table))
         arcpy.AddField_management(routelinks_table, RiverNetwork.reaches_linkfielddown, "LONG")
         arcpy.AddField_management(routelinks_table, RiverNetwork.reaches_linkfieldup, "LONG")
+        if arcpy.Describe(os.path.dirname(routelinks_table)).dataType == "Folder":
+            # ArcGIS create a "Field1" field by default for tables in folder
+            arcpy.DeleteField_management(routelinks_table, "Field1")
+
         linkcursor = arcpy.da.InsertCursor(routelinks_table, [RiverNetwork.reaches_linkfielddown, RiverNetwork.reaches_linkfieldup])
 
         netcopyid_name = arcpy.Describe(rivernetcopy).OIDFieldName
