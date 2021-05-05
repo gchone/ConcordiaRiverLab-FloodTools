@@ -144,6 +144,13 @@ class RiverNetwork(object):
             return downstream_end._recursiveprint("")
 
 
+    def delete_point(self, datapoint):
+        collection = datapoint._pointscollection
+        collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
+        collection._points = collection._points[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
+
+
+
 class _NumpyArrayFedObject(object):
 
 
@@ -279,12 +286,6 @@ class Reach(_NumpyArrayFedObject):
         return datapoint
 
 
-    def delete_point(self, datapoint):
-        collection = datapoint._pointscollection
-        collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
-        collection._points = collection._points[collection._numpyarray['id']!=datapoint.id]
-        if datapoint.reach != self:
-            raise (RuntimeWarning("Deleted point outside of reach"))
 
 
 class Points_collection(object):

@@ -43,3 +43,6 @@ def CreateScratchName(*args, **kwargs):
     gb.add_to_garbagebin(os.path.join(kwargs["workspace"], args[0]))
     return arcpy.CreateScratchName(*args, **kwargs)
 
+def AddToGarbageBin(item):
+    gb = _GarbageManager.getInstance()
+    gb.add_to_garbagebin(item)
