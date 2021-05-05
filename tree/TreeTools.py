@@ -222,6 +222,17 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
 
 
 def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field):
+    """
+    Create the river network data structure from a shapefile of lines
+    :param rivernet: input shapefile
+    :param route_shapefile: output shapefile
+    :param routelinks_table: table provided the links between reaches
+    :param routeID_field: name of the reach ID field
+    :param downstream_reach_field: name of the field indentifying the most downstream reach
+    :return: None
+    """
+
+
 
     def __recursivebuildtree(downstream_junction, np_junctions, np_net, netid_name, linkcursor):
 
