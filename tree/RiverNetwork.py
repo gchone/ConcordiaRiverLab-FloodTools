@@ -15,7 +15,7 @@ class RiverNetwork(object):
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 
         self._dict_attr_fields = dict_attr_fields
-        self._dict_points_collection = {}
+        self.dict_points_collection = {}
 
         # on initialise les matrices Numpy
         # matrice de base
@@ -73,17 +73,17 @@ class RiverNetwork(object):
 
     def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self._dict_points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        self.dict_points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
 
 
 
     def get_points_collections_names(self):
         # encapsultion du dictionnaire _dict_points_collection
-        return self._dict_points_collection.keys()
+        return self.dict_points_collection.keys()
 
     def _get_points_collection(self, name="MAIN"):
         # encapsultion du dictionnaire _dict_points_collection
-        return self._dict_points_collection[name]
+        return self.dict_points_collection[name]
 
     def save_points(self, target_table, dict_attr_fields, points_collection_name="MAIN"):
         # sauvegarde les points dans une nouvelle table
@@ -112,7 +112,7 @@ class RiverNetwork(object):
         #     pointcursor.insertRow(datalist)
 
         # Gather metadata for the new array
-        collection = self._dict_points_collection[points_collection_name]
+        collection = self.dict_points_collection[points_collection_name]
         originalarray = collection._numpyarray
         newdtype = []
         idfield = None
@@ -252,7 +252,7 @@ class Reach(_NumpyArrayFedObject):
 
     def browse_points(self, points_collection="MAIN", orientation="DOWN_TO_UP"):
         #   Générateur de DataPoint
-        collection = self.rivernetwork._dict_points_collection[points_collection]
+        collection = self.rivernetwork.dict_points_collection[points_collection]
         if orientation == "DOWN_TO_UP":
             sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
         else:
@@ -264,7 +264,7 @@ class Reach(_NumpyArrayFedObject):
            yield collection._points[collection._points['id'] == id]['object'][0]
 
     def get_last_point(self, points_collection="MAIN"):
-        collection = self.rivernetwork._dict_points_collection[points_collection]
+        collection = self.rivernetwork.dict_points_collection[points_collection]
         sortedlist = np.sort(
             collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
             order=collection._dict_attr_fields['dist'])
