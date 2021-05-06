@@ -25,12 +25,18 @@ class RiverNetwork(object):
         # matrice contenant les instances de Reach
         self._reaches = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'),('object', 'O')])
         # In order to populate the self._reaches array, we could iterate through the self._numpyarray
-        # It's quicker, but with the SearchCursor we ca retrieve the Shape object, which could be needed
-        reachescursor = arcpy.da.SearchCursor(reaches_shapefile, [self._dict_attr_fields['id'], "SHAPE@"])
+        # It's quicker, but with the SearchCursor we can retrieve the Shape object, which could be needed)
+        listfields = list(self._dict_attr_fields.values())
+        listfields_withshape = listfields.copy()
+        listfields_withshape.append("SHAPE@")
+        reachescursor = arcpy.da.SearchCursor(reaches_shapefile, listfields_withshape)
         i = 0
         for reach in reachescursor:
-            self._reaches[i]['id'] = reach[0]
-            self._reaches[i]['object'] = Reach(self, reach[0], reach[1])
+            data = {}
+            for field in listfields:
+                data[field]=reach[listfields_withshape.index(field)]
+            self._reaches[i]['id'] = data[self._dict_attr_fields['id']]
+            self._reaches[i]['object'] = Reach(self, reach[-1], data)
             i+=1
         # for i in range(self._numpyarray.shape[0]):
         #     self._reaches[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
@@ -154,10 +160,13 @@ class RiverNetwork(object):
 class _NumpyArrayFedObject(object):
 
 
-    def __init__(self, numpyarray_holder, id):
-        # Appel à __dict__ fait pour éviter la récursion infinie liée à __getattr__/__setattr__
+    def __init__(self, numpyarray_holder, data):
+        # The object can be fed by an id, or by it's all row from the numpyarray
+        # Note: __dict__ is called to prevent infinite recursion linked with __getattr__/__setattr__
         self.__dict__["_numpyarray_holder"] = numpyarray_holder
-        self.__dict__["id"]  = id
+
+        for attr, field in self._numpyarray_holder._dict_attr_fields.items():
+            self.__dict__[attr] = data[field]
 
 
     def __getattr__(self, name):
@@ -181,16 +190,14 @@ class _NumpyArrayFedObject(object):
             valuefield = self._numpyarray_holder._dict_attr_fields[name]
             array[valuefield][array[idfield] == self.id] = value
 
-        else:
-            super(_NumpyArrayFedObject, self).__setattr__(name, value)
+        super(_NumpyArrayFedObject, self).__setattr__(name, value)
 
 
 
 class Reach(_NumpyArrayFedObject):
 
-    def __init__(self, rivernetwork, id, shape):
-        #   id : int - identifiant du segment
-        _NumpyArrayFedObject.__init__(self, rivernetwork, id)
+    def __init__(self, rivernetwork, shape, data):
+        _NumpyArrayFedObject.__init__(self, rivernetwork, data)
         self.rivernetwork = rivernetwork
         self.shape = shape
 
@@ -279,7 +286,7 @@ class Reach(_NumpyArrayFedObject):
         to_add[collection._dict_attr_fields['offset']] = offset
         to_add[collection._dict_attr_fields['reach_id']] = self.id
         collection._numpyarray = numpy.append(collection._numpyarray, to_add)
-        datapoint = DataPoint(collection, newid, self)
+        datapoint = DataPoint(collection, self, to_add)
         to_add = np.array([(newid, datapoint)], dtype=collection._points.dtype)
         collection._points = numpy.append(collection._points, to_add)
 
@@ -299,21 +306,24 @@ class Points_collection(object):
             self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(dict_attr_fields.values()), null_value=-9999)
             # matrice contenant les instances de DataPoint
             self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
-            for i in range(self._numpyarray.shape[0]):
-                self._points[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
-                reachid = self._numpyarray[i][self._dict_attr_fields['reach_id']]
+            i = 0
+            for row in self._numpyarray:
+                self._points[i]['id'] = row[self._dict_attr_fields['id']]
+                reachid = row[self._dict_attr_fields['reach_id']]
                 reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
-                self._points[i]['object'] = DataPoint(self, self._numpyarray[i][self._dict_attr_fields['id']], reach)
+                self._points[i]['object'] = DataPoint(self, reach, row)
+                i+=1
         else:
             self._dict_attr_fields = {"id": "id",
                                       "reach_id": "RID",
                                       "dist": "dist",
                                       "offset": "offset",}
-            self._numpyarray = np.empty(0, dtype=[('id', 'i4'), ('RID', 'i4'), ('dist', 'f4'), ('offset', 'f4')])
+            self._numpyarray = np.empty(0, dtype=[('id', 'i4'), ('RID', 'i4'), ('dist', 'f8'), ('offset', 'f8')])
             self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
 
 class DataPoint(_NumpyArrayFedObject):
-    def __init__(self, pointscollection, id, reach):
-        _NumpyArrayFedObject.__init__(self, pointscollection, id)
+    def __init__(self, pointscollection, reach, data):
+        _NumpyArrayFedObject.__init__(self, pointscollection, data)
+        self.collectionname = pointscollection.name
         self._pointscollection = pointscollection
         self.reach = reach

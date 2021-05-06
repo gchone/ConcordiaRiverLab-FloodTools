@@ -79,7 +79,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
         # add a point in the middle
         if cs.reach == prev_cs.reach:
             newdist = (cs.dist + prev_cs.dist) / 2.
-            newcs = cs.reach.add_point(newdist, 0, cs.pointscollection.name)
+            newcs = cs.reach.add_point(newdist, 0, cs.collectionname)
             # TODO:
             # Temporary. Certainly not the cleanest way to proceed
             a = (cs.width - prev_cs.width) / (cs.dist - prev_cs.dist)

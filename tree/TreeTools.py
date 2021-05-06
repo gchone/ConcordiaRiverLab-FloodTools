@@ -12,14 +12,15 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     """
     Create a tree structure following the Flow Direction from the From points.
 
-    :param r_flowdir:
-    :param str_frompoints:
-    :param str_output_routes:
-    :param str_output_points:
-    :return:
+    :param r_flowdir: Flow direction raster
+    :param str_frompoints: Upstream ends of the network (shapefile of points)
+    :param route_shapefile: Output shapefile
+    :param routelinks_table: Output table providing the links between reaches
+    :param routeID_field: Name of the reach ID field
+    :param str_output_points: Output table of the Flow direction pixels along the flow path
+    :param messages: ArcGIS Message object
+    :return: None
     """
-
-
 
     flowdir = RasterIO(r_flowdir)
 
@@ -30,7 +31,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     links = np.empty(0, dtype=[(RiverNetwork.reaches_linkfielddown, 'i4'), (RiverNetwork.reaches_linkfieldup, 'i4')])
 
     # For efficiency, the points table is managed as a numpy array (and latter converted into a table)
-    pointstype = [("id", 'i4'), ("RID", 'i4'), ("dist", 'f4'), ("offset", 'f4'), ("X", 'f8'), ("Y", 'f8'), ("row", 'i4'), ("col", 'i4')]
+    pointstype = [("id", 'i4'), ("RID", 'i4'), ("dist", 'f8'), ("offset", 'f8'), ("X", 'f8'), ("Y", 'f8'), ("row", 'i4'), ("col", 'i4')]
     pointsarray = np.empty(0, dtype=pointstype)
 
     # this dict is used to stored the point downstream of each reach (first point to use when building the river lines)
@@ -221,14 +222,15 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
 
 
 
-def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field):
+def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field, messages):
     """
     Create the river network data structure from a shapefile of lines
     :param rivernet: input shapefile
     :param route_shapefile: output shapefile
-    :param routelinks_table: table provided the links between reaches
+    :param routelinks_table: output table providing the links between reaches
     :param routeID_field: name of the reach ID field
-    :param downstream_reach_field: name of the field indentifying the most downstream reach
+    :param downstream_reach_field: name of the field identifying the most downstream reach (value = 1 or 0)
+    :param messages: ArcGIS Message object
     :return: None
     """
 
