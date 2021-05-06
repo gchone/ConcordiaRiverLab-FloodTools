@@ -7,7 +7,26 @@ import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
 
-class RiverNetwork(object):
+class NumpyArrayHolder(object):
+
+    def add_attribute(self, attribute_name, datatype, textlength = None, fieldname = None):
+        if fieldname is None:
+            fieldname = attribute_name
+
+        if datatype == "FLOAT":
+            newdtype = 'f8'
+        elif datatype == "LONG":
+            newdtype = 'i4'
+        elif datatype == "TEXT" and textlength is not None:
+            newdtype = 'U' + str(textlength)
+        else:
+            raise TypeError("Unrecognized data type")
+
+        emptydata = np.empty(self._numpyarray.shape[0], dtype=[(fieldname, newdtype)])
+        self._numpyarray = rfn.append_fields(self._numpyarray, fieldname, emptydata, newdtype)
+        self._dict_attr_fields[attribute_name] = fieldname
+
+class RiverNetwork(NumpyArrayHolder):
 
     reaches_linkfieldup = "UpID"
     reaches_linkfielddown = "DownID"
@@ -15,7 +34,7 @@ class RiverNetwork(object):
     def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
 
         self._dict_attr_fields = dict_attr_fields
-        self._dict_points_collection = {}
+        self.dict_points_collection = {}
 
         # on initialise les matrices Numpy
         # matrice de base
@@ -73,17 +92,14 @@ class RiverNetwork(object):
 
     def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self._dict_points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        self.dict_points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
 
 
 
     def get_points_collections_names(self):
         # encapsultion du dictionnaire _dict_points_collection
-        return self._dict_points_collection.keys()
+        return self.dict_points_collection.keys()
 
-    def _get_points_collection(self, name="MAIN"):
-        # encapsultion du dictionnaire _dict_points_collection
-        return self._dict_points_collection[name]
 
     def save_points(self, target_table, dict_attr_fields, points_collection_name="MAIN"):
         # sauvegarde les points dans une nouvelle table
@@ -112,7 +128,7 @@ class RiverNetwork(object):
         #     pointcursor.insertRow(datalist)
 
         # Gather metadata for the new array
-        collection = self._dict_points_collection[points_collection_name]
+        collection = self.dict_points_collection[points_collection_name]
         originalarray = collection._numpyarray
         newdtype = []
         idfield = None
@@ -130,17 +146,9 @@ class RiverNetwork(object):
         # Create a new array
         newarray = np.empty(originalarray.shape[0], dtype=newdtype)
         # Populate the array
-        required_attr = []
         for field, value in dict_attr_fields.items():
-            if field in collection._dict_attr_fields.keys():
-                # if the data is in the _numpyarray, than we just need to copy it
-                newarray[value[0]] = originalarray[collection._dict_attr_fields[field]]
-            else:
-                required_attr.append((field, value[0]))
-        # we need to browse the data point object for accessing the remaining data
-        for id, point in collection._points:
-            for attribute in required_attr:
-                newarray[attribute[1]][newarray[idfield] == id] = getattr(point, attribute[0])
+            newarray[value[0]] = originalarray[collection._dict_attr_fields[field]]
+
         # saving
         arcpy.da.NumPyArrayToTable(newarray, target_table)
 
@@ -153,7 +161,8 @@ class RiverNetwork(object):
     def delete_point(self, datapoint):
         collection = datapoint._pointscollection
         collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
-        collection._points = collection._points[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
+
+
 
 
 
@@ -252,31 +261,29 @@ class Reach(_NumpyArrayFedObject):
 
     def browse_points(self, points_collection="MAIN", orientation="DOWN_TO_UP"):
         #   Générateur de DataPoint
-        collection = self.rivernetwork._dict_points_collection[points_collection]
-        if orientation == "DOWN_TO_UP":
-            sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
-        else:
-            sortedlist = np.sort(
-                collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
-                order=collection._dict_attr_fields['dist'])
+        collection = self.rivernetwork.dict_points_collection[points_collection]
+        sortedlist = np.sort(
+            collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
+            order=collection._dict_attr_fields['dist'])
+        if orientation == "UP_TO_DOWN":
             sortedlist=np.flipud(sortedlist)
-        for id in sortedlist[collection._dict_attr_fields['id']]:
-           yield collection._points[collection._points['id'] == id]['object'][0]
+        for item in sortedlist:
+            yield DataPoint(collection, self, item)
+
 
     def get_last_point(self, points_collection="MAIN"):
-        collection = self.rivernetwork._dict_points_collection[points_collection]
+        collection = self.rivernetwork.dict_points_collection[points_collection]
         sortedlist = np.sort(
             collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
             order=collection._dict_attr_fields['dist'])
         if len(sortedlist) > 0:
-            lastid = sortedlist[collection._dict_attr_fields['id']][-1]
-            return collection._points[collection._points['id'] == lastid]['object'][0]
+            return DataPoint(collection, self, sortedlist[-1])
         else:
             return None
 
     def add_point(self, distance, offset, points_collection):
 
-        collection = self.rivernetwork._get_points_collection(points_collection)
+        collection = self.rivernetwork.dict_points_collection[points_collection]
         #Find the max currently used id in the collection, and add 1
         newid = numpy.max(collection._numpyarray[collection._dict_attr_fields['id']]) + 1
         #Add a row in the two numpy arrays
@@ -286,16 +293,13 @@ class Reach(_NumpyArrayFedObject):
         to_add[collection._dict_attr_fields['offset']] = offset
         to_add[collection._dict_attr_fields['reach_id']] = self.id
         collection._numpyarray = numpy.append(collection._numpyarray, to_add)
-        datapoint = DataPoint(collection, self, to_add)
-        to_add = np.array([(newid, datapoint)], dtype=collection._points.dtype)
-        collection._points = numpy.append(collection._points, to_add)
 
-        return datapoint
+        return DataPoint(collection, self, to_add)
 
 
 
 
-class Points_collection(object):
+class Points_collection(NumpyArrayHolder):
 
     def __init__(self, name, rivernetwork, points_table=None, dict_attr_fields=None):
         self.name = name
@@ -304,22 +308,13 @@ class Points_collection(object):
             self._dict_attr_fields = dict_attr_fields
             # matrice de base
             self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(dict_attr_fields.values()), null_value=-9999)
-            # matrice contenant les instances de DataPoint
-            self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
-            i = 0
-            for row in self._numpyarray:
-                self._points[i]['id'] = row[self._dict_attr_fields['id']]
-                reachid = row[self._dict_attr_fields['reach_id']]
-                reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
-                self._points[i]['object'] = DataPoint(self, reach, row)
-                i+=1
         else:
             self._dict_attr_fields = {"id": "id",
                                       "reach_id": "RID",
                                       "dist": "dist",
                                       "offset": "offset",}
             self._numpyarray = np.empty(0, dtype=[('id', 'i4'), ('RID', 'i4'), ('dist', 'f8'), ('offset', 'f8')])
-            self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
+
 
 class DataPoint(_NumpyArrayFedObject):
     def __init__(self, pointscollection, reach, data):

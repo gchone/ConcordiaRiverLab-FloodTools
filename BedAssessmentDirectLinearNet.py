@@ -27,6 +27,17 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
     # upstream_s : prendre la pente de la surface avec le point downstream.
     # when passing a second time on a downstream reach, stop if the bed calculated is close to the previously calculated one
 
+    # Assigning new variables
+    collection = rivernet.dict_points_collection[points_coll]
+    collection.add_attribute('s', "FLOAT")
+    collection.add_attribute('z', "FLOAT")
+    collection.add_attribute('y', "FLOAT")
+    collection.add_attribute('h', "FLOAT")
+    collection.add_attribute('Fr', "FLOAT")
+    collection.add_attribute('v', "FLOAT")
+    collection.add_attribute('solver', "TEXT", 20)
+    collection.add_attribute('type', "LONG")
+
     # 1D hydraulic calculations
     for reach in rivernet.browse_reaches(orientation="UP_TO_DOWN"):
         # Looking for the upstream datapoint
