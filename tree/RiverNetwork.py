@@ -58,7 +58,7 @@ class RiverNetwork(object):
         for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self.reaches_linkfielddown]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
-    def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = "MAIN", prioritize_points_attribute  = None, reverse = False):
+    def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = None, prioritize_points_attribute  = None, reverse = False):
         # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
         # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée. Optionnellement, si
         #     prioritize_points_attribute != None, l'ordre des tronçons retournés aux confluences est aussi déterminé.
@@ -81,11 +81,11 @@ class RiverNetwork(object):
         # encapsultion du dictionnaire _dict_points_collection
         return self.dict_points_collection.keys()
 
-    def _get_points_collection(self, name="MAIN"):
+    def get_points_collection(self, name="MAIN"):
         # encapsultion du dictionnaire _dict_points_collection
         return self.dict_points_collection[name]
 
-    def save_points(self, target_table, dict_attr_fields, points_collection_name="MAIN"):
+    def save_points(self, target_table, dict_attr_fields, collection):
         # sauvegarde les points dans une nouvelle table
         if arcpy.Exists(target_table) and arcpy.env.overwriteOutput == True:
             arcpy.Delete_management(target_table)
@@ -112,7 +112,6 @@ class RiverNetwork(object):
         #     pointcursor.insertRow(datalist)
 
         # Gather metadata for the new array
-        collection = self.dict_points_collection[points_collection_name]
         originalarray = collection._numpyarray
         newdtype = []
         idfield = None
@@ -137,10 +136,17 @@ class RiverNetwork(object):
                 newarray[value[0]] = originalarray[collection._dict_attr_fields[field]]
             else:
                 required_attr.append((field, value[0]))
+
         # we need to browse the data point object for accessing the remaining data
-        for id, point in collection._points:
+        for row in newarray:
+            dataobj = collection._points[collection._points['id'] == row[dict_attr_fields['id'][0]]][0]
             for attribute in required_attr:
-                newarray[attribute[1]][newarray[idfield] == id] = getattr(point, attribute[0])
+                row[attribute[1]] = getattr(dataobj['object'], attribute[0])
+        #works too, but slower:
+        #for row in collection._points:
+        #    for attribute in required_attr:
+        #        newarray[attribute[1]][newarray[idfield] == row['id']] = getattr(row['object'], attribute[0])
+
         # saving
         arcpy.da.NumPyArrayToTable(newarray, target_table)
 
@@ -151,7 +157,7 @@ class RiverNetwork(object):
 
 
     def delete_point(self, datapoint):
-        collection = datapoint._pointscollection
+        collection = datapoint.collection
         collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
         collection._points = collection._points[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
 
@@ -167,17 +173,6 @@ class _NumpyArrayFedObject(object):
 
         for attr, field in self._numpyarray_holder._dict_attr_fields.items():
             self.__dict__[attr] = data[field]
-
-
-    def __getattr__(self, name):
-        # retourne la valeur lue dans la matrice Numpy
-        array = self._numpyarray_holder._numpyarray
-        # champ pour l'id:
-        idfield = self._numpyarray_holder._dict_attr_fields['id']
-        # champ pour la valeur:
-        valuefield = self._numpyarray_holder._dict_attr_fields[name]
-
-        return array[array[idfield] == self.id][valuefield][0]
 
 
     def __setattr__(self, name, value):
@@ -250,9 +245,8 @@ class Reach(_NumpyArrayFedObject):
             string += child.__recursiveprint(prefix + "- ")
         return string
 
-    def browse_points(self, points_collection="MAIN", orientation="DOWN_TO_UP"):
+    def browse_points(self, collection, orientation="DOWN_TO_UP"):
         #   Générateur de DataPoint
-        collection = self.rivernetwork.dict_points_collection[points_collection]
         if orientation == "DOWN_TO_UP":
             sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
         else:
@@ -263,8 +257,7 @@ class Reach(_NumpyArrayFedObject):
         for id in sortedlist[collection._dict_attr_fields['id']]:
            yield collection._points[collection._points['id'] == id]['object'][0]
 
-    def get_last_point(self, points_collection="MAIN"):
-        collection = self.rivernetwork.dict_points_collection[points_collection]
+    def get_last_point(self, collection):
         sortedlist = np.sort(
             collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
             order=collection._dict_attr_fields['dist'])
@@ -274,9 +267,8 @@ class Reach(_NumpyArrayFedObject):
         else:
             return None
 
-    def add_point(self, distance, offset, points_collection):
+    def add_point(self, distance, offset, collection):
 
-        collection = self.rivernetwork._get_points_collection(points_collection)
         #Find the max currently used id in the collection, and add 1
         newid = numpy.max(collection._numpyarray[collection._dict_attr_fields['id']]) + 1
         #Add a row in the two numpy arrays
@@ -324,6 +316,5 @@ class Points_collection(object):
 class DataPoint(_NumpyArrayFedObject):
     def __init__(self, pointscollection, reach, data):
         _NumpyArrayFedObject.__init__(self, pointscollection, data)
-        self.collectionname = pointscollection.name
-        self._pointscollection = pointscollection
+        self.collection = pointscollection
         self.reach = reach
