@@ -34,7 +34,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
             prev_cs = None
         # no else: if it's not an upstream reach the prev_cs is already good
 
-        for cs in reach.browse_points(points_collection=points_coll, orientation="UP_TO_DOWN"):
+        for cs in reach.browse_points(points_coll, orientation="UP_TO_DOWN"):
             cs.n = manning
 
 
@@ -43,10 +43,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
                 # downstream cs calculation
                 cs.s = upstream_s
                 manning_solver(cs)
-                cs.z = cs.wslidar - cs.y
-                cs.v = cs.Q / (cs.width * cs.y)
-                cs.h = cs.z + cs.y + cs.v ** 2 / (2 * g)
-                cs.Fr = cs.v / (g * cs.y) ** 0.5
+
                 cs.solver = "manning"
                 cs.type = 0
 
@@ -57,6 +54,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
                     __recursive_inverse1Dhydro(cs, prev_cs)
 
                 else:
+                    cs.ycrit = 0
                     cs.z = -9999
                     cs.v = 0
                     cs.h = cs.wslidar
@@ -79,7 +77,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
         # add a point in the middle
         if cs.reach == prev_cs.reach:
             newdist = (cs.dist + prev_cs.dist) / 2.
-            newcs = cs.reach.add_point(newdist, 0, cs.collection)
+            newcs = cs.reach.add_point(newdist, 0, cs.points_collection)
             # TODO:
             # Temporary. Certainly not the cleanest way to proceed
             a = (cs.width - prev_cs.width) / (cs.dist - prev_cs.dist)

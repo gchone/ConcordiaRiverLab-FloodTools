@@ -34,9 +34,7 @@ def execute_Simple1Dhydraulic(rivernet, points_coll, manning, downstream_s, mess
                 # downstream cs calculation
                 cs.s = downstream_s
                 manning_solver(cs)
-                cs.v = cs.Q / (cs.width * cs.y)
-                cs.h = cs.z + cs.y + cs.v ** 2 / (2 * g)
-                cs.Fr = cs.v / (g * cs.y) ** 0.5
+
                 cs.solver = "manning"
                 cs.type = 0
 

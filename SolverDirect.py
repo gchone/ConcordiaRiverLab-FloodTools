@@ -19,7 +19,14 @@ def manning_solver(cs):
 
     cs.y = fsolve(equations, 1)[0]
     cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
+    cs.ycrit = (cs.Q / (cs.width * g ** 0.5)) ** (2. / 3.)
 
+    cs.v = cs.Q / (cs.width * cs.y)
+    cs.z = cs.wslidar - cs.y
+    cs.h = cs.wslidar
+    # with kinetic energy?
+    cs.h = cs.h + cs.v ** 2 / (2 * g)
+    cs.Fr = cs.v / (g * cs.y) ** 0.5
 
 
 def cs_solver(cs_up, cs_down):

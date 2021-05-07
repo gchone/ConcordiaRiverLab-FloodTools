@@ -7,26 +7,38 @@ import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
 
-class RiverNetwork(object):
+class _NumpyArrayHolder(object):
+
+    def __init__(self):
+        self._variablesset = set([])
+        self._variablestype = {}
+
+class RiverNetwork(_NumpyArrayHolder):
 
     reaches_linkfieldup = "UpID"
     reaches_linkfielddown = "DownID"
 
-    def __init__(self, reaches_shapefile, reaches_linktable, dict_attr_fields):
+    dict_attr_fields = {"id": "RID",
+                       "length": "SHAPE@LENGTH",
+                        }
 
-        self._dict_attr_fields = dict_attr_fields
-        self.dict_points_collection = {}
+    def __init__(self, reaches_shapefile, reaches_linktable):
+        _NumpyArrayHolder.__init__(self)
+        self.points_collection = {}
 
         # on initialise les matrices Numpy
         # matrice de base
-        self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, list(dict_attr_fields.values()), null_value=-9999)
+        try:
+            self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, list(self.dict_attr_fields.values()), null_value=-9999)
+        except RuntimeError:
+            raise RuntimeError("Error loading shapefile. Make sure the fields names match.")
         # matrice des liaisons amont-aval
         self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
         # matrice contenant les instances de Reach
         self._reaches = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'),('object', 'O')])
         # In order to populate the self._reaches array, we could iterate through the self._numpyarray
         # It's quicker, but with the SearchCursor we can retrieve the Shape object, which could be needed)
-        listfields = list(self._dict_attr_fields.values())
+        listfields = list(self.dict_attr_fields.values())
         listfields_withshape = listfields.copy()
         listfields_withshape.append("SHAPE@")
         reachescursor = arcpy.da.SearchCursor(reaches_shapefile, listfields_withshape)
@@ -35,7 +47,7 @@ class RiverNetwork(object):
             data = {}
             for field in listfields:
                 data[field]=reach[listfields_withshape.index(field)]
-            self._reaches[i]['id'] = data[self._dict_attr_fields['id']]
+            self._reaches[i]['id'] = data[self.dict_attr_fields['id']]
             self._reaches[i]['object'] = Reach(self, reach[-1], data)
             i+=1
         # for i in range(self._numpyarray.shape[0]):
@@ -73,82 +85,9 @@ class RiverNetwork(object):
 
     def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self.dict_points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        self.points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
 
 
-
-    def get_points_collections_names(self):
-        # encapsultion du dictionnaire _dict_points_collection
-        return self.dict_points_collection.keys()
-
-    def get_points_collection(self, name="MAIN"):
-        # encapsultion du dictionnaire _dict_points_collection
-        return self.dict_points_collection[name]
-
-    def save_points(self, target_table, dict_attr_fields, collection):
-        # sauvegarde les points dans une nouvelle table
-        if arcpy.Exists(target_table) and arcpy.env.overwriteOutput == True:
-            arcpy.Delete_management(target_table)
-
-        # Below solution works, but too slow
-        # Cursors can't be used. Solution could be to create and populate a numpy array
-
-        # arcpy.CreateTable_management(os.path.dirname(target_table), os.path.basename(target_table))
-        #
-        # listfields = []
-        # for attribute, addfield_params in dict_attr_fields.items():
-        #     listfields.append(addfield_params[0])
-        #     if addfield_params[1] == "TEXT":
-        #         arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1],
-        #                                   field_length=addfield_params[2])
-        #     else:
-        #         arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1])
-        # pointcursor = arcpy.da.InsertCursor(target_table, listfields)
-        #
-        # for point in self._dict_points_collection[points_collection_name]._points['object']:
-        #     datalist = []
-        #     for attribute, addfield_params in dict_attr_fields.items():
-        #         datalist.append(getattr(point, attribute))
-        #     pointcursor.insertRow(datalist)
-
-        # Gather metadata for the new array
-        originalarray = collection._numpyarray
-        newdtype = []
-        idfield = None
-        for field, value in dict_attr_fields.items():
-            if value[1] == "FLOAT":
-                newdtype.append((value[0], 'f8'))
-            if value[1] == "LONG":
-                newdtype.append((value[0], 'i4'))
-            if value[1] == "TEXT":
-                newdtype.append((value[0], 'U'+str(value[2])))
-            if field == "id":
-                idfield = value[0]
-        if idfield is None:
-            raise RuntimeError("'id' field is required")
-        # Create a new array
-        newarray = np.empty(originalarray.shape[0], dtype=newdtype)
-        # Populate the array
-        required_attr = []
-        for field, value in dict_attr_fields.items():
-            if field in collection._dict_attr_fields.keys():
-                # if the data is in the _numpyarray, than we just need to copy it
-                newarray[value[0]] = originalarray[collection._dict_attr_fields[field]]
-            else:
-                required_attr.append((field, value[0]))
-
-        # we need to browse the data point object for accessing the remaining data
-        for row in newarray:
-            dataobj = collection._points[collection._points['id'] == row[dict_attr_fields['id'][0]]][0]
-            for attribute in required_attr:
-                row[attribute[1]] = getattr(dataobj['object'], attribute[0])
-        #works too, but slower:
-        #for row in collection._points:
-        #    for attribute in required_attr:
-        #        newarray[attribute[1]][newarray[idfield] == row['id']] = getattr(row['object'], attribute[0])
-
-        # saving
-        arcpy.da.NumPyArrayToTable(newarray, target_table)
 
 
     def __str__(self):
@@ -156,10 +95,7 @@ class RiverNetwork(object):
             return downstream_end._recursiveprint("")
 
 
-    def delete_point(self, datapoint):
-        collection = datapoint.collection
-        collection._numpyarray = collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
-        collection._points = collection._points[collection._numpyarray[collection._dict_attr_fields['id']]!=datapoint.id]
+
 
 
 
@@ -171,19 +107,40 @@ class _NumpyArrayFedObject(object):
         # Note: __dict__ is called to prevent infinite recursion linked with __getattr__/__setattr__
         self.__dict__["_numpyarray_holder"] = numpyarray_holder
 
-        for attr, field in self._numpyarray_holder._dict_attr_fields.items():
+        for attr, field in self._numpyarray_holder.dict_attr_fields.items():
             self.__dict__[attr] = data[field]
 
 
     def __setattr__(self, name, value):
-        if name != "id" and name in self._numpyarray_holder._dict_attr_fields.keys():
-            # change la valeur dans la matrice Numpy pour
-            array = self._numpyarray_holder._numpyarray
-            # champ pour l'id:
-            idfield = self._numpyarray_holder._dict_attr_fields['id']
-            # champ pour la valeur:
-            valuefield = self._numpyarray_holder._dict_attr_fields[name]
-            array[valuefield][array[idfield] == self.id] = value
+        if name != "id" :
+            if name in self._numpyarray_holder.dict_attr_fields.keys():
+                # change la valeur dans la matrice Numpy pour
+                array = self._numpyarray_holder._numpyarray
+                # champ pour l'id:
+                idfield = self._numpyarray_holder.dict_attr_fields['id']
+                # champ pour la valeur:
+                valuefield = self._numpyarray_holder.dict_attr_fields[name]
+                array[valuefield][array[idfield] == self.id] = value
+            elif not name in self.__dict__:
+                # creating a new attribute
+                if isinstance(value, int):
+                    self._numpyarray_holder._variablesset.add(name)
+                    self._numpyarray_holder._variablestype[name] = ['int']
+                elif isinstance(value, float):
+                    self._numpyarray_holder._variablesset.add(name)
+                    self._numpyarray_holder._variablestype[name] = ['float']
+                elif isinstance(value, str):
+                    self._numpyarray_holder._variablesset.add(name)
+                    if name in self._numpyarray_holder._variablestype.keys():
+                        maxlength = max(len(value), self._numpyarray_holder._variablestype[name][1])
+                    else:
+                        maxlength = len(value)
+                    self._numpyarray_holder._variablestype[name] = ['str', maxlength]
+                # if the attribute is not an int, a float or a string, it is not added to the list and can't be saved
+
+
+        else:
+            raise RuntimeError("Modifying the object id is not allowed")
 
         super(_NumpyArrayFedObject, self).__setattr__(name, value)
 
@@ -248,21 +205,21 @@ class Reach(_NumpyArrayFedObject):
     def browse_points(self, collection, orientation="DOWN_TO_UP"):
         #   Générateur de DataPoint
         if orientation == "DOWN_TO_UP":
-            sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id], order=collection._dict_attr_fields['dist'])
+            sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id], order=collection.dict_attr_fields['dist'])
         else:
             sortedlist = np.sort(
-                collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
-                order=collection._dict_attr_fields['dist'])
+                collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id],
+                order=collection.dict_attr_fields['dist'])
             sortedlist=np.flipud(sortedlist)
-        for id in sortedlist[collection._dict_attr_fields['id']]:
+        for id in sortedlist[collection.dict_attr_fields['id']]:
            yield collection._points[collection._points['id'] == id]['object'][0]
 
     def get_last_point(self, collection):
         sortedlist = np.sort(
-            collection._numpyarray[collection._numpyarray[collection._dict_attr_fields['reach_id']] == self.id],
-            order=collection._dict_attr_fields['dist'])
+            collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id],
+            order=collection.dict_attr_fields['dist'])
         if len(sortedlist) > 0:
-            lastid = sortedlist[collection._dict_attr_fields['id']][-1]
+            lastid = sortedlist[collection.dict_attr_fields['id']][-1]
             return collection._points[collection._points['id'] == lastid]['object'][0]
         else:
             return None
@@ -270,13 +227,13 @@ class Reach(_NumpyArrayFedObject):
     def add_point(self, distance, offset, collection):
 
         #Find the max currently used id in the collection, and add 1
-        newid = numpy.max(collection._numpyarray[collection._dict_attr_fields['id']]) + 1
+        newid = numpy.max(collection._numpyarray[collection.dict_attr_fields['id']]) + 1
         #Add a row in the two numpy arrays
         to_add = numpy.empty(1, dtype=collection._numpyarray.dtype)
-        to_add[collection._dict_attr_fields['id']] = newid
-        to_add[collection._dict_attr_fields['dist']] = distance
-        to_add[collection._dict_attr_fields['offset']] = offset
-        to_add[collection._dict_attr_fields['reach_id']] = self.id
+        to_add[collection.dict_attr_fields['id']] = newid
+        to_add[collection.dict_attr_fields['dist']] = distance
+        to_add[collection.dict_attr_fields['offset']] = offset
+        to_add[collection.dict_attr_fields['reach_id']] = self.id
         collection._numpyarray = numpy.append(collection._numpyarray, to_add)
         datapoint = DataPoint(collection, self, to_add)
         to_add = np.array([(newid, datapoint)], dtype=collection._points.dtype)
@@ -287,34 +244,129 @@ class Reach(_NumpyArrayFedObject):
 
 
 
-class Points_collection(object):
+class Points_collection(_NumpyArrayHolder):
 
-    def __init__(self, name, rivernetwork, points_table=None, dict_attr_fields=None):
+    dict_attr_fields = {"id": "id",
+                       "reach_id": "RID",
+                       "dist": "MEAS",
+                       "offset": "Distance"
+                        }
+
+    def __init__(self, name, rivernetwork, points_table=None, dict_newattr_fields=None):
+
+        _NumpyArrayHolder.__init__(self)
+        self.dict_attr_fields.update(dict_newattr_fields)
         self.name = name
         self.rivernetwork = rivernetwork
-        if points_table is not None and dict_attr_fields is not None:
-            self._dict_attr_fields = dict_attr_fields
+        if points_table is not None and self.dict_attr_fields is not None:
+            self.dict_attr_fields = self.dict_attr_fields
             # matrice de base
-            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(dict_attr_fields.values()), null_value=-9999)
+            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(self.dict_attr_fields.values()), null_value=-9999)
             # matrice contenant les instances de DataPoint
             self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
             i = 0
             for row in self._numpyarray:
-                self._points[i]['id'] = row[self._dict_attr_fields['id']]
-                reachid = row[self._dict_attr_fields['reach_id']]
+                self._points[i]['id'] = row[self.dict_attr_fields['id']]
+                reachid = row[self.dict_attr_fields['reach_id']]
                 reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
                 self._points[i]['object'] = DataPoint(self, reach, row)
                 i+=1
         else:
-            self._dict_attr_fields = {"id": "id",
-                                      "reach_id": "RID",
-                                      "dist": "dist",
-                                      "offset": "offset",}
-            self._numpyarray = np.empty(0, dtype=[('id', 'i4'), ('RID', 'i4'), ('dist', 'f8'), ('offset', 'f8')])
+            self.dict_attr_fields = Points_collection.dict_attr_fields
+            self._numpyarray = np.empty(0, dtype=[(self.dict_attr_fields['id'], 'i4'),
+                                                  (self.dict_attr_fields['reach_id'], 'i4'),
+                                                  (self.dict_attr_fields['dist'], 'f8'),
+                                                  (self.dict_attr_fields['offset'], 'f8')])
             self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
+
+    def delete_point(self, datapoint):
+        self._numpyarray = self._numpyarray[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
+        self._points = self._points[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
+
+
+    def save_points(self, target_table, dict_attr_output_fields=None):
+        # sauvegarde les points dans une nouvelle table
+        if arcpy.Exists(target_table) and arcpy.env.overwriteOutput == True:
+            arcpy.Delete_management(target_table)
+
+        # Below solution works, but too slow
+        # Cursors can't be used. Solution could be to create and populate a numpy array
+
+        # arcpy.CreateTable_management(os.path.dirname(target_table), os.path.basename(target_table))
+        #
+        # listfields = []
+        # for attribute, addfield_params in dict_attr_fields.items():
+        #     listfields.append(addfield_params[0])
+        #     if addfield_params[1] == "TEXT":
+        #         arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1],
+        #                                   field_length=addfield_params[2])
+        #     else:
+        #         arcpy.AddField_management(target_table, addfield_params[0], addfield_params[1])
+        # pointcursor = arcpy.da.InsertCursor(target_table, listfields)
+        #
+        # for point in self._dict_points_collection[points_collection_name]._points['object']:
+        #     datalist = []
+        #     for attribute, addfield_params in dict_attr_fields.items():
+        #         datalist.append(getattr(point, attribute))
+        #     pointcursor.insertRow(datalist)
+
+        # Gather metadata for the new array
+        newdtype = []
+        idfield = None
+        if dict_attr_output_fields is None:
+            # Save all fields of the original file
+            dict_attr_output_fields = self.dict_attr_fields.copy()
+            # and add all created attributes
+            for attr in self._variablesset:
+                dict_attr_output_fields[attr] = attr
+
+        for attr, field in dict_attr_output_fields.items():
+            if attr in self.dict_attr_fields.keys():
+                # the data is in the _numpyarray, we can get its dtype
+                newdtype.append((field, self._numpyarray.dtype.fields[self.dict_attr_fields[attr]][0]))
+            else:
+                # the data must be an attribute of the DataPoint
+                if self._variablestype[attr][0] == "int":
+                    newdtype.append((field, 'i4'))
+                elif self._variablestype[attr][0] == "float":
+                    newdtype.append((field, 'f8'))
+                elif self._variablestype[attr][0] == "str":
+                    newdtype.append((field, 'U'+str(self._variablestype[attr][1])))
+            if attr == "id":
+                idfield = field
+        if idfield is None:
+            raise RuntimeError("'id' field is required")
+
+        # Create a new array
+        newarray = np.empty(self._numpyarray.shape[0], dtype=newdtype)
+
+        # Populate the array
+        required_attr = []
+
+        for field, value in dict_attr_output_fields.items():
+            if field in self.dict_attr_fields.keys():
+                # if the data is in the _numpyarray, than we just need to copy it
+                newarray[value] = self._numpyarray[self.dict_attr_fields[field]]
+            else:
+                required_attr.append((field, value))
+
+        # we need to browse the data point object for accessing the remaining data
+        for row in newarray:
+            dataobj = self._points[self._points['id'] == row[self.dict_attr_fields['id']]][0]
+            for attribute in required_attr:
+                row[attribute[1]] = getattr(dataobj['object'], attribute[0])
+        #works too, but slower:
+        #for row in collection._points:
+        #    for attribute in required_attr:
+        #        newarray[attribute[1]][newarray[idfield] == row['id']] = getattr(row['object'], attribute[0])
+
+        # saving
+        arcpy.da.NumPyArrayToTable(newarray, target_table)
+
+
 
 class DataPoint(_NumpyArrayFedObject):
     def __init__(self, pointscollection, reach, data):
         _NumpyArrayFedObject.__init__(self, pointscollection, data)
-        self.collection = pointscollection
+        self.points_collection = pointscollection
         self.reach = reach
