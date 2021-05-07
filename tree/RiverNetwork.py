@@ -352,7 +352,7 @@ class Points_collection(_NumpyArrayHolder):
 
         # we need to browse the data point object for accessing the remaining data
         for row in newarray:
-            dataobj = self._points[self._points['id'] == row[self.dict_attr_fields['id']]][0]
+            dataobj = self._points[self._points['id'] == row[dict_attr_output_fields['id']]][0]
             for attribute in required_attr:
                 row[attribute[1]] = getattr(dataobj['object'], attribute[0])
         #works too, but slower:

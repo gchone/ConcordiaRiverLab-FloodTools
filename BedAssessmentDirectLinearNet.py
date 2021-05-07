@@ -19,9 +19,18 @@ from SolverDirect import *
 
 
 def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
-    # Compute the bed assessment
-    # require three attributes in the points collection points_coll: "wslidar", "Q", "width"
-    # create a new attribute: "z"
+    """
+    Compute the bed assessment
+    Require three attributes in the points collection points_coll: "wslidar", "Q", "width"
+    Create a new attribute: "z"
+    :param rivernet: The river network (instance of RiverNetwork)
+    :param points_coll: The point collection (instance of Points_collection) storing the input data
+    :param manning: Manning's n
+    :param upstream_s: Upstream slope to be used as a upstream boundart condition (TO BE REMOVED)
+    :param messages: ArcGIS Messages object
+    :return:
+    """
+
 
     # TODO:
     # upstream_s : prendre la pente de la surface avec le point downstream.
