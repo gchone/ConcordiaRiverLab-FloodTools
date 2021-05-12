@@ -291,8 +291,24 @@ joinTable = r"D:\neartable\routesD8.dbf"
 
 # We joint out_table and out_table2 (they have the same fields where RID is the routeD8 ID and IN_FID is the route ID).
 merge_out = r"D:\neartable\merge_out.dbf"
-arcpy.management.Merge([out_table, out_table2], merge_out)
+# arcpy.management.Merge([out_table, out_table2], merge_out)
 
+# Clean-up 1: deleting duplicate rows from merge_out
+# arcpy.DeleteIdentical_management(merge_out, ["IN_FID", "RID"])
+
+# Clean-up 2: assign to each pair the correspondent value of intersection and dismiss the pair with the smallest count.
+# Adding field COUNT to cleaned merge_out
+#arcpy.management.AddField(merge_out, "COUNT", "LONG")
+merge_out = r"D:\neartable\merge_out.dbf"
+intersect = r"D:\neartable\intersect_table.dbf"
+# Tried this but it did not work
+# q_table = r"D:\neartable\query_table.dbf"
+# where_clause = "merge_out.IN_FID = intersect_table.RouteID and merge_out.RID = intersect_table.RID"
+# arcpy.MakeQueryTable_management([merge_out, intersect], q_table, "USE_KEY_FIELDS", "merge_out.IN_FID", "", where_clause)
+
+arcpy.management.AddField(merge_out, "IN_FID_D8", "TEXT")
+
+arcpy.management.AddField(intersect, "IN_FID_D8", "TEXT")
 
 
 if __name__ == "__main__":
