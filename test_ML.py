@@ -306,9 +306,18 @@ intersect = r"D:\neartable\intersect_table.dbf"
 # where_clause = "merge_out.IN_FID = intersect_table.RouteID and merge_out.RID = intersect_table.RID"
 # arcpy.MakeQueryTable_management([merge_out, intersect], q_table, "USE_KEY_FIELDS", "merge_out.IN_FID", "", where_clause)
 
-arcpy.management.AddField(merge_out, "IN_FID_D8", "TEXT")
+# arcpy.management.AddField(merge_out, "ROUTE_D8", "TEXT")
+#
+# arcpy.management.AddField(intersect, "ROUTE_D8", "TEXT")
+# I would like to update the new field with the function [IN_FID]&" " &[RID]
+# arcpy.JoinField_management(merge_out, "ROUTE_D8", intersect, "ROUTE_D8")
+cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
+for row in cursor_neartable:
+        if row[0] < 3:
+            cursor_neartable.deleteRow()
 
-arcpy.management.AddField(intersect, "IN_FID_D8", "TEXT")
+# This is useful but not completely OK as the real process should be that if there are two combinations that have one
+# element in common, the one with the lowest value should be eliminated. So, this process needs this adjustment
 
 
 if __name__ == "__main__":
