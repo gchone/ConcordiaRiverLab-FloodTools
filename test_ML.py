@@ -311,10 +311,18 @@ intersect = r"D:\neartable\intersect_table.dbf"
 # arcpy.management.AddField(intersect, "ROUTE_D8", "TEXT")
 # I would like to update the new field with the function [IN_FID]&" " &[RID]
 # arcpy.JoinField_management(merge_out, "ROUTE_D8", intersect, "ROUTE_D8")
-cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
-for row in cursor_neartable:
-        if row[0] < 3:
-            cursor_neartable.deleteRow()
+# cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
+# for row in cursor_neartable:
+#         if row[0] < 3:
+#             cursor_neartable.deleteRow()
+
+point_feature = r"D:\EtcheminFullSet\D8points_toproject.shp"
+line_routes =  r"D:\TestLinearRef\routes_proj.shp"
+out_table3 = r"D:\TestLinearRef\d8points_route_check3.dbf"
+tol = "500 Meters"
+props = "RID POINT meas"
+
+arcpy.lr.LocateFeaturesAlongRoutes(point_feature, line_routes, "RouteID", tol, out_table3, props, "FIRST", "DISTANCE", "ZERO", "FIELDS", "M_DIRECTON")
 
 # This is useful but not completely OK as the real process should be that if there are two combinations that have one
 # element in common, the one with the lowest value should be eliminated. So, this process needs this adjustment
