@@ -17,56 +17,64 @@ def execute_RelateNetworks():
 
 
     # Set required parameters for A-B.
-    in_features = r"D:\neartable\test\routes.shp"
-    near_features = r"D:\neartable\test\routesD8.shp"
-    out_table = r"D:\neartable\test\A_Btable.dbf"
+    featuresA = r"D:\neartable\test\routes.shp"
+    featuresB = r"D:\neartable\test\routesD8.shp"
+    out_tableAB = r"D:\neartable\test\A_Btable.dbf"
     out_tableBA = r"D:\neartable\test\B_Atable.dbf"
 
     # Creating Near Table A-B and B-A
-    arcpy.GenerateNearTable_analysis(in_features, near_features, out_table)
-    #arcpy.GenerateNearTable_analysis(layerB, layerA, out_tableBA)
+    arcpy.GenerateNearTable_analysis(featuresB, featuresA, out_tableBA)
+    arcpy.GenerateNearTable_analysis(featuresA, featuresB, out_tableAB)
 
 
-    # As ArcGis brings the FID (and not the RID) from the near_features in the process of near table, we must join and
-    # arrange the fields.
+    """ As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table, 
+    we must rearrange the fields in the table to create two tables with the same fields in order to be merged."""
 
-    # Fixing A-B output
-    # joinTable = r"D:\neartable\routesD8.dbf"
-    # arcpy.JoinField_management(out_table, "NEAR_FID", joinTable, "OID")
+    # Fixing out_tableAB
+    arcpy.JoinField_management(out_tableAB, "NEAR_FID", featuresB, "FID")
+    # Export table to save the join. I did it manually but I need to add this step
+    out_tableABJoin = r"D\neartable\test\A_Btable_Join.dbf"
+    arcpy.management.DeleteField(out_tableABJoin, ["NEAR_FID", "NEAR_DIST"])
 
-    # arcpy.management.DeleteField(out_table, ["NEAR_FID", "NEAR_DIST"])
+    # Fixing out_tableBA
+    arcpy.JoinField_management(out_tableBA, "IN_FID", featuresB, "FID")
+    # Export table to save the join. I did it manually but I need to add this step
+    out_tableBAJoin = r"D\neartable\test\B_Atable_Join.dbf"
+    arcpy.management.DeleteField(out_tableBAJoin, ["IN_FID", "NEAR_DIST"])
 
-    # Fixing B-A output
-    joinTable = r"D:\neartable\routesD8.dbf"
-    # arcpy.JoinField_management(out_table2, "IN_FID", joinTable, "OID")
-    # arcpy.management.DeleteField(out_table2, ["IN_FID", "NEAR_DIST"])
-    # More fixing to have the same field names we have in out_table
-    #arcpy.AddField_management(out_table2, "IN_FID", "LONG")
+    # More fixing is required to have the same field names we have in out_tableABJoin
+    arcpy.AddField_management(out_tableBAJoin, "IN_FID", "LONG")
     # To copy the values, I did it manually because I do not find the right code to do it!!!
     # Delete the "old" near_fid field so both tables look the same
-    #arcpy.management.DeleteField(out_table2, "NEAR_FID")
+    arcpy.management.DeleteField(out_tableBAJoin, "NEAR_FID")
 
-    # Intersection between the 2 line shapefiles
+    # Merging the two tables to see all possible combinations
+    merged_table = r"D\neartable\test\merged_table.dbf"
+    arcpy.management.Merge([out_tableABJoin, out_tableBAJoin], merged_table)
 
-    # in_features = r"D:\EtcheminFullSet\routesD8.shp\routes.shp"
-    # near_features = r"D:\EtcheminFullSet\routesD8.shp"
-    # to_intersect = [in_features, near_features]
-    # intersectOut = r"D:\neartable\intersection.shp"
-    # arcpy.Intersect_analysis(to_intersect, intersectOut, "ALL", "", "POINT")
+    # Clean-up 1: deleting duplicate rows from merged_table
+    arcpy.DeleteIdentical_management(merged_table, ["IN_FID", "RID"])
 
-    # Counting the number of intersections
+    # Clean-up 2: deleting rows based in the value of the points in the intersection of the two line layers.
 
-    # intersectOut = r"D:\neartable\intersect.shp"
-    # arcpy.AddGeometryAttributes_management(intersectOut, "PART_COUNT")
+    # Intersection between the two line shapefiles and counting the points of the intersection.
+    featuresA = r"D:\neartable\test\routes.shp"
+    featuresB = r"D:\neartable\test\routesD8.shp"
+    to_intersect = [featuresA, featuresB]
+    intersectOut = r"D:\neartable\test\intersection.shp"
+    arcpy.Intersect_analysis(to_intersect, intersectOut, "ALL", "", "POINT")
+    arcpy.AddGeometryAttributes_management(intersectOut, "PART_COUNT")
+
+    # To do the clean-up according the amount of points for each intersection with the merged_table (already cleaned for duplicates),
+    # we create and auxiliary field ("ROUTE_D8") with the IN_FID and RID values).
+
+    arcpy.management.AddField(merged_table, "ROUTE_D8", "TEXT")
+    arcpy.management.AddField(intersectOut, "ROUTE_D8", "TEXT")
+
+    # These fields are calculated using the expression [IN_FID]&" "& [RID] for merged_table; and [RouteID]&" "& [RID] for intersectOut.
 
 
 
-    # We joint out_table and out_table2 (they have the same fields where RID is the routeD8 ID and IN_FID is the route ID).
-   # merge_out = r"D:\neartable\merge_out.dbf"
-    # arcpy.management.Merge([out_table, out_table2], merge_out)
-
-    # Clean-up 1: deleting duplicate rows from merge_out
-    # arcpy.DeleteIdentical_management(merge_out, ["IN_FID", "RID"])
 
     # cursor_neartable = arcpy.da.SearchCursor(merge_out, ["OID@", "IN_FID", "RID", "PART_COUNT"])
     # rowsOID_to_delete = []
@@ -100,20 +108,7 @@ def execute_RelateNetworks():
 
 
 
-    # Clean-up 2: assign to each pair the correspondent value of intersection and dismiss the pair with the smallest count.
-    # Adding field COUNT to cleaned merge_out
-    #arcpy.management.AddField(merge_out, "COUNT", "LONG")
-    # merge_out = r"D:\neartable\merge_out.dbf"
-    # intersect = r"D:\neartable\intersect_table.dbf"
-    # Tried this but it did not work
-    # q_table = r"D:\neartable\query_table.dbf"
-    # where_clause = "merge_out.IN_FID = intersect_table.RouteID and merge_out.RID = intersect_table.RID"
-    # arcpy.MakeQueryTable_management([merge_out, intersect], q_table, "USE_KEY_FIELDS", "merge_out.IN_FID", "", where_clause)
 
-    # arcpy.management.AddField(merge_out, "ROUTE_D8", "TEXT")
-    #
-    # arcpy.management.AddField(intersect, "ROUTE_D8", "TEXT")
-    # I would like to update the new field with the function [IN_FID]&" " &[RID]
     # arcpy.JoinField_management(merge_out, "ROUTE_D8", intersect, "ROUTE_D8")
     # cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
     # for row in cursor_neartable:
