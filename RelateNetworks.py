@@ -27,8 +27,8 @@ def execute_RelateNetworks():
     arcpy.GenerateNearTable_analysis(featuresA, featuresB, out_tableAB)
 
 
-    """ As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table, 
-    we must rearrange the fields in the table to create two tables with the same fields in order to be merged."""
+""" As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table,
+we must rearrange the fields in the table to create two tables with the same fields in order to be merged."""
 
     # Fixing out_tableAB
     arcpy.JoinField_management(out_tableAB, "NEAR_FID", featuresB, "FID")
@@ -71,11 +71,19 @@ def execute_RelateNetworks():
     arcpy.management.AddField(merged_table, "ROUTE_D8", "TEXT")
     arcpy.management.AddField(intersectOut, "ROUTE_D8", "TEXT")
 
-    # These fields are calculated using the expression [IN_FID]&" "& [RID] for merged_table; and [RouteID]&" "& [RID] for intersectOut.
+    # These fields are calculated using the expression [IN_FID]&" "& [RID] for merged_table; and [RouteID]&" "& [RID] for intersectOut (Need to add this line).
 
+    # Joining both tables
+    arcpy.JoinField_management(merged_table_out, "ROUTE_D8", intersectOut, "ROUTE_D8")
 
+    # Combinations with PART_COUNT close to 1 should be deleted.
+    arcpy.JoinField_management(merged_table, "ROUTE_D8", intersectOut, "ROUTE_D8")
+    cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
+    for row in cursor_neartable:
+            if row[0] < 3:
+                cursor_neartable.deleteRow()
 
-
+    # This option can be problematic when 2 reaches in one layer are liked to one reach in the other but both are correct and have large values of PART_COUNTS
     # cursor_neartable = arcpy.da.SearchCursor(merge_out, ["OID@", "IN_FID", "RID", "PART_COUNT"])
     # rowsOID_to_delete = []
     # part_count_dict_A = {}
@@ -104,30 +112,20 @@ def execute_RelateNetworks():
     #     if row[0] in rowsOID_to_delete:
     #         cursor_neartable.deleteRow()
     #
+""" To Locate Features Along Routes, we want the point to be located following the Near Table relationship.
+D8points.shp has all the points generated within routesD8.shp."""
+
+# To relate the points from routesD8 with routes, we join the tables.
+    points = r"D\neartable\test\D8points.shp"
+    neartable = r"D\neartable\test\neartable_final.dbf"
+    arcpy.JoinField_management(D8points, "RID", intersectOut, "RID")
 
 
 
 
 
-    # arcpy.JoinField_management(merge_out, "ROUTE_D8", intersect, "ROUTE_D8")
-    # cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
-    # for row in cursor_neartable:
-    #         if row[0] < 3:
-    #             cursor_neartable.deleteRow()
 
-    # point_feature = r"D:\EtcheminFullSet\D8points_toproject.shp"
-    # line_routes =  r"D:\TestLinearRef\routes_proj.shp"
-    # out_table3 = r"D:\TestLinearRef\d8points_route_check3.dbf"
-    # tol = "500 Meters"
-    # props = "RID POINT meas"
-    #
-    # arcpy.lr.LocateFeaturesAlongRoutes(point_feature, line_routes, "RouteID", tol, out_table3, props, "FIRST", "DISTANCE", "ZERO", "FIELDS", "M_DIRECTON")
 
-    # This is useful but not completely OK as the real process should be that if there are two combinations that have one
-    # element in common, the one with the lowest value should be eliminated. So, this process needs this adjustment
-
-    return
-
-    if __name__ == "__main__":
-        execute_RelateNetworks()
+if __name__ == "__main__":
+    execute_RelateNetworks()
 
