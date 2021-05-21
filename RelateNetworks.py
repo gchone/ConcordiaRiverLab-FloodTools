@@ -17,7 +17,7 @@ def execute_RelateNetworks():
     # set workspace environment
     arcpy.env.workspace = r"D:\TestLinearRef\neartabletool_example"
 
-
+try:
     # Set required parameters for A-B.
     shapefile_A = r"D:\TestLinearRef\neartabletool_example\riversroute.shp"
     shapefile_B = r"D:\TestLinearRef\neartabletool_example\D8routes.shp"
@@ -26,15 +26,15 @@ def execute_RelateNetworks():
 
     tempAB = arcpy.CreateScratchName("temp", data_type = "ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
     tempBA = arcpy.CreateScratchName("temp", data_type = "ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
-    gc.AddToGarbageBin(temp)
+    gc.AddToGarbageBin(tempBA, tempAB)
 
     # Execute Near Table creation A-B and B-A
     arcpy.GenerateNearTable_analysis(shapefile_B, shapefile_A, tempBA)
     arcpy.GenerateNearTable_analysis(shapefile_A, shapefile_B, tempAB)
 
 
-""" As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table,
-we must rearrange the fields in the table to create two tables with the same fields in order to be merged."""
+# As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table,
+# we must rearrange the fields in the table to create two tables with the same fields in order to be merged.
 
     # Fixing tempAB
     arcpy.JoinField_management(tempAB, "NEAR_FID", shapefile_B, "FID")
@@ -48,11 +48,14 @@ we must rearrange the fields in the table to create two tables with the same fie
     # out_tableBAJoin = r"D\neartable\test\B_Atable_Join.dbf"
     arcpy.management.DeleteField(tempBA, ["IN_FID", "NEAR_DIST"])
 
-    # More fixing is required to have the same field names we have in out_tableABJoin
+    # More fixing is required to have the same field names we have in tempAB
     arcpy.AddField_management(tempBA, "IN_FID", "LONG")
-    [IN_FID] = [NEAR_FID]
-    # To copy the values, I did it manually because I do not find the right code to do it!!!
-    # Delete the "old" near_fid field so both tables look the same
+    for x in tempBA
+        if x.name == "IN_FID"
+            tempBA.append ("NEAR_FID")
+
+
+        # Delete the "old" near_fid field so both tables look the same
     arcpy.management.DeleteField(tempBA, "NEAR_FID")
 
     # Merging the two tables to see all possible combinations
@@ -77,8 +80,8 @@ we must rearrange the fields in the table to create two tables with the same fie
     arcpy.management.AddField(temp_intersect, "ROUTE_D8", "TEXT")
 
     # These fields are calculated using the expression [IN_FID]&" "& [RID] for merged_table; and [RouteID]&" "& [RID] for intersectOut (Need to add this line).
-    temp_merged = "{}:{}".format(!"IN_FID"!, !"RID"!)
-    temp_intersect = "{}:{}".format(!"Route_ID"!, !"RID"!)
+    temp_merged_fixed = temp_merged.replace("ROUTE_D8", {}:{}".format(!IN_FID!, !RID!))
+    temp_intersect_fixed = tempr_intersect.replace("ROUTE_D8", {}:{}".format(!Route_ID!, !RID!)
 
     # Joining both tables
     arcpy.JoinField_management(temp_merged, "ROUTE_D8", temp_intersect, "ROUTE_D8")
@@ -89,8 +92,9 @@ we must rearrange the fields in the table to create two tables with the same fie
             if row[0] < 3:
                 cursor_neartable.deleteRow()
 
-    This option can be problematic when 2 reaches in one layer are liked to one reach in the other but both are correct and have large values of PART_COUNTS
-    cursor_neartable = arcpy.da.SearchCursor(merge_out, ["OID@", "IN_FID", "RID", "PART_COUNT"])
+   # This option can be problematic when 2 reaches in one layer are liked to one reach in the other but both are correct and have large values of PART_COUNTS
+
+    cursor_neartable = arcpy.da.SearchCursor(temp_merged, ["OID@", "IN_FID", "RID", "PART_COUNT"])
     rowsOID_to_delete = []
     part_count_dict_A = {}
     part_count_dict_B = {}
@@ -113,30 +117,12 @@ we must rearrange the fields in the table to create two tables with the same fie
         else:
            part_count_dict_B[row[1]] = row
 
-    cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["OID@"])
+    cursor_neartable = arcpy.da.UpdateCursor(temp_merged, ["OID@"])
     for row in cursor_neartable:
         if row[0] in rowsOID_to_delete:
             cursor_neartable.deleteRow()
 
-import arcpy
 
-""" To Locate Features Along Routes, we want the point to be located following the Near Table relationship in the reach (RouteID) indicated in the table.
-D8points.shp has all the points generated within routesD8.shp."""
-
-# To relate the points from routesD8 with routes, we join the tables.
-#     points = r"D\neartable\test\D8points.shp"
-#     neartable = r"D\neartable\test\neartable_final.dbf"
-#     arcpy.JoinField_management(D8points, "RID", intersectOut, "RID")
-
-# We need to select each time all the points with a certain RouteID and project them in the same RouteID.
-
-arcpy.env.workspace = r"D:\neartable\test"
-#in_features = r"D:\neartable\test\D8points_tolocate.shp"
-#out_layer = r"D:\neartable\test\location.gdb\points_lyr"
-
-arcpy.management.MakeFeatureLayer("D8points_tolocate.shp", "D:\neartable\test\location.gdb\points_lyr")
-#arcpy.SelectLayerByAttribute_management(out_layer, "NEW_SELECTION", "RouteID = 0")
-#arcpy.CopyFeatures_management(out_layer, "D:\neartable\test\location.gdb\pointsR0")
 
 
 if __name__ == "__main__":
