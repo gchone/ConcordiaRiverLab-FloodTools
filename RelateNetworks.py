@@ -9,76 +9,82 @@ For fixing this issue, the tool has to run twice (A to B and B to A). Then 2 cle
 
 # 1. Running Generate Near Table in both directions
 import arcpy
+import ArcpyGarbageCollector as gc
 
 def execute_RelateNetworks():
-    # network_shapefile_A, network_shapefile_B, out_table
+    # shapefile_A, shapefile_B, out_table
+
     # set workspace environment
-    arcpy.env.workspace = r"D:\neartable\test"
+    arcpy.env.workspace = r"D:\TestLinearRef\neartabletool_example"
 
 
     # Set required parameters for A-B.
-    featuresA = r"D:\neartable\test\routes.shp"
-    featuresB = r"D:\neartable\test\routesD8.shp"
-    out_tableAB = r"D:\neartable\test\A_Btable.dbf"
-    out_tableBA = r"D:\neartable\test\B_Atable.dbf"
+    shapefile_A = r"D:\TestLinearRef\neartabletool_example\riversroute.shp"
+    shapefile_B = r"D:\TestLinearRef\neartabletool_example\D8routes.shp"
+    out_table = r"D:\TestLinearRef\neartabletool_example\neartable.dbf"
 
-    # Creating Near Table A-B and B-A
-    arcpy.GenerateNearTable_analysis(featuresB, featuresA, out_tableBA)
-    arcpy.GenerateNearTable_analysis(featuresA, featuresB, out_tableAB)
+
+    tempAB = arcpy.CreateScratchName("temp", data_type = "ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+    tempBA = arcpy.CreateScratchName("temp", data_type = "ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+    gc.AddToGarbageBin(temp)
+
+    # Execute Near Table creation A-B and B-A
+    arcpy.GenerateNearTable_analysis(shapefile_B, shapefile_A, tempBA)
+    arcpy.GenerateNearTable_analysis(shapefile_A, shapefile_B, tempAB)
 
 
 """ As ArcGis brings the FID to the near table (and not the RID) from the featuresB in the process of creating the near table,
 we must rearrange the fields in the table to create two tables with the same fields in order to be merged."""
 
-    # Fixing out_tableAB
-    arcpy.JoinField_management(out_tableAB, "NEAR_FID", featuresB, "FID")
+    # Fixing tempAB
+    arcpy.JoinField_management(tempAB, "NEAR_FID", shapefile_B, "FID")
     # Export table to save the join. I did it manually but I need to add this step
-    out_tableABJoin = r"D\neartable\test\A_Btable_Join.dbf"
-    arcpy.management.DeleteField(out_tableABJoin, ["NEAR_FID", "NEAR_DIST"])
+    #out_tableABJoin = r"D\neartable\test\A_Btable_Join.dbf"
+    arcpy.management.DeleteField(tempAB, ["NEAR_FID", "NEAR_DIST"])
 
-    # Fixing out_tableBA
-    arcpy.JoinField_management(out_tableBA, "IN_FID", featuresB, "FID")
+    # Fixing tempBA
+    arcpy.JoinField_management(tempBA, "IN_FID", shapefile_B, "FID")
     # Export table to save the join. I did it manually but I need to add this step
-    out_tableBAJoin = r"D\neartable\test\B_Atable_Join.dbf"
-    arcpy.management.DeleteField(out_tableBAJoin, ["IN_FID", "NEAR_DIST"])
+    # out_tableBAJoin = r"D\neartable\test\B_Atable_Join.dbf"
+    arcpy.management.DeleteField(tempBA, ["IN_FID", "NEAR_DIST"])
 
     # More fixing is required to have the same field names we have in out_tableABJoin
-    arcpy.AddField_management(out_tableBAJoin, "IN_FID", "LONG")
+    arcpy.AddField_management(tempBA, "IN_FID", "LONG")
+    [IN_FID] = [NEAR_FID]
     # To copy the values, I did it manually because I do not find the right code to do it!!!
     # Delete the "old" near_fid field so both tables look the same
-    arcpy.management.DeleteField(out_tableBAJoin, "NEAR_FID")
+    arcpy.management.DeleteField(tempBA, "NEAR_FID")
 
     # Merging the two tables to see all possible combinations
-    merged_table = r"D\neartable\test\merged_table.dbf"
-    arcpy.management.Merge([out_tableABJoin, out_tableBAJoin], merged_table)
+    temp_merged = arcpy.CreateScratchName("temp", data_type = "ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+    arcpy.management.Merge([tempAB, tempBA], temp_merged)
 
     # Clean-up 1: deleting duplicate rows from merged_table
-    arcpy.DeleteIdentical_management(merged_table, ["IN_FID", "RID"])
+    arcpy.DeleteIdentical_management(temp_merged, ["IN_FID", "RID"])
 
     # Clean-up 2: deleting rows based in the value of the points in the intersection of the two line layers.
 
     # Intersection between the two line shapefiles and counting the points of the intersection.
-    featuresA = r"D:\neartable\test\routes.shp"
-    featuresB = r"D:\neartable\test\routesD8.shp"
-    to_intersect = [featuresA, featuresB]
-    intersectOut = r"D:\neartable\test\intersection.shp"
-    arcpy.Intersect_analysis(to_intersect, intersectOut, "ALL", "", "POINT")
-    arcpy.AddGeometryAttributes_management(intersectOut, "PART_COUNT")
+    to_intersect = [shapefile_A, shapefile_B]
+    temp_intersect = arcpy.CreateScratchName("temp", data_type = "Shapefile", workspace=arcpy.env.scratchWorkspace)
+    arcpy.Intersect_analysis(to_intersect, temp_intersect, "ALL", "", "POINT")
+    arcpy.AddGeometryAttributes_management(temp_intersect, "PART_COUNT")
 
     # To do the clean-up according the amount of points for each intersection with the merged_table (already cleaned for duplicates),
     # we create and auxiliary field ("ROUTE_D8") with the IN_FID and RID values).
 
-    arcpy.management.AddField(merged_table, "ROUTE_D8", "TEXT")
-    arcpy.management.AddField(intersectOut, "ROUTE_D8", "TEXT")
+    arcpy.management.AddField(temp_merged, "ROUTE_D8", "TEXT")
+    arcpy.management.AddField(temp_intersect, "ROUTE_D8", "TEXT")
 
     # These fields are calculated using the expression [IN_FID]&" "& [RID] for merged_table; and [RouteID]&" "& [RID] for intersectOut (Need to add this line).
+    temp_merged = "{}:{}".format(!"IN_FID"!, !"RID"!)
+    temp_intersect = "{}:{}".format(!"Route_ID"!, !"RID"!)
 
     # Joining both tables
-    arcpy.JoinField_management(merged_table_out, "ROUTE_D8", intersectOut, "ROUTE_D8")
+    arcpy.JoinField_management(temp_merged, "ROUTE_D8", temp_intersect, "ROUTE_D8")
 
     # Combinations with PART_COUNT close to 1 should be deleted.
-    arcpy.JoinField_management(merged_table, "ROUTE_D8", intersectOut, "ROUTE_D8")
-    cursor_neartable = arcpy.da.UpdateCursor(merge_out, ["PART_COUNT"])
+    cursor_neartable = arcpy.da.UpdateCursor(temp_merged, ["PART_COUNT"])
     for row in cursor_neartable:
             if row[0] < 3:
                 cursor_neartable.deleteRow()
