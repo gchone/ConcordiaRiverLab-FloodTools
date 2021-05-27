@@ -25,7 +25,7 @@ def execute_Simple1Dhydraulic(rivernet, points_coll, manning, downstream_s, mess
         if reach.is_upstream_end():
             prev_cs = None
 
-        for cs in reach.browse_points(points_collection=points_coll, orientation="DOWN_TO_UP"):
+        for cs in reach.browse_points(collection=points_coll, orientation="DOWN_TO_UP"):
 
             cs.n = manning
 
