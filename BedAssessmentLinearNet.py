@@ -30,7 +30,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
         iteration += 1
 
         # 1D hydraulic calculations
-        for reach in rivernet.browse_reaches():
+        for reach in rivernet.browse_reaches_down_to_up():
             # Looking for the downstream datapoint
             if reach.is_downstream_end():
                 prev_cs = None
@@ -71,7 +71,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
 
         corrections = []
         # down to up
-        for reach in rivernet.browse_reaches():
+        for reach in rivernet.browse_reaches_down_to_up():
             # Looking for the downstream datapoint
             if reach.is_downstream_end():
                 prev_cs = None

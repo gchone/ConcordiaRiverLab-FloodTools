@@ -386,13 +386,14 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         if channeltype_field is not None:
             arcpy.JoinField_management(route_shapefile, routeID_field, rivernet, routeID_field, channeltype_field)
 
-
-
-
     finally:
         gc.CleanTempFiles()
 
-
+def order_reaches_by_discharge(rivernet, collection, discharge_name):
+    order = 0
+    for reach in rivernet.browse_reaches_down_to_up(prioritize_points_collection=collection, prioritize_points_attribute=discharge_name, reverse=True):
+        reach.order = order
+        order += 1
 
 
 

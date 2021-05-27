@@ -20,12 +20,12 @@ def execute_Simple1Dhydraulic(rivernet, points_coll, manning, downstream_s, mess
     # create a new attribute: "ws"
 
 
-    for reach in rivernet.browse_reaches(orientation="DOWN_TO_UP"):
+    for reach in rivernet.browse_reaches_down_to_up():
         # Looking for the upstream datapoint
         if reach.is_upstream_end():
             prev_cs = None
 
-        for cs in reach.browse_points(collection=points_coll, orientation="DOWN_TO_UP"):
+        for cs in reach.browse_points(collection=points_coll):
 
             cs.n = manning
 

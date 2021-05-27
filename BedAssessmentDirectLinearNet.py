@@ -44,7 +44,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
     prev_cs = None
     # TODO:
     # at confluences
-    for reach in rivernet.browse_reaches():
+    for reach in rivernet.browse_reaches_down_to_up():
         for cs in reach.browse_points(points_coll):
             if prev_cs is not None:
                 if cs.wslidar <= prev_cs.wslidar:
@@ -61,7 +61,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
             prev_cs = cs
 
     # 1D hydraulic calculations
-    for reach in rivernet.browse_reaches(orientation="UP_TO_DOWN"):
+    for reach in rivernet.browse_reaches_up_to_down():
         # Looking for the upstream datapoint
         if reach.is_upstream_end():
             prev_cs = None
