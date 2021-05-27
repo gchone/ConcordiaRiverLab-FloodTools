@@ -7,6 +7,13 @@ import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
 
+
+class BrowsingStopper():
+    # Instances of this class are used to be passed as an argument to generators, when browsing points from upstream to
+    #  downstream.
+    def __init__(self):
+        self.break_generator = False
+
 class _NumpyArrayHolder(object):
 
     def __init__(self):
@@ -70,7 +77,7 @@ class RiverNetwork(_NumpyArrayHolder):
         for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self.reaches_linkfielddown]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
-    def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = None, prioritize_points_attribute  = None, reverse = False):
+    def browse_reaches(self, orientation="DOWN_TO_UP", stopper=BrowsingStopper(), prioritize_points_collection = None, prioritize_points_attribute  = None, reverse = False):
         # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
         # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée. Optionnellement, si
         #     prioritize_points_attribute != None, l'ordre des tronçons retournés aux confluences est aussi déterminé.
@@ -81,11 +88,17 @@ class RiverNetwork(_NumpyArrayHolder):
         else:
             for upstream_end in self.get_upstream_ends():
                 for item in upstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
+                    if stopper.break_generator:
+                        # When the stopper is set to end iteration, it must be for the current path (upstream to downstream)
+                        #  but things should resume at the next upstream end.
+                        break
                     yield item
 
     def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self.points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        collection = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        self.points_collection[points_collection_name] = collection
+        return collection
 
 
 
@@ -202,8 +215,10 @@ class Reach(_NumpyArrayFedObject):
             string += child.__recursiveprint(prefix + "- ")
         return string
 
-    def browse_points(self, collection, orientation="DOWN_TO_UP"):
+    def browse_points(self, collection, orientation="DOWN_TO_UP", stopper=BrowsingStopper()):
         #   Générateur de DataPoint
+        if stopper.break_generator:
+            return
         if orientation == "DOWN_TO_UP":
             sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id], order=collection.dict_attr_fields['dist'])
         else:
@@ -370,3 +385,4 @@ class DataPoint(_NumpyArrayFedObject):
         _NumpyArrayFedObject.__init__(self, pointscollection, data)
         self.points_collection = pointscollection
         self.reach = reach
+
