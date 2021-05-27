@@ -37,6 +37,12 @@ from arcpy.conversion import RasterToPoint
 from arcpy.sa import Raster, ExtractByMask
 # "Unresolved references" manuellement ignorées dans l'IDE
 
+# TODO:
+# * supprimer les tables avant création
+# * utiliser le ArcpyGarbageCollector.py et le mettre dans un try/finally
+# * commentaires du main
+
+
 
 def addfieldtoarray(inarr, *fields):
     # **************************************************************************
@@ -664,99 +670,6 @@ def transectsverspoints(transects, tol, datapoints):
     return
 
 
-def elevation2destransects(transects, riverbed, mnt, units, elevstat, elevfield):
-    # **************************************************************************
-    # DÉFINITION :
-    # Prélève la statistique d'élévation calculée le long de chacun de chaque
-    # transect (médiane, moyenne ou minimale)
-
-    # ENTRÉES :
-    # transects = STRING, chemin d'accès vers les transects (polyline)
-    # cspoints = STRING, chemin d'accès vers les points de positionnement des
-    #                    transects.
-    # mnt = STRING, chemin d'accès vers le MNT corrigé qui a servi
-    #               pour le pré-traitement
-    # units = STRING, unités du MNT (M, CM)
-    # elevstat = STRING, choix de la statistique d'élévation (MEDIAN, MEAN, MOY)
-
-    # SORTIE :
-    # La table d'attribut des transects et des points de positionnement est
-    # modifiée pour y ajouter un champ contenant la statistique d'élévation
-    # **************************************************************************
-    sws = env.scratchWorkspace
-
-    tempindex = ScratchIndex()  # Régistre des couches de données temporaires
-    demras = Raster(mnt)
-    cellsize = demras.meanCellHeight
-
-    env.cellSize = demras
-    env.snapRaster = demras
-    env.extent = demras
-
-    fieldnames = [f.name for f in arcpy.ListFields(transects)]
-
-    tempbed = tempindex.scratchname("reltr", "RasterDataset", workspace=sws)
-    bedras = ExtractByMask(mnt, riverbed)
-    bedras.save(tempbed)
-
-    bedelevpts = tempindex.scratchname("eltr", "FeatureClass", workspace=sws)
-    RasterToPoint(tempbed, bedelevpts, "VALUE")
-
-    temptrans = tempindex.scratchname("eltr", "FeatureClass", workspace=sws)
-    CopyFeatures(transects, temptrans)
-
-    fms = arcpy.FieldMappings()  # Table d'attribut suite à l'ajout des extrémités des pré-découpages/confluences
-    fms.addTable(temptrans)
-    fms.addTable(bedelevpts)
-    fieldid = fms.findFieldMapIndex("grid_code")
-    fmapmed = fms.getFieldMap(fieldid)
-    fmapmin = fms.getFieldMap(fieldid)
-
-    fmapmed.mergeRule = "Median"
-    field = fmapmed.outputField
-    field.name = "ELEV_MEDIAN"
-    field.aliasName = "Élévation médiane du transect (m)"
-    fmapmed.outputField = field
-    fms.replaceFieldMap(fieldid, fmapmed)
-
-    fmapmin.mergeRule = "Min"
-    field = fmapmin.outputField
-    field.name = "ELEV_MIN"
-    field.aliasName = "Élévation minimale du transect (m)"
-    fmapmin.outputField = field
-    fms.addFieldMap(fmapmin)
-
-    tol = "{0} Meters".format((2**0.5) * cellsize)
-    SpatialJoin(temptrans, bedelevpts, transects, "JOIN_ONE_TO_ONE", "KEEP_ALL", fms, "WITHIN_A_DISTANCE", tol, None)
-
-    fdict = {"MEDIAN": "médiane", "MIN": "minimale", "OPTIMAL": "optimale"}
-    elevfield = "{0}_{1}".format(elevfield, elevstat)  # Nom du champ contenant l'élévation ajouté à la table
-    falias = "Élévation {0} du transect (m)".format(fdict[elevstat])
-
-    AddField(transects, elevfield, "FLOAT", field_alias=falias)
-    if units == "CM":  # L'élévation est convertie en mètre au besoin.
-        equation = "round(!{0}!/100, 2)"
-    else:
-        equation = "round(!{0}!, 2)"
-
-    if elevstat == "OPTIMAL":
-        MakeFeatureLayer(transects, "transects_lyr")
-        SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"SHAPE_LENGTH" <= {0}'.format(6 * cellsize))
-        CalculateField("transects_lyr", elevfield, equation.format("ELEV_MIN"), "PYTHON3")
-        SelectLayerByAttribute("transects_lyr", "SWITCH_SELECTION")
-        CalculateField("transects_lyr", elevfield, equation.format("ELEV_MEDIAN"), "PYTHON3")
-        SelectLayerByAttribute("transects_lyr", "CLEAR_SELECTION")
-    else:
-        CalculateField(transects, elevfield, equation.format("ELEV_" + elevstat), "PYTHON3")
-
-    fieldnames.extend(["ELEV_MEDIAN", "ELEV_MIN", elevfield])
-    deleteuselessfields(transects, fieldnames, mapping="FC")
-    # Suppression des couches de données temporaires
-    tempindex.wipeindex()
-
-    return
-
-
 def largeurdestransects(streamnetwork, transects, widthfield):
     # **************************************************************************
     # DÉFINITION :
@@ -934,12 +847,6 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
 
     nx = 2  # Nombre de croisements tolérés
     supprimercroisements(transects, nx)
-
-    # Calcul et attribution de la statistique d'élévation à chacun des transects
-    if mnt and mnt != "#":
-        elevfield = "Elev_m"
-        elevation2destransects(transects, riverbed, mnt, units, elevstat, elevfield)
-        # elevationdestransects(transects, mnt, units, elevstat, elevfield)
 
     transectsverspoints(transects, 2 * cellsize, cspoints)
 
