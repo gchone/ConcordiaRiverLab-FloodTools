@@ -31,10 +31,34 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
     :return:
     """
 
+    # hardcoded parameter: Minimum difference of water surface elevation for backwater area
+    delta_z_min = 0.01
 
     # TODO:
     # upstream_s : prendre la pente de la surface avec le point downstream.
     # when passing a second time on a downstream reach, stop if the bed calculated is close to the previously calculated one
+
+    # First pass to identify backwater area
+    backwater_pts = []
+    length = 0
+    prev_cs = None
+    # TODO:
+    # at confluences
+    for reach in rivernet.browse_reaches():
+        for cs in reach.browse_points(points_coll):
+            if prev_cs is not None:
+                if cs.wslidar <= prev_cs.wslidar:
+                    backwater_pts.append(cs)
+                    length += (cs.dist-prev_cs.dist)
+                else:
+                    cs.s_min = 0
+                    for backcs in backwater_pts:
+                        backcs.s_min = delta_z_min/length
+                    length = 0
+                    backwater_pts = []
+            else:
+                cs.s_min = 0
+            prev_cs = cs
 
     # 1D hydraulic calculations
     for reach in rivernet.browse_reaches(orientation="UP_TO_DOWN"):
@@ -59,18 +83,18 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
 
             else:
 
-                if cs.wslidar < prev_cs.wslidar:
-                    __recursive_inverse1Dhydro(cs, prev_cs)
+                # if cs.wslidar < prev_cs.wslidar:
+                __recursive_inverse1Dhydro(cs, prev_cs)
 
-                else:
-                    cs.ycrit = 0
-                    cs.z = -9999
-                    cs.v = 0
-                    cs.h = cs.wslidar
-                    cs.Fr = 0
-                    cs.solver = "infinite"
-                    cs.type = 2
-                    cs.s = 0
+                # else:
+                #     cs.ycrit = 0
+                #     cs.z = -9999
+                #     cs.v = 0
+                #     cs.h = cs.wslidar
+                #     cs.Fr = 0
+                #     cs.solver = "infinite"
+                #     cs.type = 2
+                #     cs.s = 0
 
             prev_cs = cs
 
@@ -96,6 +120,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
             a = (cs.wslidar - prev_cs.wslidar) / (cs.dist - prev_cs.dist)
             newcs.wslidar = a* newcs.dist + cs.wslidar - a* cs.dist
             newcs.n = cs.n
+            newcs.s_min = 0
 
             __recursive_inverse1Dhydro(newcs, prev_cs)
             newcs.solver = "added"
