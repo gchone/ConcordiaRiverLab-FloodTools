@@ -1,0 +1,155 @@
+# -*- coding: utf-8 -*-
+
+#####################################################
+# Auteur: François Larouche-Tremblay, Ing, M Sc
+# Date: 04/05/2021
+# Description: Interface de la fonction LargeurParTransect
+#####################################################
+
+import arcpy
+from LargeurParTransect import *
+
+
+class LargeurParTransect(object):
+    def __init__(self):
+        self.label = "Largeur par transects"
+        self.description = "Génère un profil de points contenant la largeur des cours d'eau calculée " \
+                           "à partir de transects; Optionnellement, si un MNT est fournit en entrée, les points " \
+                           "contiendront aussi des valeurs d'élévations"
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        param_streamnetwork = arcpy.Parameter(
+            displayName="Réseau vectoriel de l'écoulement",
+            name="streamnetwork",
+            datatype="GPFeatureLayer",
+            parameterType="Required",
+            direction="Input")
+        param_idfield = arcpy.Parameter(
+            displayName="Nom du champ qui contient l'ID du tronçon (Nombre entier)",
+            name="idfield",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input")
+        param_riverbed = arcpy.Parameter(
+            displayName="Polygone de la surface des cours d'eau",
+            name="riverbed",
+            datatype="GPFeatureLayer",
+            parameterType="Required",
+            direction="Input")
+        param_ineffarea = arcpy.Parameter(
+            displayName="Polygones recouvrant les branches de cours d'eau "
+                        "ineffectives (trop petites, secondaires, intermittentes)",
+            name="ineffarea",
+            datatype="GPFeatureLayer",
+            parameterType="Optional",
+            direction="Input")
+        param_maxwidth = arcpy.Parameter(
+            displayName="Largeur maximale des transects (en m)",
+            name="maxwidth",
+            datatype="GPDouble",
+            parameterType="Required",
+            direction="Input")
+        param_spacing = arcpy.Parameter(
+            displayName="Espacement régulier entre les sections transversales (en m)",
+            name="spacing",
+            datatype="GPDouble",
+            parameterType="Required",
+            direction="Input")
+        param_cellsize = arcpy.Parameter(
+            displayName="Taille des cellules du mnt utilisé pour le pré-traitement (en m)",
+            name="cellsize",
+            datatype="GPDouble",
+            parameterType="Required",
+            direction="Input")
+        param_mnt = arcpy.Parameter(
+            displayName="MNT optimisé pour le calcul de la pente (en m)",
+            name="mnt",
+            datatype="GPRasterLayer",
+            parameterType="Required",
+            direction="Input")
+        param_units = arcpy.Parameter(
+            displayName="Unités du MNT",
+            name="units",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input")
+        param_elevstat = arcpy.Parameter(
+            displayName="Statistique d'élévation transversale sur laquelle baser le découpage",
+            name="elevfield",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input")
+        param_transects = arcpy.Parameter(
+            displayName="Transects sur la ligne centrale contenant les données d'élévation",
+            name="transects",
+            datatype="DEFeatureClass",
+            parameterType="Required",
+            direction="Output")
+        param_outpts = arcpy.Parameter(
+            displayName="Points aux sections d'écoulement qui contiendront les données de modélisation",
+            name="outpts",
+            datatype="DEFeatureClass",
+            parameterType="Required",
+            direction="Output")
+
+        param_streamnetwork.filter.list = ["Polyline"]
+        param_idfield.enabled = False
+        param_riverbed.filter.list = ["Polygon"]
+        param_ineffarea.filter.list = ["Polygon"]
+        param_maxwidth.value = 200
+        param_spacing.value = 8
+        param_cellsize.value = 4
+        param_units.enabled = False
+        param_units.filter.type = "ValueList"
+        param_units.filter.list = ["M", "CM"]
+        param_elevstat.enabled = False
+        param_elevstat.filter.type = "ValueList"
+        param_elevstat.filter.list = ["MEDIAN", "MEAN", "MIN", "OPTIMAL"]
+
+        params = [param_streamnetwork, param_idfield, param_riverbed, param_ineffarea, param_maxwidth,
+                  param_spacing, param_cellsize, param_mnt, param_units, param_elevstat, param_transects, param_outpts]
+
+        return params
+
+    def isLicensed(self):
+        return True
+
+    def updateParameters(self, parameters):
+        if parameters[0].valueAsText:  # streamnetwork a été spécifié
+            parameters[1].enabled = True
+            parameters[1].filter.list = [f.name for f in arcpy.ListFields(parameters[0].valueAsText)]
+        else:
+            parameters[1].enabled = False
+
+        if parameters[7].valueAsText:  # Le MNT a été spécifié
+            parameters[8].enabled = True
+            parameters[9].enabled = True
+        else:
+            parameters[8].enabled = False
+            parameters[9].enabled = False
+        return
+
+    def updateMessages(self, parameters):
+        return
+
+    def execute(self, parameters, messages):
+        # Récupération des paramètres
+
+        streamnetwork = parameters[0].valueAsText
+        idfield = parameters[1].valueAsText
+        riverbed = parameters[2].valueAsText
+        ineffarea = parameters[3].valueAsText
+        maxwidth = int(parameters[4].valueAsText)
+        spacing = float(parameters[5].valueAsText)
+        cellsize = float(parameters[6].valueAsText)
+        mnt = parameters[7].valueAsText
+        units = parameters[8].valueAsText
+        elevstat = parameters[9].valueAsText
+        transects = parameters[10].valueAsText
+        outpts = parameters[11].valueAsText
+
+        execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing,
+                                   cellsize, mnt, units, elevstat, transects, outpts, messages)
+
+        return
