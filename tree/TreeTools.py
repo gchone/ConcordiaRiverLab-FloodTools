@@ -299,7 +299,7 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         junctionid_name = arcpy.Describe(junctions).OIDFieldName
 
         # Add a id ("FEAT_SEQ") to the junction grouping junctions at the same place (same place = same id))
-        junctions_table = arcpy.CreateScratchName("net", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        junctions_table = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
         gc.AddToGarbageBin(junctions_table)
         arcpy.FindIdentical_management(junctions, junctions_table, ["Shape"])
         arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
