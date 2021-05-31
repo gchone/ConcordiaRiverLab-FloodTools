@@ -34,6 +34,11 @@ def cs_solver(cs_up, cs_down):
     cs_tosolve = cs_up
     cs_ref = cs_down
 
+    if cs_down.reach == cs_up.reach:
+        cs_up.localdist = (cs_up.dist - cs_down.dist)
+    else:
+        cs_up.localdist = cs_down.reach.length - cs_down.dist + cs_up.dist
+
     def equations(y):
 
         if y < cs_tosolve.ycrit:
@@ -46,7 +51,7 @@ def cs_solver(cs_up, cs_down):
         h = h + (v ** 2) / (2 * g)
         s = (cs_tosolve.n ** 2 * v ** 2) / (R ** (4. / 3.))
         #friction_h = (cs_up.dist - cs_down.dist) * s
-        friction_h = (cs_up.dist - cs_down.dist) * (s + cs_ref.s) / 2.
+        friction_h = cs_up.localdist * (s + cs_ref.s) / 2.
         energy = cs_ref.h + friction_h - h
         return energy
 
@@ -63,5 +68,5 @@ def cs_solver(cs_up, cs_down):
     cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
     cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
 
-
+    del cs_up.localdist
 

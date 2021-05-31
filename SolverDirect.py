@@ -4,8 +4,8 @@
 
 g = 9.81
 #Froude_limite = 0.94
-#import warnings
-#warnings.simplefilter("error", RuntimeError)
+import warnings
+warnings.simplefilter("ignore", RuntimeWarning)
 
 from scipy.optimize import fsolve
 
@@ -35,6 +35,11 @@ def cs_solver(cs_up, cs_down):
     cs_tosolve = cs_down
     cs_ref = cs_up
 
+    if cs_down.reach == cs_up.reach:
+        localdist = (cs_up.dist - cs_down.dist)
+    else:
+        localdist = cs_down.reach.length - cs_down.dist + cs_up.dist
+
     def equations(y):
 
         if y < cs_tosolve.ycrit:
@@ -48,15 +53,16 @@ def cs_solver(cs_up, cs_down):
         h = h + v ** 2 / (2 * g)
         # slope calculation:
         #friction_h = (cs_up.dist - cs_down.dist) * s
-        friction_h = (cs_up.dist - cs_down.dist) * (s+cs_ref.s)/2.
-        energy = friction_h  + h - cs_up.h
+        friction_h = localdist * (s+cs_ref.s)/2.
+        energy = friction_h + h - cs_up.h
         return energy
 
     # premier estimé : y = y_crit
     cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
 
-    cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
-
+    res, dict, ier, msg = fsolve(equations, cs_tosolve.ycrit, full_output=True)
+    # In case of error, the returned value can be negative. So we take the critical depth as the minimum one
+    cs_tosolve.y = max(cs_tosolve.ycrit, res[0])
 
     cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
     cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
@@ -66,6 +72,11 @@ def cs_solver(cs_up, cs_down):
     cs_tosolve.h = cs_tosolve.h + cs_tosolve.v ** 2 / (2 * g)
     cs_tosolve.s = (cs_tosolve.n ** 2 * cs_tosolve.v ** 2) / (cs_tosolve.R ** (4. / 3.))
     cs_tosolve.Fr = cs_tosolve.v / (g * cs_tosolve.y) ** 0.5
+
+    return ier
+
+
+
 
 
 
