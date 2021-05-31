@@ -14,8 +14,7 @@ class LargeurParTransect(object):
     def __init__(self):
         self.label = "Largeur par transects"
         self.description = "Génère un profil de points contenant la largeur des cours d'eau calculée " \
-                           "à partir de transects; Optionnellement, si un MNT est fournit en entrée, les points " \
-                           "contiendront aussi des valeurs d'élévations"
+                           "à partir de transects ainsi que les transects associés à chaque point."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -56,37 +55,13 @@ class LargeurParTransect(object):
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
-        param_cellsize = arcpy.Parameter(
-            displayName="Taille des cellules du mnt utilisé pour le pré-traitement (en m)",
-            name="cellsize",
-            datatype="GPDouble",
-            parameterType="Required",
-            direction="Input")
-        param_mnt = arcpy.Parameter(
-            displayName="MNT optimisé pour le calcul de la pente (en m)",
-            name="mnt",
-            datatype="GPRasterLayer",
-            parameterType="Required",
-            direction="Input")
-        param_units = arcpy.Parameter(
-            displayName="Unités du MNT",
-            name="units",
-            datatype="GPString",
-            parameterType="Required",
-            direction="Input")
-        param_elevstat = arcpy.Parameter(
-            displayName="Statistique d'élévation transversale sur laquelle baser le découpage",
-            name="elevfield",
-            datatype="GPString",
-            parameterType="Required",
-            direction="Input")
         param_transects = arcpy.Parameter(
             displayName="Transects sur la ligne centrale contenant les données d'élévation",
             name="transects",
             datatype="DEFeatureClass",
             parameterType="Required",
             direction="Output")
-        param_outpts = arcpy.Parameter(
+        param_cspoints = arcpy.Parameter(
             displayName="Points aux sections d'écoulement qui contiendront les données de modélisation",
             name="outpts",
             datatype="DEFeatureClass",
@@ -99,16 +74,9 @@ class LargeurParTransect(object):
         param_ineffarea.filter.list = ["Polygon"]
         param_maxwidth.value = 200
         param_spacing.value = 8
-        param_cellsize.value = 4
-        param_units.enabled = False
-        param_units.filter.type = "ValueList"
-        param_units.filter.list = ["M", "CM"]
-        param_elevstat.enabled = False
-        param_elevstat.filter.type = "ValueList"
-        param_elevstat.filter.list = ["MEDIAN", "MEAN", "MIN", "OPTIMAL"]
 
-        params = [param_streamnetwork, param_idfield, param_riverbed, param_ineffarea, param_maxwidth,
-                  param_spacing, param_cellsize, param_mnt, param_units, param_elevstat, param_transects, param_outpts]
+        params = [param_streamnetwork, param_idfield, param_riverbed, param_ineffarea,
+                  param_maxwidth, param_spacing, param_transects, param_cspoints]
 
         return params
 
@@ -122,12 +90,6 @@ class LargeurParTransect(object):
         else:
             parameters[1].enabled = False
 
-        if parameters[7].valueAsText:  # Le MNT a été spécifié
-            parameters[8].enabled = True
-            parameters[9].enabled = True
-        else:
-            parameters[8].enabled = False
-            parameters[9].enabled = False
         return
 
     def updateMessages(self, parameters):
@@ -142,14 +104,10 @@ class LargeurParTransect(object):
         ineffarea = parameters[3].valueAsText
         maxwidth = int(parameters[4].valueAsText)
         spacing = float(parameters[5].valueAsText)
-        cellsize = float(parameters[6].valueAsText)
-        mnt = parameters[7].valueAsText
-        units = parameters[8].valueAsText
-        elevstat = parameters[9].valueAsText
-        transects = parameters[10].valueAsText
-        outpts = parameters[11].valueAsText
+        transects = parameters[6].valueAsText
+        cspoints = parameters[7].valueAsText
 
-        execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing,
-                                   cellsize, mnt, units, elevstat, transects, outpts, messages)
+        execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea,
+                                   maxwidth, spacing, transects, cspoints, messages)
 
         return
