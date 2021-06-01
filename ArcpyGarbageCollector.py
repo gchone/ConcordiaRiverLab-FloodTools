@@ -34,9 +34,19 @@ class _GarbageManager(object):
                 arcpy.Delete_management(item)
         self.__garbagelist = []
 
-def CleanTempFiles():
+    def remove(self, item):
+        if item in self.__garbagelist:
+            if arcpy.Exists(item):
+                arcpy.Delete_management(item)
+            self.__garbagelist.remove(item)
+
+def CleanAllTempFiles():
     gb = _GarbageManager.getInstance()
     gb.empty_garbagebin()
+
+def CleanTempFile(file):
+    gb = _GarbageManager.getInstance()
+    gb.remove(file)
 
 def AddToGarbageBin(item):
     gb = _GarbageManager.getInstance()
