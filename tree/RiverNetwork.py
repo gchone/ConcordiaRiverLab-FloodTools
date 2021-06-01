@@ -29,10 +29,11 @@ class RiverNetwork(_NumpyArrayHolder):
                        "length": "SHAPE@LENGTH",
                         }
 
-    def __init__(self, reaches_shapefile, reaches_linktable):
+    def __init__(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
         _NumpyArrayHolder.__init__(self)
         self.points_collection = {}
-
+        if dict_newattr_fields is not None:
+            self.dict_attr_fields.update(dict_newattr_fields)
         # on initialise les matrices Numpy
         # matrice de base
         try:
@@ -64,6 +65,8 @@ class RiverNetwork(_NumpyArrayHolder):
         # Tried different things to add a field with the objects to the _numpyarray but did not succeed:
         #self._numpyarray = rfn.merge_arrays([self._numpyarray, object_column], flatten=True)
         #rfn.append_fields(self._numpyarray, 'object', list)
+
+        self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
 
     def get_downstream_ends(self):
         # Générateur. Retourne la liste des tronçons extrémités aval
@@ -128,7 +131,8 @@ class RiverNetwork(_NumpyArrayHolder):
         self.points_collection[points_collection_name] = collection
         return collection
 
-
+    def get_reach(self, id):
+        return self._reaches[self._reaches['id'] == id]['object'][0]
 
 
     def __str__(self):
@@ -294,7 +298,8 @@ class Points_collection(_NumpyArrayHolder):
     def __init__(self, name, rivernetwork, points_table=None, dict_newattr_fields=None):
 
         _NumpyArrayHolder.__init__(self)
-        self.dict_attr_fields.update(dict_newattr_fields)
+        if dict_newattr_fields is not None:
+            self.dict_attr_fields.update(dict_newattr_fields)
         self.name = name
         self.rivernetwork = rivernetwork
         if points_table is not None and self.dict_attr_fields is not None:
