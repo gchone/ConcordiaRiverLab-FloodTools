@@ -104,8 +104,8 @@ def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, me
             cursor_neartable.deleteRow()
 
     # Join RIDs
-    arcpy.JoinField_management(out_table, "A_OID", shapefile_A, "FID", RID_A)
-    arcpy.JoinField_management(out_table, "B_OID", shapefile_B, "FID", RID_B)
+    arcpy.JoinField_management(out_table, "A_OID", shapefile_A, arcpy.Describe(shapefile_A).OIDFieldName, RID_A)
+    arcpy.JoinField_management(out_table, "B_OID", shapefile_B,  arcpy.Describe(shapefile_B).OIDFieldName, RID_B)
     todelete = []
     for field in arcpy.ListFields(out_table)[1:-2]:
         todelete.append(field.name)
