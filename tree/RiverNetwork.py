@@ -31,6 +31,7 @@ class RiverNetwork(_NumpyArrayHolder):
 
     def __init__(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
         _NumpyArrayHolder.__init__(self)
+        self.shapefile = reaches_shapefile
         self.points_collection = {}
         if dict_newattr_fields is not None:
             self.dict_attr_fields.update(dict_newattr_fields)

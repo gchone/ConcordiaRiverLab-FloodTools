@@ -507,21 +507,51 @@ def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_
                     for i in range(0, len(list_reaches_refD8)):
                         dict_match[list_reaches_refD8[i]].append(list_reaches_second[i+shift])
 
-    # Final compilation of the results
+    # Geometric comparison: looking for the closest reach based on centroid
+    d8centroid = arcpy.CreateScratchName("pts_D8", data_type="FeatureClass", workspace="in_memory")
+    arcpy.FeatureToPoint_management(refD8_net.shapefile, d8centroid)
+    secondcentroid = arcpy.CreateScratchName("pts_second", data_type="FeatureClass", workspace="in_memory")
+    arcpy.FeatureToPoint_management(second_net.shapefile, secondcentroid)
+    neartable = arcpy.CreateScratchName("neartable", data_type="ArcInfoTable", workspace="in_memory")
+    arcpy.GenerateNearTable_analysis(d8centroid, secondcentroid, neartable)
+
+    arcpy.JoinField_management(neartable, "IN_FID", d8centroid, arcpy.Describe(d8centroid).OIDFieldName, refD8_net.dict_attr_fields["id"])
+    arcpy.JoinField_management(neartable, "NEAR_FID", secondcentroid,
+                               arcpy.Describe(secondcentroid).OIDFieldName, second_net.dict_attr_fields["id"])
+    # in case the two RID have the same name, the result of the join can be a field with a different name
+    # let just take the two last field instead of their original name
+    two_last_fields = [f.name for f in arcpy.ListFields(neartable)][-2:]
+    geometry_match = {}
+    search = arcpy.da.SearchCursor(neartable, two_last_fields)
+    for row in search:
+        geometry_match[row[0]] = row[1]
+
+    # Compilation of the results
     # From each list in the dict_match (i.e. for each reach in refD8), we have a list of possible id in the second net
     # We take the id that has the majority of occurences in the list, and compute its percentage of occurence
+    # When there is a tie, so closest geometric match is taken
+    # Finally, a warning is set of the result is not the closest geometric match
     arcpy.CreateTable_management(os.path.dirname(matching_table), os.path.basename(matching_table))
     arcpy.AddField_management(matching_table, refD8_net.dict_attr_fields["id"], "LONG")
     arcpy.AddField_management(matching_table, "MATCH_ID", "LONG")
+    arcpy.AddField_management(matching_table, "TYPO", "FLOAT")
+    arcpy.AddField_management(matching_table, "CLOSEST", "SHORT")
     arcpy.AddField_management(matching_table, "SCORE", "FLOAT")
-    insert = arcpy.da.InsertCursor(matching_table, [refD8_net.dict_attr_fields["id"], "MATCH_ID", "SCORE"])
+    insert = arcpy.da.InsertCursor(matching_table, [refD8_net.dict_attr_fields["id"], "MATCH_ID", "TYPO", "CLOSEST", "SCORE"])
     for reach in refD8_net.browse_reaches_down_to_up():
         # the following instruction returns a list of tuples (id, number_of_occurences), ordered by number_of_occurences
         counter = Counter(dict_match[reach.id]).most_common()
         matching_id, occurences = counter[0]
+        if len(counter)>1:
+            matching_id2, occurences2 = counter[1]
+            if occurences == occurences2 and matching_id2==geometry_match[reach.id]:
+                # Tie with the second one matching the geometric match
+                matching_id = matching_id2
         perc_occurences = occurences/len(dict_match[reach.id])
-        insert.insertRow([reach.id, matching_id, perc_occurences])
-    del insert
+        geomatch = matching_id==geometry_match[reach.id]
+        # Hardcoded weights for the final score. Can be changed.
+        score = perc_occurences*0.6+geomatch*0.4
+        insert.insertRow([reach.id, matching_id, perc_occurences, geomatch, score])
 
 
 
