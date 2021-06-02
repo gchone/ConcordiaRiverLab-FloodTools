@@ -68,7 +68,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
             prev_cs = cs
 
     # adding the 'order' attribute to reaches according to discharge
-    order_reaches_by_discharge(rivernet, points_coll, "Q")
+    rivernet.order_reaches_by_discharge(points_coll, "Q")
     # Current behaviour is to process main stream in priority (based on discharge)
     # Process is stopped when meeting an already-processed reach (bathymetry is never computed twice)
 

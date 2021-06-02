@@ -567,11 +567,7 @@ def execute_LocateMostDownstreamPoints(network, collection, output_pts):
 
 
 
-def order_reaches_by_discharge(rivernet, collection, discharge_name):
-    order = 0
-    for reach in rivernet.browse_reaches_down_to_up(prioritize_points_collection=collection, prioritize_points_attribute=discharge_name, reverse=True):
-        reach.order = order
-        order += 1
+
 
 
 

@@ -135,6 +135,12 @@ class RiverNetwork(_NumpyArrayHolder):
     def get_reach(self, id):
         return self._reaches[self._reaches['id'] == id]['object'][0]
 
+    def order_reaches_by_discharge(self, collection, discharge_name):
+        order = 0
+        for reach in self.browse_reaches_down_to_up(prioritize_points_collection=collection,
+                                                        prioritize_points_attribute=discharge_name, reverse=True):
+            reach.order = order
+            order += 1
 
     def __str__(self):
         for downstream_end in self.get_downstream_ends():
