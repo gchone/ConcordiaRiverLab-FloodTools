@@ -553,7 +553,17 @@ def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_
         score = perc_occurences*0.6+geomatch*0.4
         insert.insertRow([reach.id, matching_id, perc_occurences, geomatch, score])
 
+def execute_LocateMostDownstreamPoints(network, collection, output_pts):
+    arcpy.CreateFeatureclass_management(os.path.dirname(output_pts), os.path.basename(output_pts), "POINT", spatial_reference=network.SpatialReference)
+    arcpy.AddField_management(output_pts, network.dict_attr_fields["id"], "LONG")
+    arcpy.AddField_management(output_pts, "Distance", "DOUBLE")
+    insert = arcpy.da.InsertCursor(output_pts, ["SHAPE@XY", network.dict_attr_fields["id"], "Distance"])
 
+    for reach in network.browse_reaches_down_to_up():
+        point = reach.get_first_point(collection)
+        shape = arcpy.Point(point.X, point.Y)
+        insert.insertRow([shape, reach.id, point.dist])
+    del insert
 
 
 
