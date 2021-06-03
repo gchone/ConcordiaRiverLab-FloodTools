@@ -29,10 +29,14 @@ class RiverNetwork(_NumpyArrayHolder):
                        "length": "SHAPE@LENGTH",
                         }
 
-    def __init__(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
+    def __init__(self):
         _NumpyArrayHolder.__init__(self)
-        self.shapefile = reaches_shapefile
         self.points_collection = {}
+
+    def load_data(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
+        self.shapefile = reaches_shapefile
+        self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
+
         if dict_newattr_fields is not None:
             self.dict_attr_fields.update(dict_newattr_fields)
         # on initialise les matrices Numpy
@@ -67,7 +71,7 @@ class RiverNetwork(_NumpyArrayHolder):
         #self._numpyarray = rfn.merge_arrays([self._numpyarray, object_column], flatten=True)
         #rfn.append_fields(self._numpyarray, 'object', list)
 
-        self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
+
 
     def get_downstream_ends(self):
         # Générateur. Retourne la liste des tronçons extrémités aval
@@ -125,12 +129,6 @@ class RiverNetwork(_NumpyArrayHolder):
                 for item in self._recursive_browse_reaches(downstreamreach, orientation, prioritize_points_collection,
                                            prioritize_points_attribute, prioritize_reach_attribute, reverse):
                     yield item
-
-    def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
-        # Ajout d'une nouvelle collection de points
-        collection = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
-        self.points_collection[points_collection_name] = collection
-        return collection
 
     def get_reach(self, id):
         return self._reaches[self._reaches['id'] == id]['object'][0]
@@ -302,37 +300,40 @@ class Points_collection(_NumpyArrayHolder):
                        "offset": "Distance"
                         }
 
-    def __init__(self, name, rivernetwork, points_table=None, dict_newattr_fields=None):
-
+    def __init__(self, name, rivernetwork):
         _NumpyArrayHolder.__init__(self)
-        if dict_newattr_fields is not None:
-            self.dict_attr_fields.update(dict_newattr_fields)
+
         self.name = name
         self.rivernetwork = rivernetwork
-        if points_table is not None and self.dict_attr_fields is not None:
-            self.dict_attr_fields = self.dict_attr_fields
-            # matrice de base
-            self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(self.dict_attr_fields.values()), null_value=-9999)
-            # matrice contenant les instances de DataPoint
-            self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
-            i = 0
-            for row in self._numpyarray:
-                self._points[i]['id'] = row[self.dict_attr_fields['id']]
-                reachid = row[self.dict_attr_fields['reach_id']]
-                reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
-                self._points[i]['object'] = DataPoint(self, reach, row)
-                i+=1
-        else:
-            self.dict_attr_fields = Points_collection.dict_attr_fields
-            self._numpyarray = np.empty(0, dtype=[(self.dict_attr_fields['id'], 'i4'),
-                                                  (self.dict_attr_fields['reach_id'], 'i4'),
-                                                  (self.dict_attr_fields['dist'], 'f8'),
-                                                  (self.dict_attr_fields['offset'], 'f8')])
-            self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
+        self._numpyarray = np.empty(0, dtype=[(self.dict_attr_fields['id'], 'i4'),
+                                              (self.dict_attr_fields['reach_id'], 'i4'),
+                                              (self.dict_attr_fields['dist'], 'f8'),
+                                              (self.dict_attr_fields['offset'], 'f8')])
+        self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
+
+    def load_table(self, points_table, dict_newattr_fields=None):
+
+        if dict_newattr_fields is not None:
+            self.dict_attr_fields.update(dict_newattr_fields)
+
+        self.dict_attr_fields = self.dict_attr_fields
+        # matrice de base
+        self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(self.dict_attr_fields.values()),
+                                                      null_value=-9999)
+        # matrice contenant les instances de DataPoint
+        self._points = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'), ('object', 'O')])
+        i = 0
+        for row in self._numpyarray:
+            self._points[i]['id'] = row[self.dict_attr_fields['id']]
+            reachid = row[self.dict_attr_fields['reach_id']]
+            reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
+            self._points[i]['object'] = DataPoint(self, reach, row)
+            i += 1
 
     def delete_point(self, datapoint):
         self._numpyarray = self._numpyarray[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
         self._points = self._points[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
+
 
 
     def save_points(self, target_table, dict_attr_output_fields=None):
