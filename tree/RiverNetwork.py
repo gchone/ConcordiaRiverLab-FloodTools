@@ -145,6 +145,19 @@ class RiverNetwork(_NumpyArrayHolder):
             return downstream_end._recursiveprint("")
 
 
+    def placePointsAtRegularInterval(self, interval, collection):
+        # Place points at regular interval. The collection must be existing but must be empty
+        table = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
+        arcpy.AddField_management(table, "MEAS", "DOUBLE")
+        arcpy.AddField_management(table, "Distance", "DOUBLE")
+        insert = arcpy.da.InsertCursor(table, [self.dict_attr_fields["id"], "MEAS", "Distance"])
+        #insert = arcpy.da.InsertCursor(table, ["SHAPE@XY", network.dict_attr_fields["id"], "Distance"])
+        for reach in self.browse_reaches_down_to_up():
+            for dist in np.arange(0, reach.length, interval):
+                insert.insertRow([reach.id, dist, 0])
+        del insert
+        collection.dict_attr_fields["id"]=arcpy.Describe(table).OIDFieldName
+        collection.load_table(table)
 
 
 
