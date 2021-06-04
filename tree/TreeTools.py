@@ -272,10 +272,6 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                              to_measure_field=Lengthfield)
     arcpy.JoinField_management(route_shapefile, routeID_field, lines, routeID_field, "ORIG_FID")
 
-
-
-
-
 def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field, messages, channeltype_field = None):
     """
     Create the river network data structure from a shapefile of lines
@@ -460,7 +456,6 @@ def execute_CreateFromPointsAndSplits(rivernet, points, splits):
             insertsplits.insertRow([reach.shape.getPart(0)[-1]])
     del insertfp
     del insertsplits
-
 
 def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_table):
     # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use

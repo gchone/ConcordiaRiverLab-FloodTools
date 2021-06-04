@@ -6,7 +6,7 @@ import numpy
 import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
-
+import ArcpyGarbageCollector as gc
 
 class BrowsingStopper():
     # Instances of this class are used to be passed as an argument to generators, when browsing points from upstream to
@@ -32,13 +32,12 @@ class RiverNetwork(_NumpyArrayHolder):
     def __init__(self):
         _NumpyArrayHolder.__init__(self)
         self.points_collection = {}
+        self.dict_attr_fields = RiverNetwork.dict_attr_fields.copy()
 
-    def load_data(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
+    def load_data(self, reaches_shapefile, reaches_linktable):
         self.shapefile = reaches_shapefile
         self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
 
-        if dict_newattr_fields is not None:
-            self.dict_attr_fields.update(dict_newattr_fields)
         # on initialise les matrices Numpy
         # matrice de base
         try:
@@ -147,7 +146,9 @@ class RiverNetwork(_NumpyArrayHolder):
 
     def placePointsAtRegularInterval(self, interval, collection):
         # Place points at regular interval. The collection must be existing but must be empty
-        table = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
+        tablename = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
+        table = arcpy.CreateTable_management("in_memory", os.path.basename(tablename))
+        arcpy.AddField_management(table, self.dict_attr_fields["id"], "LONG")
         arcpy.AddField_management(table, "MEAS", "DOUBLE")
         arcpy.AddField_management(table, "Distance", "DOUBLE")
         insert = arcpy.da.InsertCursor(table, [self.dict_attr_fields["id"], "MEAS", "Distance"])
@@ -157,9 +158,12 @@ class RiverNetwork(_NumpyArrayHolder):
                 insert.insertRow([reach.id, dist, 0])
         del insert
         collection.dict_attr_fields["id"]=arcpy.Describe(table).OIDFieldName
+        collection.dict_attr_fields["reach_id"]=self.dict_attr_fields["id"]
         collection.load_table(table)
 
-
+    def spatializeWidth(self, width_coll, target_coll):
+        # the width collection must have a attribute "width"
+        pass
 
 
 class _NumpyArrayFedObject(object):
@@ -313,23 +317,20 @@ class Points_collection(_NumpyArrayHolder):
                        "offset": "Distance"
                         }
 
-    def __init__(self, name, rivernetwork):
+    def __init__(self, rivernetwork, name):
         _NumpyArrayHolder.__init__(self)
-
+        self.dict_attr_fields = Points_collection.dict_attr_fields.copy()
         self.name = name
         self.rivernetwork = rivernetwork
+        rivernetwork.points_collection[name]=self
         self._numpyarray = np.empty(0, dtype=[(self.dict_attr_fields['id'], 'i4'),
                                               (self.dict_attr_fields['reach_id'], 'i4'),
                                               (self.dict_attr_fields['dist'], 'f8'),
                                               (self.dict_attr_fields['offset'], 'f8')])
         self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
 
-    def load_table(self, points_table, dict_newattr_fields=None):
+    def load_table(self, points_table):
 
-        if dict_newattr_fields is not None:
-            self.dict_attr_fields.update(dict_newattr_fields)
-
-        self.dict_attr_fields = self.dict_attr_fields
         # matrice de base
         self._numpyarray = arcpy.da.TableToNumPyArray(points_table, list(self.dict_attr_fields.values()),
                                                       null_value=-9999)
