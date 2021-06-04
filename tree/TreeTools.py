@@ -439,17 +439,21 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
     finally:
         gc.CleanAllTempFiles()
 
-def execute_CreateFromPointsAndSplits(rivernet, points, splits):
+def execute_CreateFromPointsAndSplits(network_shp, links_table, RID_field, points, splits):
 
-    arcpy.CreateFeatureclass_management(os.path.dirname(points), os.path.basename(points), "POINT", spatial_reference=rivernet.SpatialReference)
-    arcpy.AddField_management(points, rivernet.dict_attr_fields["id"], "LONG")
+    network = RiverNetwork()
+    network.dict_attr_fields['id'] = RID_field
+    network.load_data(network_shp, links_table)
+
+    arcpy.CreateFeatureclass_management(os.path.dirname(points), os.path.basename(points), "POINT", spatial_reference=network.SpatialReference)
+    arcpy.AddField_management(points, network.dict_attr_fields["id"], "LONG")
     arcpy.CreateFeatureclass_management(os.path.dirname(splits), os.path.basename(splits), "POINT",
-                                        spatial_reference=rivernet.SpatialReference)
+                                        spatial_reference=network.SpatialReference)
 
-    insertfp = arcpy.da.InsertCursor(points, [rivernet.dict_attr_fields["id"], 'SHAPE@'])
+    insertfp = arcpy.da.InsertCursor(points, [network.dict_attr_fields["id"], 'SHAPE@'])
     insertsplits = arcpy.da.InsertCursor(splits, ['SHAPE@'])
 
-    for reach in rivernet.browse_reaches_down_to_up():
+    for reach in network.browse_reaches_down_to_up():
         if reach.is_upstream_end():
             insertfp.insertRow([reach.id, reach.shape.getPart(0)[-1]])
         elif len(list(reach.get_uptream_reaches())) == 1:
@@ -457,7 +461,18 @@ def execute_CreateFromPointsAndSplits(rivernet, points, splits):
     del insertfp
     del insertsplits
 
-def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_table):
+
+
+def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, matching_table):
+
+    refD8_net = RiverNetwork()
+    refD8_net.dict_attr_fields['id'] = RID_A
+    refD8_net.load_data(routes_A, links_A)
+
+    second_net = RiverNetwork()
+    second_net.dict_attr_fields['id'] = RID_B
+    second_net.load_data(routes_B, links_B)
+
     # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
 
     dict_match = {}
@@ -559,6 +574,24 @@ def execute_LocateMostDownstreamPoints(network, collection, output_pts):
         shape = arcpy.Point(point.X, point.Y)
         insert.insertRow([shape, reach.id, point.dist])
     del insert
+
+def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interval, output_pts):
+
+    network = RiverNetwork()
+    network.dict_attr_fields['id'] = RID_field
+    network.load_data(network_shp, links_table)
+
+    newpoints = Points_collection(network, "newpts")
+
+    network.placePointsAtRegularInterval(interval, newpoints)
+
+    newpoints.save_points(output_pts)
+
+
+
+
+
+
 
 
 

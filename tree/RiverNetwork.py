@@ -51,7 +51,7 @@ class RiverNetwork(_NumpyArrayHolder):
         # In order to populate the self._reaches array, we could iterate through the self._numpyarray
         # It's quicker, but with the SearchCursor we can retrieve the Shape object, which could be needed)
         listfields = list(self.dict_attr_fields.values())
-        listfields_withshape = listfields.copy()
+        listfields_withshape = listfields[:] # deep copy the list
         listfields_withshape.append("SHAPE@")
         reachescursor = arcpy.da.SearchCursor(reaches_shapefile, listfields_withshape)
         i = 0
@@ -389,7 +389,7 @@ class Points_collection(_NumpyArrayHolder):
         for attr, field in dict_attr_output_fields.items():
             if attr in self.dict_attr_fields.keys():
                 # the data is in the _numpyarray, we can get its dtype
-                newdtype.append((field, self._numpyarray.dtype.fields[self.dict_attr_fields[attr]][0]))
+                newdtype.append((str(field), self._numpyarray.dtype.fields[self.dict_attr_fields[attr]][0]))
             else:
                 # the data must be an attribute of the DataPoint
                 if self._variablestype[attr][0] == "int":
