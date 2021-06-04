@@ -272,10 +272,6 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                              to_measure_field=Lengthfield)
     arcpy.JoinField_management(route_shapefile, routeID_field, lines, routeID_field, "ORIG_FID")
 
-
-
-
-
 def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field, messages, channeltype_field = None):
     """
     Create the river network data structure from a shapefile of lines
@@ -461,7 +457,6 @@ def execute_CreateFromPointsAndSplits(rivernet, points, splits):
     del insertfp
     del insertsplits
 
-
 def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_table):
     # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
 
@@ -567,11 +562,6 @@ def execute_LocateMostDownstreamPoints(network, collection, output_pts):
 
 
 
-def order_reaches_by_discharge(rivernet, collection, discharge_name):
-    order = 0
-    for reach in rivernet.browse_reaches_down_to_up(prioritize_points_collection=collection, prioritize_points_attribute=discharge_name, reverse=True):
-        reach.order = order
-        order += 1
 
 
 
