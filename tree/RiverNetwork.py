@@ -7,6 +7,13 @@ import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
 
+
+class BrowsingStopper():
+    # Instances of this class are used to be passed as an argument to generators, when browsing points from upstream to
+    #  downstream.
+    def __init__(self):
+        self.break_generator = False
+
 class _NumpyArrayHolder(object):
 
     def __init__(self):
@@ -22,10 +29,12 @@ class RiverNetwork(_NumpyArrayHolder):
                        "length": "SHAPE@LENGTH",
                         }
 
-    def __init__(self, reaches_shapefile, reaches_linktable):
+    def __init__(self, reaches_shapefile, reaches_linktable, dict_newattr_fields=None):
         _NumpyArrayHolder.__init__(self)
+        self.shapefile = reaches_shapefile
         self.points_collection = {}
-
+        if dict_newattr_fields is not None:
+            self.dict_attr_fields.update(dict_newattr_fields)
         # on initialise les matrices Numpy
         # matrice de base
         try:
@@ -58,6 +67,8 @@ class RiverNetwork(_NumpyArrayHolder):
         #self._numpyarray = rfn.merge_arrays([self._numpyarray, object_column], flatten=True)
         #rfn.append_fields(self._numpyarray, 'object', list)
 
+        self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
+
     def get_downstream_ends(self):
         # Générateur. Retourne la liste des tronçons extrémités aval
         # Ce sont ceux qui ne sont pas présents dans "UpstreamRID" de _numpyarraylinks
@@ -70,24 +81,59 @@ class RiverNetwork(_NumpyArrayHolder):
         for id in np.setdiff1d(self._reaches['id'], self._numpyarraylinks[self.reaches_linkfielddown]):
             yield self._reaches[self._reaches['id'] == id]['object'][0]
 
-    def browse_reaches(self, orientation="DOWN_TO_UP", prioritize_points_collection = None, prioritize_points_attribute  = None, reverse = False):
+    def browse_reaches_down_to_up(self, prioritize_points_collection=None, prioritize_points_attribute=None, prioritize_reach_attribute=None, reverse=False):
         # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
         # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée. Optionnellement, si
         #     prioritize_points_attribute != None, l'ordre des tronçons retournés aux confluences est aussi déterminé.
-        if orientation=="DOWN_TO_UP":
-            for downstream_end in self.get_downstream_ends():
-                for item in downstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
+        for downstream_end in self.get_downstream_ends():
+            for item in self._recursive_browse_reaches(downstream_end, "DOWN_TO_UP", prioritize_points_collection, prioritize_points_attribute, prioritize_reach_attribute, reverse):
+                yield item
+
+
+    def browse_reaches_up_to_down(self, stopper=BrowsingStopper(), prioritize_reach_attribute = None):
+        # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
+        # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée.
+        list_upstream_ends = list(self.get_upstream_ends())
+        if prioritize_reach_attribute is not None:
+            list_upstream_ends.sort(key=lambda r: getattr(r, prioritize_reach_attribute))
+        for upstream_end in list_upstream_ends:
+            stopper.break_generator = False
+            for item in self._recursive_browse_reaches(upstream_end, "UP_TO_DOWN", None, None, None, None):
+                if stopper.break_generator:
+                    # When the stopper is set to end iteration, it must be for the current path (upstream to downstream)
+                    #  but things should resume at the next upstream end.
+                    break
+                yield item
+
+    def _recursive_browse_reaches(self, currentreach, orientation, prioritize_points_collection,
+                                   prioritize_points_attribute, prioritize_reach_attribute, reverse):
+        yield currentreach
+        if orientation == "DOWN_TO_UP":
+            upstream_list = list(currentreach.get_uptream_reaches())
+            if prioritize_points_collection is not None:
+                upstream_list.sort(key=lambda r: getattr(r.get_first_point(prioritize_points_collection), prioritize_points_attribute), reverse=reverse)
+            elif prioritize_reach_attribute is not None:
+                upstream_list.sort(key=lambda r: getattr(r, prioritize_reach_attribute),
+                                   reverse=reverse)
+            for reach in upstream_list:
+                for item in self._recursive_browse_reaches(reach, orientation, prioritize_points_collection,
+                                       prioritize_points_attribute, prioritize_reach_attribute, reverse):
                     yield item
         else:
-            for upstream_end in self.get_upstream_ends():
-                for item in upstream_end._recursive_browse_reaches(orientation, prioritize_points_collection, prioritize_points_attribute, reverse):
+            downstreamreach = currentreach.get_downstream_reach()
+            if downstreamreach is not None:
+                for item in self._recursive_browse_reaches(downstreamreach, orientation, prioritize_points_collection,
+                                           prioritize_points_attribute, prioritize_reach_attribute, reverse):
                     yield item
 
     def add_points_collection(self, points_table=None, dict_attr_fields=None, points_collection_name="MAIN"):
         # Ajout d'une nouvelle collection de points
-        self.points_collection[points_collection_name] = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        collection = Points_collection(points_collection_name, self, points_table, dict_attr_fields)
+        self.points_collection[points_collection_name] = collection
+        return collection
 
-
+    def get_reach(self, id):
+        return self._reaches[self._reaches['id'] == id]['object'][0]
 
 
     def __str__(self):
@@ -123,10 +169,11 @@ class _NumpyArrayFedObject(object):
                 array[valuefield][array[idfield] == self.id] = value
             elif not name in self.__dict__:
                 # creating a new attribute
-                if isinstance(value, int):
-                    self._numpyarray_holder._variablesset.add(name)
-                    self._numpyarray_holder._variablestype[name] = ['int']
-                elif isinstance(value, float):
+                # if isinstance(value, int):
+                #     self._numpyarray_holder._variablesset.add(name)
+                #     self._numpyarray_holder._variablestype[name] = ['int']
+                # elif isinstance(value, float):
+                if isinstance(value, float) or isinstance(value, int):
                     self._numpyarray_holder._variablesset.add(name)
                     self._numpyarray_holder._variablestype[name] = ['float']
                 elif isinstance(value, str):
@@ -152,21 +199,6 @@ class Reach(_NumpyArrayFedObject):
         _NumpyArrayFedObject.__init__(self, rivernetwork, data)
         self.rivernetwork = rivernetwork
         self.shape = shape
-
-    def _recursive_browse_reaches(self, orientation, prioritize_points_collection,
-                                   prioritize_points_attribute, reverse):
-        yield self
-        if orientation == "DOWN_TO_UP":
-            for reach in self.get_uptream_reaches():
-                for item in reach._recursive_browse_reaches(orientation, prioritize_points_collection,
-                                       prioritize_points_attribute, reverse):
-                    yield item
-        else:
-            downstreamreach = self.get_downstream_reach()
-            if downstreamreach is not None:
-                for item in downstreamreach._recursive_browse_reaches(orientation, prioritize_points_collection,
-                                           prioritize_points_attribute, reverse):
-                    yield item
 
     def get_downstream_reach(self):
         # doit trouver le parent dans rivernetwork
@@ -202,8 +234,10 @@ class Reach(_NumpyArrayFedObject):
             string += child.__recursiveprint(prefix + "- ")
         return string
 
-    def browse_points(self, collection, orientation="DOWN_TO_UP"):
+    def browse_points(self, collection, orientation="DOWN_TO_UP", stopper=BrowsingStopper()):
         #   Générateur de DataPoint
+        if stopper.break_generator:
+            return
         if orientation == "DOWN_TO_UP":
             sortedlist = np.sort(collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id], order=collection.dict_attr_fields['dist'])
         else:
@@ -221,6 +255,16 @@ class Reach(_NumpyArrayFedObject):
         if len(sortedlist) > 0:
             lastid = sortedlist[collection.dict_attr_fields['id']][-1]
             return collection._points[collection._points['id'] == lastid]['object'][0]
+        else:
+            return None
+
+    def get_first_point(self, collection):
+        sortedlist = np.sort(
+            collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id],
+            order=collection.dict_attr_fields['dist'])
+        if len(sortedlist) > 0:
+            firstid = sortedlist[collection.dict_attr_fields['id']][0]
+            return collection._points[collection._points['id'] == firstid]['object'][0]
         else:
             return None
 
@@ -255,7 +299,8 @@ class Points_collection(_NumpyArrayHolder):
     def __init__(self, name, rivernetwork, points_table=None, dict_newattr_fields=None):
 
         _NumpyArrayHolder.__init__(self)
-        self.dict_attr_fields.update(dict_newattr_fields)
+        if dict_newattr_fields is not None:
+            self.dict_attr_fields.update(dict_newattr_fields)
         self.name = name
         self.rivernetwork = rivernetwork
         if points_table is not None and self.dict_attr_fields is not None:
@@ -362,6 +407,8 @@ class Points_collection(_NumpyArrayHolder):
 
         # saving
         arcpy.da.NumPyArrayToTable(newarray, target_table)
+        #arcpy.da.NumPyArrayToTable(newarray[0], target_table)
+
 
 
 
@@ -370,3 +417,4 @@ class DataPoint(_NumpyArrayFedObject):
         _NumpyArrayFedObject.__init__(self, pointscollection, data)
         self.points_collection = pointscollection
         self.reach = reach
+

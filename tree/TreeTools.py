@@ -2,13 +2,14 @@
 
 
 # ArcGIS tools for tree manipulation
-
+import arcpy
 
 from tree.RiverNetwork import *
 from RasterIO import *
 import ArcpyGarbageCollector as gc
+from collections import Counter
 
-def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelinks_table, routeID_field, str_output_points, messages):
+def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelinks_table, routeID_field, str_output_points, messages, split_pts=None, tolerance=None):
     """
     Create a tree structure following the Flow Direction from the From points.
 
@@ -36,6 +37,9 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
 
     # this dict is used to stored the point downstream of each reach (first point to use when building the river lines)
     initialpoint = {}
+
+    # this dict is used to stored the original Frompoint OID for upstream reaches
+    original_fp_OID = {}
 
     # Starting at each From point
     frompointcursor = arcpy.da.SearchCursor(str_frompoints, ["SHAPE@", "OID@"])
@@ -163,6 +167,11 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     initialpoint[segmentid] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
                     initialpoint[segmentid + 1] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
 
+                    # Updating the segment id - Frompoint OID dict
+                    original_fp_OID[segmentid] = frompoint[1]
+                    if confluencepoint["RID"] in original_fp_OID:
+                        original_fp_OID[segmentid + 1] = original_fp_OID.pop(confluencepoint["RID"])
+
                     segmentid += 1
                     intheraster = False
             else:
@@ -173,21 +182,62 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4], point[5], point[6], point[7]))
                 pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
 
-    # Saving the links
-    if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
-        arcpy.Delete_management(routelinks_table)
-    arcpy.da.NumPyArrayToTable(links, routelinks_table)
+                original_fp_OID[segmentid] = frompoint[1]
+
+
 
     # Saving the points
     if arcpy.Exists(str_output_points) and arcpy.env.overwriteOutput == True:
         arcpy.Delete_management(str_output_points)
     arcpy.da.NumPyArrayToTable(pointsarray, str_output_points)
 
+    # Splitting lines if necessary
+    if split_pts is not None:
+        # a temp file of the points is necessary, to do a spatial join
+        #pts_table = arcpy.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        #arcpy.da.NumPyArrayToTable(pointsarray, pts_table)
+        #gc.AddToGarbageBin(pts_table)
+        points_shp = arcpy.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.MakeXYEventLayer_management(str_output_points, "X", "Y", "pts_layer", spatial_reference=r_flowdir)
+        arcpy.CopyFeatures_management("pts_layer", points_shp)
+        gc.AddToGarbageBin(points_shp)
+        #gc.CleanTempFile(pts_table)
+        join_split = arcpy.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
+        arcpy.SpatialJoin_analysis(split_pts, points_shp, join_split, match_option="CLOSEST", join_type="KEEP_COMMON", search_radius=tolerance)
+        gc.CleanTempFile(points_shp)
+
+        join_split_cursor = arcpy.da.SearchCursor(join_split, ["RID", "dist", "X", "Y"])
+        for split in join_split_cursor:
+            # for every split pts, update the RID downstream for the points
+            segmentid +=1
+            matchingrid = pointsarray["RID"] == split[0]
+            matchingdist = pointsarray["dist"] < split[1]
+            pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid
+            # update the links
+            links[RiverNetwork.reaches_linkfieldup][links[RiverNetwork.reaches_linkfieldup] == split[0]] = segmentid
+            to_add = numpy.empty(1, dtype=links.dtype)
+            to_add[RiverNetwork.reaches_linkfielddown] = segmentid
+            to_add[RiverNetwork.reaches_linkfieldup] = split[0]
+            links = numpy.append(links, to_add)
+            # update initial line points
+            initialpoint[segmentid] = initialpoint[split[0]]
+            initialpoint[split[0]] = arcpy.Point(split[2], split[3])
+
+        arcpy.Delete_management(str_output_points)
+        arcpy.da.NumPyArrayToTable(pointsarray, str_output_points)
+
+    # Saving the links
+    if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
+        arcpy.Delete_management(routelinks_table)
+    arcpy.da.NumPyArrayToTable(links, routelinks_table)
+
+
     # Creating lines
     arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=r_flowdir)
     lines = "in_memory\LINES"
     arcpy.AddField_management(lines, routeID_field, "LONG")
-    linecursor = arcpy.da.InsertCursor(lines, ["SHAPE@", routeID_field])
+    arcpy.AddField_management(lines, "ORIG_FID", "LONG")
+    linecursor = arcpy.da.InsertCursor(lines, ["SHAPE@", routeID_field, "ORIG_FID"])
     reachidlist = set(pointsarray["RID"])
     for reachid in reachidlist:
         # New line
@@ -199,7 +249,10 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
         for point in points:
             vertices.add(arcpy.Point(float(point["X"]), float(point["Y"])))
         line = arcpy.Polyline(vertices)
-        linecursor.insertRow([line, reachid])
+        if reachid in original_fp_OID:
+            linecursor.insertRow([line, reachid, original_fp_OID[reachid]])
+        else:
+            linecursor.insertRow([line, reachid, -999])
 
     # Create routes from start point to end point
     arcpy.AddField_management(lines, routeID_field, "LONG")
@@ -217,6 +270,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     arcpy.CreateRoutes_lr(lines, routeID_field, route_shapefile, "TWO_FIELDS",
                              from_measure_field="FromF",
                              to_measure_field=Lengthfield)
+    arcpy.JoinField_management(route_shapefile, routeID_field, lines, routeID_field, "ORIG_FID")
 
 
 
@@ -299,7 +353,7 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         junctionid_name = arcpy.Describe(junctions).OIDFieldName
 
         # Add a id ("FEAT_SEQ") to the junction grouping junctions at the same place (same place = same id))
-        junctions_table = arcpy.CreateScratchName("net", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        junctions_table = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
         gc.AddToGarbageBin(junctions_table)
         arcpy.FindIdentical_management(junctions, junctions_table, ["Shape"])
         arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
@@ -386,14 +440,138 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         if channeltype_field is not None:
             arcpy.JoinField_management(route_shapefile, routeID_field, rivernet, routeID_field, channeltype_field)
 
-
-
-
     finally:
-        gc.CleanTempFiles()
+        gc.CleanAllTempFiles()
+
+def execute_CreateFromPointsAndSplits(rivernet, points, splits):
+
+    arcpy.CreateFeatureclass_management(os.path.dirname(points), os.path.basename(points), "POINT", spatial_reference=rivernet.SpatialReference)
+    arcpy.AddField_management(points, rivernet.dict_attr_fields["id"], "LONG")
+    arcpy.CreateFeatureclass_management(os.path.dirname(splits), os.path.basename(splits), "POINT",
+                                        spatial_reference=rivernet.SpatialReference)
+
+    insertfp = arcpy.da.InsertCursor(points, [rivernet.dict_attr_fields["id"], 'SHAPE@'])
+    insertsplits = arcpy.da.InsertCursor(splits, ['SHAPE@'])
+
+    for reach in rivernet.browse_reaches_down_to_up():
+        if reach.is_upstream_end():
+            insertfp.insertRow([reach.id, reach.shape.getPart(0)[-1]])
+        elif len(list(reach.get_uptream_reaches())) == 1:
+            insertsplits.insertRow([reach.shape.getPart(0)[-1]])
+    del insertfp
+    del insertsplits
+
+
+def execute_CheckNetFitFromUpStream(refD8_net, second_net, frompoints, matching_table):
+    # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
+
+    dict_match = {}
+    frompoints_OID = arcpy.Describe(frompoints).OIDFieldName
+    search = arcpy.da.SearchCursor(frompoints, [frompoints_OID, second_net.dict_attr_fields["id"]])
+    dict_fpid_secondid = {}
+    for row in search:
+        dict_fpid_secondid[row[0]] = row[1]
+
+    #fp_nparray = arcpy.da.FeatureClassToNumPyArray(frompoints, [frompoints_OID, second_net.dict_attr_fields["id"]])
+
+    # initiate dict_match
+    dict_match = {}
+    for reach in refD8_net.browse_reaches_down_to_up():
+        dict_match[reach.id] = []
+
+    for reach in refD8_net.get_upstream_ends():
+
+        list_reaches_refD8 = []
+        current_reach = reach
+        while current_reach is not None:
+            list_reaches_refD8.append(current_reach.id)
+            current_reach = current_reach.get_downstream_reach()
+        list_reaches_second = []
+        current_reach = second_net.get_reach(dict_fpid_secondid[reach.ORIG_FID])
+        while current_reach is not None:
+            list_reaches_second.append(current_reach.id)
+            current_reach = current_reach.get_downstream_reach()
+        if len(list_reaches_refD8) == len(list_reaches_second):
+            # Both paths are going through the same number of reaches
+            for i in range(0, len(list_reaches_refD8)):
+                dict_match[list_reaches_refD8[i]].append(list_reaches_second[i])
+        else:
+            # Every combination of potential matching paths are added to the dict_match
+            diflen = len(list_reaches_refD8) - len(list_reaches_second)
+            if diflen > 0:
+                for shift in range(0, diflen+1):
+                    for i in range(0, len(list_reaches_second)):
+                        dict_match[list_reaches_refD8[i+shift]].append(list_reaches_second[i])
+            else:
+                for shift in range(0, abs(diflen) + 1):
+                    for i in range(0, len(list_reaches_refD8)):
+                        dict_match[list_reaches_refD8[i]].append(list_reaches_second[i+shift])
+
+    # Geometric comparison: looking for the closest reach based on centroid
+    d8centroid = arcpy.CreateScratchName("pts_D8", data_type="FeatureClass", workspace="in_memory")
+    arcpy.FeatureToPoint_management(refD8_net.shapefile, d8centroid)
+    secondcentroid = arcpy.CreateScratchName("pts_second", data_type="FeatureClass", workspace="in_memory")
+    arcpy.FeatureToPoint_management(second_net.shapefile, secondcentroid)
+    neartable = arcpy.CreateScratchName("neartable", data_type="ArcInfoTable", workspace="in_memory")
+    arcpy.GenerateNearTable_analysis(d8centroid, secondcentroid, neartable)
+
+    arcpy.JoinField_management(neartable, "IN_FID", d8centroid, arcpy.Describe(d8centroid).OIDFieldName, refD8_net.dict_attr_fields["id"])
+    arcpy.JoinField_management(neartable, "NEAR_FID", secondcentroid,
+                               arcpy.Describe(secondcentroid).OIDFieldName, second_net.dict_attr_fields["id"])
+    # in case the two RID have the same name, the result of the join can be a field with a different name
+    # let just take the two last field instead of their original name
+    two_last_fields = [f.name for f in arcpy.ListFields(neartable)][-2:]
+    geometry_match = {}
+    search = arcpy.da.SearchCursor(neartable, two_last_fields)
+    for row in search:
+        geometry_match[row[0]] = row[1]
+
+    # Compilation of the results
+    # From each list in the dict_match (i.e. for each reach in refD8), we have a list of possible id in the second net
+    # We take the id that has the majority of occurences in the list, and compute its percentage of occurence
+    # When there is a tie, so closest geometric match is taken
+    # Finally, a warning is set of the result is not the closest geometric match
+    arcpy.CreateTable_management(os.path.dirname(matching_table), os.path.basename(matching_table))
+    arcpy.AddField_management(matching_table, refD8_net.dict_attr_fields["id"], "LONG")
+    arcpy.AddField_management(matching_table, "MATCH_ID", "LONG")
+    arcpy.AddField_management(matching_table, "TYPO", "FLOAT")
+    arcpy.AddField_management(matching_table, "CLOSEST", "SHORT")
+    arcpy.AddField_management(matching_table, "SCORE", "FLOAT")
+    insert = arcpy.da.InsertCursor(matching_table, [refD8_net.dict_attr_fields["id"], "MATCH_ID", "TYPO", "CLOSEST", "SCORE"])
+    for reach in refD8_net.browse_reaches_down_to_up():
+        # the following instruction returns a list of tuples (id, number_of_occurences), ordered by number_of_occurences
+        counter = Counter(dict_match[reach.id]).most_common()
+        matching_id, occurences = counter[0]
+        if len(counter)>1:
+            matching_id2, occurences2 = counter[1]
+            if occurences == occurences2 and matching_id2==geometry_match[reach.id]:
+                # Tie with the second one matching the geometric match
+                matching_id = matching_id2
+        perc_occurences = occurences/len(dict_match[reach.id])
+        geomatch = matching_id==geometry_match[reach.id]
+        # Hardcoded weights for the final score. Can be changed.
+        score = perc_occurences*0.6+geomatch*0.4
+        insert.insertRow([reach.id, matching_id, perc_occurences, geomatch, score])
+
+def execute_LocateMostDownstreamPoints(network, collection, output_pts):
+    arcpy.CreateFeatureclass_management(os.path.dirname(output_pts), os.path.basename(output_pts), "POINT", spatial_reference=network.SpatialReference)
+    arcpy.AddField_management(output_pts, network.dict_attr_fields["id"], "LONG")
+    arcpy.AddField_management(output_pts, "Distance", "DOUBLE")
+    insert = arcpy.da.InsertCursor(output_pts, ["SHAPE@XY", network.dict_attr_fields["id"], "Distance"])
+
+    for reach in network.browse_reaches_down_to_up():
+        point = reach.get_first_point(collection)
+        shape = arcpy.Point(point.X, point.Y)
+        insert.insertRow([shape, reach.id, point.dist])
+    del insert
 
 
 
+def order_reaches_by_discharge(rivernet, collection, discharge_name):
+    order = 0
+    for reach in rivernet.browse_reaches_down_to_up(prioritize_points_collection=collection, prioritize_points_attribute=discharge_name, reverse=True):
+        reach.order = order
+        order += 1
 
 
 
