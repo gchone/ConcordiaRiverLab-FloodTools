@@ -59,6 +59,13 @@ class LocatePointsAlongRoutes(object):
         return
 
     def execute(self, parameters, messages):
+
+        points = parameters[0].valueAsText
+        routes = parameters[1].valueAsText
+        output = parameters[2].valueAsText
+        distance = parameters[3].valueAsText
+
+
         execute_LocatePointsAlongRoutes(points, routes, output, distance)
 
         return

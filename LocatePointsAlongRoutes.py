@@ -15,8 +15,7 @@ def execute_LocatePointsAlongRoutes(points, routes, output, distance):
 
     arcpy.MakeFeatureLayer_management(points, "pts_layer")
     arcpy.MakeFeatureLayer_management(routes, "route_layer")
-    # arcpy.FeatureClassToShapefile_conversion(["pts_layer", "route_layer"], output_loc)
-    #
+
 
     cursor = arcpy.da.SearchCursor(routes, ["RID"])
     list_tables = []
@@ -32,20 +31,7 @@ def execute_LocatePointsAlongRoutes(points, routes, output, distance):
     arcpy.Merge_management(list_tables, output)
 
 
-    # arcpy.SelectLayerByAttribute_management("pts_layer", "NEW_SELECTION", "RID = 0")
-    # arcpy.SelectLayerByAttribute_management("route_layer", "NEW_SELECTION", "RID = 0")
 
-
-
-
-
-    # table = arcpy.CreateScratchName("net", data_type="ArcInfoTable", workspace="in_memory")
-    # props = 'RID POINT meas'
-    # distance = "200 Meters"
-    # arcpy.LocateFeaturesAlongRoutes_lr("pts_layer", "route_layer", "RID", distance, output, props)
-    #list_tables.append(table)
-
-    #arcpy.Merge_management(list_tables, output)
 
 
 
