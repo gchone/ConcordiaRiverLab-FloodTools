@@ -562,16 +562,29 @@ def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B,
         score = perc_occurences*0.6+geomatch*0.4
         insert.insertRow([reach.id, matching_id, perc_occurences, geomatch, score])
 
-def execute_LocateMostDownstreamPoints(network, collection, output_pts):
+def execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, X_field_pts, Y_field_pts, output_pts):
+
+    network = RiverNetwork()
+    network.dict_attr_fields['id'] = RID_field
+    network.load_data(network_shp, links_table)
+
+    collection = Points_collection(network, "data")
+    collection.dict_attr_fields['id'] = id_field_pts
+    collection.dict_attr_fields['reach_id'] = RID_field_pts
+    collection.dict_attr_fields['dist'] = Distance_field_pts
+    collection.dict_attr_fields['offset'] = offset_field_pts
+    collection.dict_attr_fields['X'] = X_field_pts
+    collection.dict_attr_fields['Y'] = Y_field_pts
+    collection.load_table(datapoints)
+
     arcpy.CreateFeatureclass_management(os.path.dirname(output_pts), os.path.basename(output_pts), "POINT", spatial_reference=network.SpatialReference)
-    arcpy.AddField_management(output_pts, network.dict_attr_fields["id"], "LONG")
-    arcpy.AddField_management(output_pts, "Distance", "DOUBLE")
-    insert = arcpy.da.InsertCursor(output_pts, ["SHAPE@XY", network.dict_attr_fields["id"], "Distance"])
+    arcpy.AddField_management(output_pts, collection.dict_attr_fields["id"], "LONG")
+    insert = arcpy.da.InsertCursor(output_pts, ["SHAPE@XY", collection.dict_attr_fields["id"]])
 
     for reach in network.browse_reaches_down_to_up():
         point = reach.get_first_point(collection)
         shape = arcpy.Point(point.X, point.Y)
-        insert.insertRow([shape, reach.id, point.dist])
+        insert.insertRow([shape, point.id])
     del insert
 
 def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interval, output_pt):
