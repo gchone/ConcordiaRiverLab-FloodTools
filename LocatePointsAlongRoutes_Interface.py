@@ -6,7 +6,7 @@
 # Date:
 # Description: Relate Networks
 #####################################################
-
+import arcpy
 
 from LocatePointsAlongRoutes import *
 
@@ -18,17 +18,28 @@ class LocatePointsAlongRoutes(object):
         self.canRunInBackground = True
 
     def getParameterInfo(self):
-
         param_points = arcpy.Parameter(
             displayName="Points to project",
             name="points",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
+        param_points_RIDfield = arcpy.Parameter(
+            displayName="RID field in Points layer",
+            name="points_RIDfield",
+            datatype="Field",
+            parameterType="Required",
+            direction="Input")
         param_routes = arcpy.Parameter(
             displayName="Network",
             name="routes",
             datatype="GPFeatureLayer",
+            parameterType="Required",
+            direction="Input")
+        param_routes_RIDfield = arcpy.Parameter(
+            displayName="RID field in Routes layer",
+            name="routes_RIDfield",
+            datatype="Field",
             parameterType="Required",
             direction="Input")
         param_output = arcpy.Parameter(
@@ -44,8 +55,10 @@ class LocatePointsAlongRoutes(object):
             parameterType="Required",
             direction="Input")
 
+        param_points_RIDfield.parameterDependencies = [param_points.name]
+        param_routes_RIDfield.parameterDependencies = [param_routes.name]
 
-        params = [param_points, param_routes, param_output, param_distance]
+        params = [param_points, param_points_RIDfield, param_routes, param_routes_RIDfield, param_output, param_distance]
 
         return params
 
@@ -61,11 +74,12 @@ class LocatePointsAlongRoutes(object):
     def execute(self, parameters, messages):
 
         points = parameters[0].valueAsText
-        routes = parameters[1].valueAsText
-        output = parameters[2].valueAsText
-        distance = parameters[3].valueAsText
+        points_RIDfield = parameters[1].valueAsText
+        routes = parameters[2].valueAsText
+        routes_RIDfield = parameters[3].valueAsText
+        output = parameters[4].valueAsText
+        distance = parameters[5].valueAsText
 
-
-        execute_LocatePointsAlongRoutes(points, routes, output, distance)
+        execute_LocatePointsAlongRoutes(points, points_RIDfield, routes, routes_RIDfield, output, distance)
 
         return

@@ -574,7 +574,7 @@ def execute_LocateMostDownstreamPoints(network, collection, output_pts):
         insert.insertRow([shape, reach.id, point.dist])
     del insert
 
-def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interval, output_pts):
+def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interval, output_pt):
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -584,7 +584,7 @@ def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interva
 
     network.placePointsAtRegularInterval(interval, newpoints)
 
-    newpoints.save_points(output_pts)
+    newpoints.save_points(output_pt)
 
 
 
