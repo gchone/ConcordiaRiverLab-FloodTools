@@ -27,7 +27,8 @@ class RiverNetwork(_NumpyArrayHolder):
 
     dict_attr_fields = {"id": "RID",
                        "length": "SHAPE@LENGTH",
-                        'main': "Main"}
+                       }
+    # dict_attr_fields can also have a "main" key, when secondary channels are included
 
     def __init__(self):
         _NumpyArrayHolder.__init__(self)
@@ -42,7 +43,7 @@ class RiverNetwork(_NumpyArrayHolder):
         # matrice de base
         try:
             self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, list(self.dict_attr_fields.values()), null_value=-9999)
-            if not load_secondary_channel:
+            if "main" in self.dict_attr_fields.keys() and not load_secondary_channel:
                 self._numpyarray = np.delete(self._numpyarray, self._numpyarray[self.dict_attr_fields['main']]==0)
         except RuntimeError:
             raise RuntimeError("Error loading shapefile. Make sure the fields names match.")
@@ -50,7 +51,7 @@ class RiverNetwork(_NumpyArrayHolder):
         valid_ids = self._numpyarray[self.dict_attr_fields['id']]
         # matrice des liaisons amont-aval
         self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
-        if not load_secondary_channel:
+        if "main" in self.dict_attr_fields.keys() and not load_secondary_channel:
             self._numpyarraylinks = np.delete(self._numpyarraylinks, np.invert(np.in1d(self._numpyarraylinks[self.reaches_linkfieldup],valid_ids)))
             self._numpyarraylinks = np.delete(self._numpyarraylinks,
                                               np.invert(np.in1d(self._numpyarraylinks[self.reaches_linkfielddown], valid_ids)))
