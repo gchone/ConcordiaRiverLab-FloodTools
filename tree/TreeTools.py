@@ -451,17 +451,16 @@ def execute_CreateFromPointsAndSplits(network_shp, links_table, RID_field, point
                                         spatial_reference=network.SpatialReference)
 
     insertfp = arcpy.da.InsertCursor(points, [network.dict_attr_fields["id"], 'SHAPE@'])
-    insertsplits = arcpy.da.InsertCursor(splits, ['SHAPE@'])
-
     for reach in network.browse_reaches_down_to_up():
         if reach.is_upstream_end():
             insertfp.insertRow([reach.id, reach.shape.getPart(0)[-1]])
-        elif len(list(reach.get_uptream_reaches())) == 1:
-            insertsplits.insertRow([reach.shape.getPart(0)[-1]])
     del insertfp
+
+    insertsplits = arcpy.da.InsertCursor(splits, ['SHAPE@'])
+    for reach in network.browse_reaches_down_to_up():
+        if not reach.is_upstream_end() and len(list(reach.get_uptream_reaches())) == 1:
+            insertsplits.insertRow([reach.shape.getPart(0)[-1]])
     del insertsplits
-
-
 
 def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, matching_table):
 

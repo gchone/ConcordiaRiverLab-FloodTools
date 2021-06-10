@@ -27,14 +27,14 @@ class RiverNetwork(_NumpyArrayHolder):
 
     dict_attr_fields = {"id": "RID",
                        "length": "SHAPE@LENGTH",
-                        }
+                        'main': "Main"}
 
     def __init__(self):
         _NumpyArrayHolder.__init__(self)
         self.points_collection = {}
         self.dict_attr_fields = RiverNetwork.dict_attr_fields.copy()
 
-    def load_data(self, reaches_shapefile, reaches_linktable):
+    def load_data(self, reaches_shapefile, reaches_linktable, load_secondary_channel = False):
         self.shapefile = reaches_shapefile
         self.SpatialReference = arcpy.Describe(reaches_shapefile).SpatialReference
 
@@ -42,10 +42,18 @@ class RiverNetwork(_NumpyArrayHolder):
         # matrice de base
         try:
             self._numpyarray = arcpy.da.FeatureClassToNumPyArray(reaches_shapefile, list(self.dict_attr_fields.values()), null_value=-9999)
+            if not load_secondary_channel:
+                self._numpyarray = np.delete(self._numpyarray, self._numpyarray[self.dict_attr_fields['main']]==0)
         except RuntimeError:
             raise RuntimeError("Error loading shapefile. Make sure the fields names match.")
+        # the list of valid_ids is used in case secondary channels are not included
+        valid_ids = self._numpyarray[self.dict_attr_fields['id']]
         # matrice des liaisons amont-aval
         self._numpyarraylinks = arcpy.da.TableToNumPyArray(reaches_linktable, [self.reaches_linkfielddown, self.reaches_linkfieldup])
+        if not load_secondary_channel:
+            self._numpyarraylinks = np.delete(self._numpyarraylinks, np.invert(np.in1d(self._numpyarraylinks[self.reaches_linkfieldup],valid_ids)))
+            self._numpyarraylinks = np.delete(self._numpyarraylinks,
+                                              np.invert(np.in1d(self._numpyarraylinks[self.reaches_linkfielddown], valid_ids)))
         # matrice contenant les instances de Reach
         self._reaches = np.empty(self._numpyarray.shape[0], dtype=[('id', 'i4'),('object', 'O')])
         # In order to populate the self._reaches array, we could iterate through the self._numpyarray
@@ -59,9 +67,10 @@ class RiverNetwork(_NumpyArrayHolder):
             data = {}
             for field in listfields:
                 data[field]=reach[listfields_withshape.index(field)]
-            self._reaches[i]['id'] = data[self.dict_attr_fields['id']]
-            self._reaches[i]['object'] = Reach(self, reach[-1], data)
-            i+=1
+            if data[self.dict_attr_fields['id']] in valid_ids.tolist():
+                self._reaches[i]['id'] = data[self.dict_attr_fields['id']]
+                self._reaches[i]['object'] = Reach(self, reach[-1], data)
+                i+=1
         # for i in range(self._numpyarray.shape[0]):
         #     self._reaches[i]['id'] = self._numpyarray[i][self._dict_attr_fields['id']]
         #     self._reaches[i]['object'] = Reach(self, self._numpyarray[i][self._dict_attr_fields['id']])
