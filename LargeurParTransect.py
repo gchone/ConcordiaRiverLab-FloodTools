@@ -168,11 +168,18 @@ def pointsdemesure(streamnetwork, idfield, csfield, distfield, typefield, spacin
         for sa, so, tip, ln, fkid in zip(strt, stop, tips, length, forkid):
             arcpy.AddMessage("La branche {0} commence à {1}, finit à {2}, a une longueur de {3}.".format(fkid, sa, so, ln))
 
-            if (so - sa) < (3 * spacing):
-                arcpy.AddMessage("La branche {0} est trop courte, elle ne peut être traitée.".format(fkid, 4 * spacing))
+            if (so - sa) < 0:
+                arcpy.AddMessage("La branche {0} est trop courte, elle ne peut être traitée.".format(fkid))
                 continue
 
-            dist = np.arange(sa, so, spacing)  # Position par rapport à l'amont de la branche de chaque transect
+            if (so - sa) < (3 * spacing):
+                dist = np.arange(sa, so + 0.0001, (so - sa)/3)  # Position par rapport à l'amont de la branche
+
+                arcpy.AddMessage("La branche {0} est courte, l'espacement ne sera pas respecté.".format(fkid))
+                # continue
+            else:
+                dist = np.arange(sa, so, spacing)  # Position par rapport à l'amont de la branche de chaque transect
+
             if (so - dist[-1]) > (spacing / 2):  # Dernier transect déplacé ou ajouté
                 dist = np.append(dist, so)
             else:
