@@ -4,7 +4,7 @@
 #####################################################
 # Mariana Liberman & Guénolé Choné
 # Date:
-# Description: Relate Networks
+# Description: Locate Points along routes
 #####################################################
 import arcpy
 

@@ -4,7 +4,7 @@
 #####################################################
 # Guénolé Choné
 # Date:
-# Description: Relate Networks
+# Description: Place points along reaches based on a fixed interval
 #####################################################
 import arcpy
 
