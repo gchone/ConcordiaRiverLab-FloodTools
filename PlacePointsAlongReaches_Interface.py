@@ -3,7 +3,7 @@
 
 #####################################################
 # Guénolé Choné
-# Date:
+# Date: June 2021
 # Description: Place points along reaches based on a fixed interval
 #####################################################
 import arcpy
@@ -13,7 +13,7 @@ from tree.TreeTools import *
 
 class PlacePointsAlongReaches(object):
     def __init__(self):
-        self.label = "Place Points Along Reaches"
+        self.label = "Place points along route layer"
         self.description = "This tool creates a layer of points on a network based on a fixed interval"
         self.canRunInBackground = True
 
@@ -25,27 +25,27 @@ class PlacePointsAlongReaches(object):
             parameterType="Required",
             direction="Input")
         param_links_table = arcpy.Parameter(
-            displayName="Points to routes link table",
+            displayName="Points-Network link table",
             name="links_table",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_RID_field = arcpy.Parameter(
-            displayName="RID field in Network layer",
+            displayName="RouteID field in Network layer",
             name="RID_field",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_interval = arcpy.Parameter(
-            displayName="Interval between points",
+            displayName="Interval between points, in meters",
             name="interval",
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
         param_output_pt = arcpy.Parameter(
-            displayName="Output point layer",
+            displayName="Output point table",
             name="output_pt",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Output")
 

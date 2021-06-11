@@ -25,13 +25,13 @@ class CreateTreeFromShapefile(object):
         param_route_shapefile = arcpy.Parameter(
             displayName="Output river network shapefile",
             name="route_shapefile",
-            datatype="DEShapefile",
+            datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Output")
         param_routelinks_table = arcpy.Parameter(
             displayName="Output table providing the links between reaches",
             name="routelinks_table",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Output")
         param_routeID_field = arcpy.Parameter(
@@ -50,7 +50,7 @@ class CreateTreeFromShapefile(object):
             displayName="Field identifying the main or secondary channel",
             name="channeltype_field",
             datatype="Field",
-            parameterType="Required",
+            parameterType="Optional",
             direction="Input")
 
 

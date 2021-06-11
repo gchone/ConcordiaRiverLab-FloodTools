@@ -66,7 +66,7 @@ class TreeFromFlowDir(object):
             direction="Input")
 
         #param_routeID_field.parameterDependencies = [param_route_shapefile.name]
-
+        param_routeID_field.value = "RID"
         params = [param_r_flowdir, param_str_frompoints, param_route_shapefile, param_routelinks_table, param_routeID_field, param_str_output_points, param_split_pts, param_tolerance]
 
         return params
@@ -82,7 +82,7 @@ class TreeFromFlowDir(object):
 
     def execute(self, parameters, messages):
 
-        r_flowdir = parameters[0].valueAsText
+        r_flowdir = arcpy.Raster(parameters[0].valueAsText)
         str_frompoints = parameters[1].valueAsText
         route_shapefile = parameters[2].valueAsText
         routelinks_table = parameters[3].valueAsText

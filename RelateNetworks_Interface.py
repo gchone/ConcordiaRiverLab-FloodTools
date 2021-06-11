@@ -2,9 +2,9 @@
 
 
 #####################################################
-# Mariana Liberman & Guénolé Choné
-# Date:
-# Description: Relate Networks
+# Guénolé Choné & Mariana Liberman
+# Date: June 2021
+# Description: Relate Route layers
 #####################################################
 
 
@@ -12,40 +12,40 @@ from RelateNetworks import *
 
 class RelateNetworks(object):
     def __init__(self):
-        self.label = "Relate networks"
-        self.description = "Relate two networks through a near table"
+        self.label = "Relate network layers"
+        self.description = "Relate two route layers through a near table"
         self.canRunInBackground = True
 
     def getParameterInfo(self):
 
         param_shapefile_A = arcpy.Parameter(
-            displayName="First Network",
+            displayName="First network layer",
             name="shapefile_A",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_RID_A = arcpy.Parameter(
-            displayName="Route Field for First Network",
+            displayName="RouteID field in the first network layer",
             name="RID_A",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_shapefile_B = arcpy.Parameter(
-            displayName="Second network",
+            displayName="Second network layer",
             name="shapefile_B",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_RID_B = arcpy.Parameter(
-            displayName="Route Field for Second Network",
+            displayName="RouteID field in the second network layer",
             name="RID_B",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_out_table = arcpy.Parameter(
-            displayName="Output Table",
+            displayName="Output table",
             name="out_table",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Output")
 
