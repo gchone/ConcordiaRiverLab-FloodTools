@@ -11,37 +11,38 @@ from tree.TreeTools import *
 
 class CreateTreeFromShapefile(object):
     def __init__(self):
-        self.label = "Create Tree from Shapefile"
-        self.description = "This tool creates a river network data structure from a shapefile of lines"
+        self.label = "Create network from feature class"
+        self.description = "This tool creates a river network data structure from a line feature class, defined by a" \
+                           " link table and a RouteID."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_rivernet = arcpy.Parameter(
-            displayName="Input river shapefile",
+            displayName="Input feature class (lines)",
             name="rivernet",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_route_shapefile = arcpy.Parameter(
-            displayName="Output river network shapefile",
+            displayName="Output network layer",
             name="route_shapefile",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Output")
         param_routelinks_table = arcpy.Parameter(
-            displayName="Output table providing the links between reaches",
+            displayName="Output link table (reach-RouteID)",
             name="routelinks_table",
             datatype="GPTableView",
             parameterType="Required",
             direction="Output")
         param_routeID_field = arcpy.Parameter(
-            displayName="Field containing the name of the reach ID field",
+            displayName="RouteID field",
             name="routeID_field",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_downstream_reach_field = arcpy.Parameter(
-            displayName="Name of the field identifying the most downstream reach",
+            displayName="Field identifying the most downstream reach",
             name="downstream_reach_field",
             datatype="Field",
             parameterType="Required",

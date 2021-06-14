@@ -13,7 +13,7 @@ from tree.TreeTools import *
 
 class PlacePointsAlongReaches(object):
     def __init__(self):
-        self.label = "Place points along route layer"
+        self.label = "Create points along route layer (minimum distance)"
         self.description = "This tool creates a layer of points on a network based on a fixed interval"
         self.canRunInBackground = True
 

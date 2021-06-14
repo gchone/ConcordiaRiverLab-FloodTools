@@ -3,7 +3,7 @@
 
 #####################################################
 # Mariana Liberman & Guénolé Choné
-# Date:
+# Date: June 2021
 # Description: Locate Points along routes
 #####################################################
 import arcpy
@@ -12,46 +12,47 @@ from LocatePointsAlongRoutes import *
 
 class LocatePointsAlongRoutes(object):
     def __init__(self):
-        self.label = "Locate Points Along Routes"
-        self.description = "This tool creates an output table to project points to a network (based on linear " \
-                           "referencing) after the RID of each point has been fixed using the Relate Networks tool."
+        self.label = "Project points along Routes"
+        self.description = "This tool creates an output table with the projected location of points along a route layer " \
+                           " using a common RouteID. The RouteID of each point can be calculated with Relate Network" \
+                           "layers tool."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_points = arcpy.Parameter(
-            displayName="Points to project",
+            displayName="Points layer to project",
             name="points",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_points_RIDfield = arcpy.Parameter(
-            displayName="RID field in Points layer",
+            displayName="RouteID field in the points layer",
             name="points_RIDfield",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_routes = arcpy.Parameter(
-            displayName="Network",
+            displayName="Network layer",
             name="routes",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_routes_RIDfield = arcpy.Parameter(
-            displayName="RID field in Routes layer",
+            displayName="RouteID field in the network layer",
             name="routes_RIDfield",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_output = arcpy.Parameter(
-            displayName="Output table",
+            displayName="Output point table",
             name="output",
-            datatype="DEDbaseTable",
+            datatype="GPTableview",
             parameterType="Required",
             direction="Output")
         param_distance = arcpy.Parameter(
             displayName="Searching distance",
             name="distance",
-            datatype="GPLinearUnit",
+            datatype="GPDouble",
             parameterType="Required",
             direction="Input")
 

@@ -11,8 +11,9 @@ from tree.TreeTools import *
 
 class TreeFromFlowDir(object):
     def __init__(self):
-        self.label = "Create Tree from Flow Direction raster"
-        self.description = "This tool creates a river network data structure from a Flow Direction raster"
+        self.label = "Create network from flow direction raster"
+        self.description = "This tool creates a network data structure from a flow direction raster, defined by a " \
+                           "link  atablend a RouteID field."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -23,37 +24,37 @@ class TreeFromFlowDir(object):
             parameterType="Required",
             direction="Input")
         param_str_frompoints = arcpy.Parameter(
-            displayName="Point shapefile including the upstream ends of the network",
+            displayName="Upstream ends of the network (points layer)",
             name="str_frompoints",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_route_shapefile = arcpy.Parameter(
-            displayName="Output river network shapefile",
+            displayName="Output network layer",
             name="route_shapefile",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Output")
         param_routelinks_table = arcpy.Parameter(
-            displayName="Output table providing the links between reaches",
+            displayName="Output link table (reach-RouteID)",
             name="routelinks_table",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Output")
         param_routeID_field = arcpy.Parameter(
-            displayName="Field containing the name of the reach ID field",
+            displayName="RouteID field name",
             name="routeID_field",
             datatype="GPString",
             parameterType="Required",
             direction="Input")
         param_str_output_points = arcpy.Parameter(
-            displayName="Output table of the Flow direction pixels along the flow path",
+            displayName="Flow direction pixels along flow path output table",
             name="str_output_points",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Output")
         param_split_pts = arcpy.Parameter(
-            displayName="Feature class containing the split points between lines",
+            displayName="Split points between reaches (feature class)",
             name="split_pts",
             datatype="GPFeatureLayer",
             parameterType="Optional",
@@ -65,7 +66,7 @@ class TreeFromFlowDir(object):
             parameterType="Optional",
             direction="Input")
 
-        #param_routeID_field.parameterDependencies = [param_route_shapefile.name]
+
         param_routeID_field.value = "RID"
         params = [param_r_flowdir, param_str_frompoints, param_route_shapefile, param_routelinks_table, param_routeID_field, param_str_output_points, param_split_pts, param_tolerance]
 

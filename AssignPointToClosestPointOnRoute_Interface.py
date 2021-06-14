@@ -12,39 +12,39 @@ from AssignPointToClosestPointOnRoute import *
 
 class AssignPointToClosestPointOnRoute(object):
     def __init__(self):
-        self.label = "Assign Point to the closest point on the Route"
-        self.description = """This tool creates an output shapefile that contains the data from a points layer assign\
-         to the closest point on a route. Both layers (points and points on route MUST have the RouteID field)."""
+        self.label = "Project point to the closest point on the network"
+        self.description = """This tool creates an output feature class  by projecting a point layer to the closest\
+        point on a network. Both input layers (points and points on network) MUST have the RouteID field)."""
 
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_points = arcpy.Parameter(
-            displayName="Points to project",
+            displayName="Points layer to project",
             name="points",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_points_RIDfield = arcpy.Parameter(
-            displayName="RID field in Points layer",
+            displayName="RouteID field in the points layer",
             name="points_RIDfield",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_points_onroute = arcpy.Parameter(
-            displayName="Points on network",
+            displayName="Points layer on network",
             name="points_onroute",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_points_onroute_RIDfield = arcpy.Parameter(
-            displayName="RID field in Points on network",
+            displayName="RouteID field in the points on network layer",
             name="points_onroute_RIDfield",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_output_shp = arcpy.Parameter(
-            displayName="Output feature class",
+            displayName="Output point layer",
             name="output_shp",
             datatype="GPFeatureLayer",
             parameterType="Required",

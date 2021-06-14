@@ -12,37 +12,37 @@ from tree.TreeTools import *
 
 class CreateFromPointsAndSplits(object):
     def __init__(self):
-        self.label = "Create From Points and Splitting Points"
-        self.description = "This tool creates two output layers with the from points and splitting points along routes"
+        self.label = "Create from points and split points"
+        self.description = "This tool creates two output layers with the from points and split points along a network."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_network_shp = arcpy.Parameter(
-            displayName="Network shapefile",
+            displayName="Network layer",
             name="network_shp",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_links_table = arcpy.Parameter(
-            displayName="Links table",
+            displayName="Link table (obtained with 'Create network from feature class or flow direction')",
             name="links_table",
-            datatype="DEDbaseTable",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_RID_field = arcpy.Parameter(
-            displayName="RID field",
+            displayName="RouteID field in the network layer",
             name="RID_field",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_points = arcpy.Parameter(
-            displayName="From Points output",
+            displayName="From points output layer",
             name="points",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Output")
         param_splits = arcpy.Parameter(
-            displayName="Splitting points output",
+            displayName="Split points output layer",
             name="splits",
             datatype="GPFeatureLayer",
             parameterType="Required",
