@@ -20,6 +20,28 @@ class _NumpyArrayHolder(object):
         self._variablesset = set([])
         self._variablestype = {}
 
+    def get_SavedVariables(self):
+        return self._variablesset
+
+    def add_SavedVariable(self, name, dtype, maxlength = None):
+        # creating a new attribute
+        # dtype can be "float", "int" or "str"
+        # if "str", a maxlength must be provided
+        if dtype=="int" or dtype=="float":
+            self._variablesset.add(name)
+            self._variablestype[name] = [dtype]
+        elif dtype=="str" and maxlength is not None:
+            self._variablesset.add(name)
+            self._variablestype[name] = [dtype, maxlength]
+        else:
+            # if the attribute is not an int, a float or a string, it can't be saved
+            raise TypeError
+
+
+    def delete_SavedVariable(self, name):
+        self._variablesset.remove(name)
+        self._variablestype.pop(name)
+
 class RiverNetwork(_NumpyArrayHolder):
 
     reaches_linkfieldup = "UpID"
@@ -221,6 +243,7 @@ class _NumpyArrayFedObject(object):
             raise RuntimeError("Modifying the object id is not allowed")
 
         super(_NumpyArrayFedObject, self).__setattr__(name, value)
+
 
 
 
