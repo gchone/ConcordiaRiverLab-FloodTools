@@ -1,28 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# ******************************************************************************
-# Auteur: François Larouche-Tremblay, Ing, M Sc
-# Date: 20/11/2020
-# Description: Fonction qui applique un algorithme de découpage des
-# tronçons sur les données raster et découpe la ligne centrale.
-# ******************************************************************************
-
-# Version 1.0 - 15/01/2019
-# Première version de l'algorithme implémentée avec des points le long du "stream raster"
-
-# Version 2.0 - 23/02/2020
-# Jonction des algorithmes TransectsEquidistants et DecouperTronconsParker dans un même outil
-# Implémentation avec numpy pour accélérer le traitement et stream raster remplacé par des transects le long
-# d'un réseau vectoriel; transects en forme de pointe pour mieux représenté les confluences.
-
-# Version 3.0 - 20/11/2020
-# Correction de bogues et optimisation: départ à la position 0.0001 au lieu de 0 afin d'éviter que le premier
-# transect ne sorte du polygone de surface de l'eau.
-
-# Version 4.0 - 28/05/2921
-# Séparation de l'extraction de la largeur et de l'élévation en deux outils distincts
-# Mise en forme du code pour de se conformer au style de programmation des outils de l'Université Concordia afin que
-# les outils soient homogènes.
+# execute_largeurpartransect by François Larouche-Tremblay, Ing, M Sc
 
 import arcpy
 import numpy as np
@@ -36,8 +14,10 @@ from arcpy.management import AddField, CalculateField, SelectLayerByLocation, Ma
 from arcpy.analysis import Intersect, Buffer, Statistics, Erase, Near, CreateThiessenPolygons, SpatialJoin
 from arcpy.da import NumPyArrayToTable, TableToNumPyArray, FeatureClassToNumPyArray
 from DataManagementDEH import addfieldtoarray, deleteuselessfields, getfieldproperty, ScratchIndex
-# "Unresolved references" manuellement ignorées dans l'IDE
 
+from tree.RiverNetwork import *
+import ArcpyGarbageCollector as gc
+import numpy.lib.recfunctions as rfn
 
 def pointsdextremites(streamnetwork, banklines, endpoints):
     # **************************************************************************
@@ -575,3 +555,117 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
     transectsverspoints(transects, cspoints)
 
     return
+
+def execute_WidthPostProc(network_shp, RID_field, main_field, links_table, widthdata, widthid, width_RID_field, width_distance, width_field, widthoutput, messages):
+    # - Merge together side-by-side channels
+    # - Filter out sudden increases of width
+
+
+    # network = RiverNetwork()
+    # network.dict_attr_fields['id'] = RID_field
+    # network.load_data(network_shp, links_table)
+    #
+    # widthcoll = Points_collection(network, "width")
+    # widthcoll.dict_attr_fields['id'] = widthid
+    # widthcoll.dict_attr_fields['reach_id']= width_RID_field
+    # widthcoll.dict_attr_fields['dist'] = width_distance
+    # widthcoll.dict_attr_fields.pop('offset')
+    # widthcoll.dict_attr_fields['width'] = width_field
+    # widthcoll.load_table(widthdata)
+
+    # Create a layer with only the main channels and one with only the secondary channels
+    arcpy.MakeFeatureLayer_management(widthdata, "width_main_lyr")
+    arcpy.AddJoin_management("width_main_lyr", width_RID_field, network_shp, RID_field)
+    arcpy.SelectLayerByAttribute_management("width_main_lyr", "NEW_SELECTION", os.path.basename(network_shp)+"."+main_field+ " = 1")
+    arcpy.MakeFeatureLayer_management(widthdata, "width_second_lyr")
+    arcpy.AddJoin_management("width_second_lyr", width_RID_field, network_shp, RID_field)
+    arcpy.SelectLayerByAttribute_management("width_second_lyr", "NEW_SELECTION",
+                                             os.path.basename(network_shp) + "." + main_field + " = 0")
+    try:
+
+
+        # Join the main channels points to the secondary channels ones
+        join_channels = arcpy.CreateScratchName("join", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.SpatialJoin_analysis("width_second_lyr", "width_main_lyr", join_channels, match_option="CLOSEST")
+        gc.AddToGarbageBin(join_channels)
+
+        #  The Spatial join creates weird field names. The best way to find back the name of a field after the spatial join is to use the field position in the table
+        main_widthid_field = arcpy.ListFields(join_channels)[len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in arcpy.ListFields("width_main_lyr")].index(os.path.basename(widthdata)+"."+widthid)].name
+        join_table = arcpy.da.TableToNumPyArray(join_channels, [width_RID_field, main_widthid_field, width_field, main_distance_field])
+        # compute values for the same main channel points and same secondary channel -> average
+        means_table = np.unique(join_table[[width_RID_field, main_widthid_field]])
+        means = []
+        for i in means_table:
+            tmp = join_table[np.where(join_table[[width_RID_field, main_widthid_field]] == i)]
+            means.append(np.mean(tmp[width_field]))
+        means_table = rfn.merge_arrays([means_table, np.array(means, dtype=[("width_avg", "f4")])], flatten=True)
+        # merge the computed averages for the secondary channels with the values in the main channels
+        main_table = arcpy.da.TableToNumPyArray("width_main_lyr", [os.path.basename(widthdata) + "." +widthid, os.path.basename(widthdata) + "." +width_field])
+        main_table.dtype.names = [widthid, width_field]
+        means_table = means_table[[main_widthid_field, "width_avg"]]
+        means_table.dtype.names = [widthid, width_field]
+
+        # record the minimum and maximum distance (on the main channel), for each secondary channel, to filter out unmatched points
+        main_distance_field = arcpy.ListFields(join_channels)[
+            len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in
+                                                                                              arcpy.ListFields(
+                                                                                                  "width_main_lyr")].index(
+                os.path.basename(widthdata) + "." + width_distance)].name
+        min_max_table = np.unique(join_table[[width_RID_field]])
+        min_max = {}
+        for i in min_max_table:
+            tmp = join_table[np.where(join_table[[width_RID_field]] == i)]
+            min_max[i[width_RID_field]] = (np.min(tmp[main_distance_field]), np.max(tmp[main_distance_field]))
+
+        print(main_table.dtype.fields)
+        print(means_table.dtype.fields)
+        merge_table = np.concatenate((main_table, means_table))
+        sums_table = np.unique(merge_table[[widthid]])
+        sums = []
+        for i in sums_table:
+            tmp = merge_table[np.where(merge_table[[widthid]] == i)]
+            sums.append(np.sum(tmp[width_field]))
+        sum_table = rfn.merge_arrays([sums_table, np.array(sums, dtype=[("width", "f8")])], flatten=True)
+
+        # export
+        arcpy.da.NumPyArrayToTable(sum_table, widthoutput)
+
+        ### Test with Dissolve. Doesn't work because it creates Multipoints. Better to work with just the tables instead as numpy arrays (although it could have been simpler with Panda).
+        # Group (Dissolve) the values from the same secondary channel and the same main channel points -> average
+        # dissolve_avg = arcpy.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        # arcpy.Dissolve_management(join_channels, dissolve_avg, [width_RID_field, main_widthid_field], [[width_field, "MEAN"]])
+        # gc.AddToGarbageBin(dissolve_avg)
+        # # Group (Dissolve) the computed values for the same main channel points -> sum
+        # print([f.name for f in arcpy.ListFields(dissolve_avg)])
+        # print([f.name for f in arcpy.ListFields("width_main_lyr")])
+        # #  First, the previous result (dissolve_avg) must be merge with the main channels points
+        # #  Field mapping:
+        # #   - in the dissolve_avg, the point ID of the main reach from the spatial join (main_widthid_field), with the point ID of the main reach
+        # fldMap_id = arcpy.FieldMap()
+        # fldMap_id.addInputField(dissolve_avg, main_widthid_field)
+        # fldMap_id.addInputField("width_main_lyr", os.path.basename(widthdata) + "." + widthid)
+        # fieldName = fldMap_id.outputField
+        # fieldName.name = widthid
+        # fldMap_id.outputField = fieldName
+        # #   - in the dissolve_avg, the computed width average (last field), with the width average of the main reach
+        # mean_field = arcpy.ListFields(dissolve_avg)[-1].name
+        # fldMap_width = arcpy.FieldMap()
+        # fldMap_width.addInputField("width_main_lyr", os.path.basename(widthdata) + "." + width_field)
+        # fldMap_width.addInputField(dissolve_avg, mean_field)
+        # fieldName2 = fldMap_width.outputField
+        # fieldName2.name = width_field
+        # fldMap_width.outputField = fieldName2
+        #
+        # fieldMappings = arcpy.FieldMappings()
+        # fieldMappings.addFieldMap(fldMap_id)
+        # fieldMappings.addFieldMap(fldMap_width)
+        # merge = arcpy.CreateScratchName("merge", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        # arcpy.Merge_management(["width_main_lyr", dissolve_avg], merge, fieldMappings)
+        # gc.AddToGarbageBin(merge)
+        # dissolve_sum = arcpy.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        # arcpy.Dissolve_management(merge, widthoutput, [widthid],
+        #                           [[width_field], "SUM"])
+        # gc.AddToGarbageBin(dissolve_avg)
+    finally:
+        gc.CleanAllTempFiles()
+
