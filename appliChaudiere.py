@@ -6,6 +6,7 @@ from tree.TreeTools import *
 from RelateNetworks import *
 from WidthAssessment import *
 from WSsmoothing import *
+from AssignPointToClosestPointOnRoute import *
 
 class Messages():
     def addErrorMessage(self, text):
@@ -56,12 +57,21 @@ if __name__ == "__main__":
     pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\DEM3m_pathpointsD8"
     #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
-    datapoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\datapoints"
-    smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
-    execute_WSsmoothing(routesD8_ws3m, linksD8_ws3m, "RID", datapoints, "id", "RID", "dist", "offset", "X", "Y", "dem3mmin_br", "DEM3m_cor2_fill", smoothedpts)
+    datapoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\wspoints"
 
     relate3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\relate3m"
-    execute_RelateNetworks(routes_main, "RID", routesD8_ws3m, "RID", relate3m, messages)
+    # execute_RelateNetworks(routes_main, "RID", routesD8_ws3m, "RID", relate3m, messages)
+
+    bathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapoints"
+    #execute_execute_PlacePointsAlongReaches(routes_main, links_main, "RID", 5, bathypoints)
+    databathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapoints_withws2"
+    execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2_fill", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
+
+
+
+    smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
+    #execute_WSsmoothing(routesD8_ws3m, linksD8_ws3m, "RID", datapoints, "id", "RID", "dist", "offset", "X", "Y", "dem3mmin_br", "DEM3m_cor2_fill", smoothedpts)
+
 
 
 
