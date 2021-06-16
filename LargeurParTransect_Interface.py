@@ -7,7 +7,7 @@
 #####################################################
 
 import arcpy
-from LargeurParTransect import *
+from WidthAssessment import *
 
 
 class LargeurParTransect(object):

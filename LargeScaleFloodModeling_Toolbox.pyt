@@ -10,6 +10,8 @@ from DEMprocessing_Interface import *
 from PlacePointsAlongReaches_Interface import *
 from AssignPointToClosestPointOnRoute_Interface import *
 from CreateTreeFromShapefile_Interface import *
+from ChannelCorrection_Interface import *
+from WSsmoothing_Interface import *
 from TreeFromFlowDir_Interface import *
 from CreateFromPointsAndSplits_Interface import *
 from LocateMostDownstreamPoints_Interface import *
@@ -20,4 +22,5 @@ class Toolbox(object):
         self.label = "Tools for linear referencing"
         self.alias = ""
 
-        self.tools = [RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+        self.tools = [RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+
