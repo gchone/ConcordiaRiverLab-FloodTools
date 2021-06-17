@@ -7,9 +7,10 @@ import numpy as np
 
 from tree.RiverNetwork import *
 
-def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, data_fields, targetpoints, id_field_target, RID_field_target, Distance_field_target, offset_field_target, network_shp, links_table, network_RID_field, ouput_table):
+def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, data_fields, targetpoints, id_field_target, RID_field_target, Distance_field_target, offset_field_target, network_shp, links_table, network_RID_field, order_field, ouput_table):
     network = RiverNetwork()
     network.dict_attr_fields['id'] = network_RID_field
+    network.dict_attr_fields['order'] = order_field
     network.load_data(network_shp, links_table)
 
     datacollection = Points_collection(network, "data")
@@ -66,11 +67,17 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
 
         if not reach.is_upstream_end():
             # add the most downstream point in the upstream reach in the data
-            # TODO: use an ordered list of upstream reaches (currently: random)
-            up_reach = next(reach.get_uptream_reaches())
+            min_order = 9999
+            selected_up_reach = None
+            for up_reach in reach.get_uptream_reaches():
+                # the upstream reach to use is the one with the smallest order
+                if up_reach.order < min_order:
+                    min_order = up_reach.order
+                    selected_up_reach = up_reach
+
             updata = np.sort(
                 datacollection._numpyarray[
-                    datacollection._numpyarray[datacollection.dict_attr_fields['reach_id']] == up_reach.id],
+                    datacollection._numpyarray[datacollection.dict_attr_fields['reach_id']] == selected_up_reach.id],
                 order=datacollection.dict_attr_fields['dist'])[0]
             # update the distance
             updata[datacollection.dict_attr_fields['dist']] = updata[datacollection.dict_attr_fields['dist']] + reach.length
