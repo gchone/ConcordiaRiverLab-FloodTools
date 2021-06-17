@@ -64,6 +64,15 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
             currentrow, currentcol) != 64 and flowdir.getValue(currentrow, currentcol) != 128):
             intheraster = False
 
+
+        # Check if the new points coordinates (in row, column) are already in the points numpy array
+        checkrow = pointsarray["row"] == currentrow
+        checkcol = pointsarray["col"] == currentcol
+        checkpoint = np.extract(np.logical_and(checkrow, checkcol), pointsarray)
+        if len(checkpoint) > 0:
+            intheraster = False
+            messages.addWarningMessage("From point "+str(frompoint[1])+" already on flow path")
+
         segmentid += 1
         totaldist = 0
 
@@ -143,10 +152,16 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     # A new RID is assigned to the upstream part of this reach
                     matchingrid = pointsarray["RID"] == confluencepoint["RID"]
                     matchingdist = pointsarray["dist"] > confluencepoint["dist"]
-                    pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
 
-                    # The link table need to be updated too (new RID for the upstream part of the met reach)
-                    links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
+                    len_of_upstream_meet_reach = len(pointsarray[np.logical_and(matchingrid, matchingdist)])
+
+                    if len_of_upstream_meet_reach > 0:
+                        pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
+                        # The link table need to be updated too (new RID for the upstream part of the met reach)
+                        links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
+                    else:
+                        # special case: the flow meet another reach from it's start point
+                        messages.addWarningMessage("Reach " + str(segmentid) + " encountered another From point")
 
                     # Adding the pointslist to the pointsarray
                     #   but first, the distance value must be reverse (it was computed backward. It must be from downstream to upstream), and the points must be tuples
@@ -157,10 +172,15 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
 
                     # Adding the confluence info in the link table
-                    to_add = numpy.empty(2, dtype=links.dtype)
-                    to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
-                    to_add[RiverNetwork.reaches_linkfieldup][0] = segmentid
-                    to_add[RiverNetwork.reaches_linkfieldup][1] = segmentid + 1
+                    if len_of_upstream_meet_reach > 0:
+                        to_add = numpy.empty(2, dtype=links.dtype)
+                        to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
+                        to_add[RiverNetwork.reaches_linkfieldup][0] = segmentid
+                        to_add[RiverNetwork.reaches_linkfieldup][1] = segmentid + 1
+                    else:
+                        to_add = numpy.empty(1, dtype=links.dtype)
+                        to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
+                        to_add[RiverNetwork.reaches_linkfieldup] = segmentid
                     links = numpy.append(links, to_add)
 
                     # Storing the downstream point of the upstream reach
