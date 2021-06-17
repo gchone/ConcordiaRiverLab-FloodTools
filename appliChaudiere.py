@@ -7,6 +7,7 @@ from RelateNetworks import *
 from WidthAssessment import *
 from WSsmoothing import *
 from AssignPointToClosestPointOnRoute import *
+from InterpolatePoints import *
 
 class Messages():
     def addErrorMessage(self, text):
@@ -65,8 +66,12 @@ if __name__ == "__main__":
     bathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapoints"
     #execute_execute_PlacePointsAlongReaches(routes_main, links_main, "RID", 5, bathypoints)
     databathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapoints_withws2"
-    execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2_fill", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
+    #execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2_fill", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
 
+    interpolated = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated"
+    execute_InterpolatePoints(databathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
+                                  ["DEM3m_cor2_fill", "dem3mmin_br"], bathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
+                              routes_main, links_main, "RID", interpolated)
 
 
     smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
