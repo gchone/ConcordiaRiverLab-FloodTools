@@ -8,6 +8,7 @@ from WidthAssessment import *
 from WSsmoothing import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
+from LargeScaleFloodMetaTools import *
 
 class Messages():
     def addErrorMessage(self, text):
@@ -39,16 +40,28 @@ if __name__ == "__main__":
     links_main = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routes_main_links"
     #execute_CreateTreeFromShapefile(shape_main, routes_main, links_main, "RID", "DownEnd", messages)
 
-    fpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
-    splits = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\splits"
-    #execute_CreateFromPointsAndSplits(routes, links, "RID", fpoints, splits)
+    #fpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
+    #splits = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\splits"
+    ##execute_CreateFromPointsAndSplits(routes, links, "RID", fpoints, splits)
 
     flowdir = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowdir")
-    frompoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
-    routesD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD8"
-    linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
-    pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
-    #execute_TreeFromFlowDir(flowdir, frompoints, routesD8, linksD8, "RID", pathpoints, messages)
+    # frompoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
+    # #frompoints = r"E:\InfoCrue\tmp\fp0.shp"
+    # routesD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD8"
+    # linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
+    # pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
+    # #execute_TreeFromFlowDir(flowdir, frompoints, routesD8, linksD8, "RID", pathpoints, messages)
+    #
+    # QpointsD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\QpointsD8"
+    # # execute_LocateMostDownstreamPoints(routesD8, linksD8, "RID", pathpoints, "id", "RID", "dist", "offset", "X", "Y", QpointsD8)
+    #
+    # basicnet_to_D8_linktable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable3"
+    # #execute_RelateNetworks(routes_main, "RID", routesD8, "RID", basicnet_to_D8_linktable, messages)
+
+    flowacc = arcpy.Raster(
+        r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
+    #execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder", messages)
+
 
     ### Water Surface ####
     flowdir_ws3m = arcpy.Raster(
@@ -68,10 +81,10 @@ if __name__ == "__main__":
     databathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapoints_withws2"
     #execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2_fill", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
 
-    interpolated = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated"
+    interpolated = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated2"
     execute_InterpolatePoints(databathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
                                   ["DEM3m_cor2_fill", "dem3mmin_br"], bathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
-                              routes_main, links_main, "RID", interpolated)
+                              routes_main, links_main, "RID", "Qorder", interpolated)
 
 
     smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
@@ -96,11 +109,6 @@ if __name__ == "__main__":
     matchatlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\match_nets"
     #execute_CheckNetFitFromUpStream(routesD8_atlas, linksD8_atlas, "RID", route_atlas, links_atlas, "RID", fpoints_atlas, matchatlas)
 
-    QpointsD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\QpointsD8"
-    #execute_LocateMostDownstreamPoints(routesD8, linksD8, "RID", pathpoints, "id", "RID", "dist", "offset", "X", "Y", QpointsD8)
-
-    basicnet_to_D8_linktable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable"
-    #execute_RelateNetworks(routes_main, "RID", routesD8, "RID", basicnet_to_D8_linktable, messages)
 
 
 

@@ -619,6 +619,31 @@ def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interva
 
     newpoints.save_points(output_pt)
 
+def execute_OrderTreeByFlowAcc(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, flow_acc_field, output_field = "order"):
+    network = RiverNetwork()
+    network.dict_attr_fields['id'] = RID_field
+    network.load_data(network_shp, links_table)
+
+    collection = Points_collection(network, "data")
+    collection.dict_attr_fields['id'] = id_field_pts
+    collection.dict_attr_fields['reach_id'] = RID_field_pts
+    collection.dict_attr_fields['dist'] = Distance_field_pts
+    collection.dict_attr_fields['offset'] = offset_field_pts
+    collection.dict_attr_fields['discharge'] = flow_acc_field
+
+    collection.load_table(datapoints)
+
+    network.order_reaches_by_discharge(collection, "discharge")
+
+    # Save
+    arcpy.AddField_management(network_shp, output_field, "LONG")
+    cursor = arcpy.da.UpdateCursor(network_shp, [RID_field, output_field])
+    for reach in cursor:
+        reach[1] = network.get_reach(reach[0]).order
+        cursor.updateRow(reach)
+
+
+
 
 
 
