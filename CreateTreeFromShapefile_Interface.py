@@ -30,7 +30,7 @@ class CreateTreeFromShapefile(object):
             parameterType="Required",
             direction="Output")
         param_routelinks_table = arcpy.Parameter(
-            displayName="Output link table (reach-RouteID)",
+            displayName="Output link table (DownRouteID-UpRouteID)",
             name="routelinks_table",
             datatype="GPTableView",
             parameterType="Required",
