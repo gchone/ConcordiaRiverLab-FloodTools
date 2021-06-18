@@ -4,18 +4,18 @@ import arcpy
 import os
 import numpy as np
 
-def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, points_onroute, points_onroute_RIDfield, output_shp):
+def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_fields_to_keep, routes, routes_IDfield, points_onroute, points_onroute_RIDfield, points_onroute_distfield, output_table):
 
     """ This tool searches the closest point on a reach for each point with a route ID. It returns a shapefile with
     the points on route selected and the original data from the points layer"""
-
-
 
     # We need to select each time all the points with a certain RouteID and the points on route with the same RouteID and
     # save them as temporary layers.
 
     arcpy.MakeFeatureLayer_management(points, "points_lyr")
-    arcpy.MakeFeatureLayer_management(points_onroute, "onroute_lyr")
+    # Layer for the points on route: made by Make Route Event Layer to use the linear referencing
+    arcpy.MakeRouteEventLayer_lr(routes, routes_IDfield, points_onroute,
+                                 points_onroute_RIDfield+" POINT "+points_onroute_distfield, "onroute_lyr")
 
     list_RIDs = []
     cursor = arcpy.da.SearchCursor(points, [points_RIDfield])
@@ -36,26 +36,46 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, points_onr
         list_tables.append(table)
     table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
     arcpy.Merge_management(list_tables, table)
+    arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
+    arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
+
 
     # Join tables in order to have the data from the points linked with the points on route
-    arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
-    arcpy.AddJoin_management("onroute_lyr", "FID", table, "NEAR_FID", "KEEP_COMMON")
-    arcpy.AddJoin_management("onroute_lyr", os.path.basename(table)+".IN_FID", "points_lyr", "FID", "KEEP_COMMON")
+    onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
+    points_lyr_IDfield = arcpy.Describe("points_lyr").OIDFieldName
 
-    # Exporting the resulting table into a shapefile creates unmanageable fields names.
-    # We convert the table into a numpy array so we can rename the fields before exporting back to a shapefile
-    total_fields_list = [str(f.name) for f in arcpy.ListFields("onroute_lyr")]
-    onroute_fields_names = [str(f.name) for f in arcpy.ListFields(points_onroute)]
-    fields_to_keep = total_fields_list[2:len(onroute_fields_names)]
-    fields_to_keep.extend(total_fields_list[len(onroute_fields_names)+5:])
-    fields_to_keep.remove(arcpy.Describe(points).basename+"."+points_RIDfield) # remove the second "RID"
-    fields_to_keep.append("SHAPE@XY")
+    arcpy.AddJoin_management("points_lyr", points_lyr_IDfield, table, "IN_FID", "KEEP_COMMON")
+    arcpy.AddJoin_management("points_lyr", os.path.basename(table) + ".NEAR_FID", "onroute_lyr", onroute_lyr_IDfield,
+                             "KEEP_COMMON")
 
-    nparray = arcpy.da.FeatureClassToNumPyArray("onroute_lyr", fields_to_keep)
+    total_fields_list = [str(f.name) for f in arcpy.ListFields("points_lyr")]
+    onroute_fields_names = [str(f.name) for f in arcpy.ListFields("onroute_lyr")]
     data_fields_names = [str(f.name) for f in arcpy.ListFields(points)]
-    data_fields_names.remove(points_RIDfield) # remove the second "RID"
-    wanted_fields_name = onroute_fields_names[2:]
-    wanted_fields_name.extend(data_fields_names[2:])
-    wanted_fields_name.append("XY")
+    fields_to_keep = total_fields_list[len(data_fields_names)+5:]
+    for field in list_fields_to_keep:
+        fields_to_keep.append(arcpy.Describe(points).basename + "." + field)
+
+    nparray = arcpy.da.FeatureClassToNumPyArray("points_lyr", fields_to_keep)
+
+    # rename fields
+    data_fields_names.remove(points_RIDfield)  # remove the second "RID"
+    wanted_fields_name = onroute_fields_names[1:-1]
+    for field in list_fields_to_keep:
+        wanted_fields_name.append(field)
     nparray.dtype.names = wanted_fields_name
-    arcpy.da.NumPyArrayToFeatureClass(nparray, output_shp, "XY", spatial_reference=points_onroute)
+
+    # compute values for the same main channel points -> average
+    idfield = nparray.dtype.names[0]
+    means_ids = np.unique(nparray[[idfield]])
+    means = np.empty(means_ids.shape[0], dtype=nparray.dtype)
+    i = 0
+    for id in means_ids:
+        tmp_all = nparray[np.where(nparray[[idfield]] == id)]
+        means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
+        for field in list_fields_to_keep:
+            means[field][i] = np.mean(tmp_all[field])
+        i+=1
+
+    arcpy.da.NumPyArrayToTable(means, output_table)
+
+

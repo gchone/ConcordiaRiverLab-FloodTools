@@ -10,7 +10,7 @@ from tree.RiverNetwork import *
 
 
 
-def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, X_field_pts, Y_field_pts, dem_z_field, dem_fill_field, output_points, smooth_perc = 0.9):
+def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, dem_z_field, dem_forws_field, DEM_ID_field, output_points, smooth_perc = 0.9):
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -21,21 +21,26 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
     collection.dict_attr_fields['reach_id'] = RID_field_pts
     collection.dict_attr_fields['dist'] = Distance_field_pts
     collection.dict_attr_fields['offset'] = offset_field_pts
-    collection.dict_attr_fields['X'] = X_field_pts
-    collection.dict_attr_fields['Y'] = Y_field_pts
     collection.dict_attr_fields['zerr'] = dem_z_field
-    collection.dict_attr_fields['ztosmooth'] = dem_fill_field
+    collection.dict_attr_fields['z_forws'] = dem_forws_field
+    collection.dict_attr_fields['DEM_ID'] = DEM_ID_field
     collection.load_table(datapoints)
 
+    # First, the network is browsed from down to up to have the highest limit of the error (cs.z_fill)
+    #  and then from up to down to have the lowest limit of the error (cs.z_breach)
 
+    # When doing this first down to up, we can also compute the fill version by DEM of the water surface, which is the
+    #  right data to use as the water surface for hydraulic modeling (cs.ztosmooth)
     for reach in network.browse_reaches_down_to_up():
         if reach.is_downstream_end():
             prev_cs = None
         for cs in reach.browse_points(collection):
-            if prev_cs != None:
+            if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 cs.z_fill = max(prev_cs.z_fill, cs.zerr)
+                cs.ztosmooth = max(prev_cs.ztosmooth, cs.z_forws)
             else:
                 cs.z_fill = cs.zerr
+                cs.ztosmooth = cs.z_forws
             # z_breach à None permet le bon breach pour les parties parcourues plusieurs fois
             cs.z_breach = None
             prev_cs = cs
@@ -45,7 +50,7 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
         if reach.is_upstream_end():
             prev_cs = None
         for cs in reach.browse_points(collection, orientation="UP_TO_DOWN"):
-            if prev_cs != None:
+            if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 if cs.z_breach != None:
                     cs.z_breach = min(prev_cs.z_breach, cs.zerr, cs.z_breach)
                 else:
@@ -68,7 +73,7 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
         if reach.is_downstream_end():
             prev_cs = None
         for cs in reach.browse_points(collection):
-            if prev_cs != None:
+            if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 if prev_cs.reach == cs.reach:
                     localdist = (cs.dist - prev_cs.dist)
                 else:
@@ -84,7 +89,7 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
         if reach.is_upstream_end():
             prev_cs = None
         for cs in reach.browse_points(collection, orientation="UP_TO_DOWN"):
-            if prev_cs != None:
+            if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 if prev_cs.reach == cs.reach:
                     localdist = (prev_cs.dist - cs.dist)
                 else:
@@ -101,6 +106,7 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
             prev_cs = cs
 
     collection.add_SavedVariable("zsmooth", "float")
+    collection.add_SavedVariable("ztosmooth", "float")
     collection.save_points(output_points)
 
     return
