@@ -19,6 +19,16 @@ import arcpy
 
 def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, messages):
 
+    # Compare if both featura class have the same amount of rows
+    try:
+        comp_tables = arcpy.FeatureCompare_management (shapefile_A, shapefile_B, "FID", compare_type="ATTRIBUTES_ONLY", continue_compare= "CONTINUE_COMPARE", out_compare_file="COMP")
+        print (comp_tables.getOutput(1))
+        print(arcpy.GetMessages())
+
+    except Exception as err:
+        print(err.args[0])
+
+
     # Execute Near Table creation A-B and B-A
     tempAB = arcpy.CreateScratchName("tempAB", data_type = "ArcInfoTable", workspace="in_memory")
     arcpy.GenerateNearTable_analysis(shapefile_A, shapefile_B, tempAB)
@@ -100,7 +110,7 @@ def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, me
     # Combinations with PART_COUNT close to 1 should be deleted.
     cursor_neartable = arcpy.da.UpdateCursor(out_table, ["PART_COUNT"])
     for row in cursor_neartable:
-        if row[0] < 3:
+        if row[0] < 2:
             cursor_neartable.deleteRow()
 
     # Join RIDs
