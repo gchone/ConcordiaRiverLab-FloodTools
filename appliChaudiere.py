@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     flowacc = arcpy.Raster(
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
-    #execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder", messages)
+    execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder2", messages)
 
 
     ### Water Surface ####
@@ -75,26 +75,33 @@ if __name__ == "__main__":
     pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\DEM3m_pathpointsD8"
     #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
-    datapoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\wspoints"
+    ### DO NOT DO THAT: THESE STEPS ARE NOW INCLUDED IN execute_ExtractWaterSurface ###
+    # datapoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\wspoints"
+    # relate3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\relate3m"
+    # # execute_RelateNetworks(routes_main, "RID", routesD8_ws3m, "RID", relate3m, messages)
+    #
+    # bathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\datapoints"
+    # #execute_execute_PlacePointsAlongReaches(routes_main, links_main, "RID", 5, bathypoints)
+    # databathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\datapoints_withws"
+    # #execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
+    #
+    # interpolated = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated3"
+    # #execute_InterpolatePoints(databathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
+    # #                              ["DEM3m_cor2", "dem3mmin_br"], bathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
+    # #                          routes_main, links_main, "RID", "Qorder", interpolated)
+    #
+    # interpolated_limits = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated3_withLimites"
+    # smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
+    # execute_WSsmoothing(routes_main, links_main, "RID", interpolated_limits, "ObjectID_1", "RID", "MEAS", "Distance", "dem3mmin_br", "DEM3m_cor2", "ORIG_FID", smoothedpts)
+    ####################
 
-    relate3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\relate3m"
-    # execute_RelateNetworks(routes_main, "RID", routesD8_ws3m, "RID", relate3m, messages)
-
-    bathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\datapoints"
-    #execute_execute_PlacePointsAlongReaches(routes_main, links_main, "RID", 5, bathypoints)
-    databathypoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\datapoints_withws"
-    #execute_AssignPointToClosestPointOnRoute(datapoints_ws3m, "ORIG_RID", ["DEM3m_cor2", "dem3mmin_br"], routes_main, "RID", bathypoints, "RID", "MEAS", databathypoints)
-
-    interpolated = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated3"
-    #execute_InterpolatePoints(databathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
-    #                              ["DEM3m_cor2", "dem3mmin_br"], bathypoints, "ObjectID_1", "RID", "MEAS", "Distance",
-    #                          routes_main, links_main, "RID", "Qorder", interpolated)
-
-    interpolated_limits = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\interpolated3_withLimites"
-    smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts"
-    execute_WSsmoothing(routesD8_ws3m, linksD8_ws3m, "RID", interpolated_limits, "ObjectID_1", "RID", "MEAS", "Distance", "dem3mmin_br", "DEM3m_cor2", "ORIG_FID", smoothedpts)
-
-
+    lidar3m_cor = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\dem3mmin_br")
+    lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\DEM3m_cor2")
+    smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface.gdb\smoothedpts2"
+    DEMs_footprints = r"E:\InfoCrue\Chaudiere\Application_methodo_FLT_mars2021\DEM\Limites_single\Limites_merge.shp"
+    DEMs_footprints_id = "ORIG_FID"
+    #execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
+    #                            lidar3m_cor, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, smoothedpts, messages)
 
 
 

@@ -10,7 +10,7 @@ from tree.RiverNetwork import *
 
 
 
-def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, dem_z_field, dem_forws_field, DEM_ID_field, output_points, smooth_perc = 0.9):
+def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, dem_z_field, dem_forws_field, DEM_ID_field, output_points, smooth_perc = 0.9):
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -20,7 +20,6 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
     collection.dict_attr_fields['id'] = id_field_pts
     collection.dict_attr_fields['reach_id'] = RID_field_pts
     collection.dict_attr_fields['dist'] = Distance_field_pts
-    collection.dict_attr_fields['offset'] = offset_field_pts
     collection.dict_attr_fields['zerr'] = dem_z_field
     collection.dict_attr_fields['z_forws'] = dem_forws_field
     collection.dict_attr_fields['DEM_ID'] = DEM_ID_field

@@ -7,7 +7,7 @@ import numpy as np
 
 from tree.RiverNetwork import *
 
-def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, data_fields, targetpoints, id_field_target, RID_field_target, Distance_field_target, offset_field_target, network_shp, links_table, network_RID_field, order_field, ouput_table):
+def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distance_field_pts, data_fields, targetpoints, id_field_target, RID_field_target, Distance_field_target, network_shp, links_table, network_RID_field, order_field, ouput_table):
     network = RiverNetwork()
     network.dict_attr_fields['id'] = network_RID_field
     network.dict_attr_fields['order'] = order_field
@@ -17,7 +17,6 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
     datacollection.dict_attr_fields['id'] = id_field_pts
     datacollection.dict_attr_fields['reach_id'] = RID_field_pts
     datacollection.dict_attr_fields['dist'] = Distance_field_pts
-    datacollection.dict_attr_fields['offset'] = offset_field_pts
     for field in data_fields:
         datacollection.dict_attr_fields[field] = field
     datacollection.load_table(points_table)
@@ -26,7 +25,6 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
     targetcollection.dict_attr_fields['id'] = id_field_target
     targetcollection.dict_attr_fields['reach_id'] = RID_field_target
     targetcollection.dict_attr_fields['dist'] = Distance_field_target
-    targetcollection.dict_attr_fields['offset'] = offset_field_target
     targetcollection.load_table(targetpoints)
 
     # Gather metadata for the new array
