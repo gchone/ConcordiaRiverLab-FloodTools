@@ -20,46 +20,57 @@ import arcpy
 def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, messages):
 
 
-    # Intersection between the two line shapefiles and counting the points of the intersection.
-    to_intersect = [shapefile_A, shapefile_B]
-    temp_intersect = arcpy.CreateScratchName("temp", data_type="FeatureClass", workspace="in_memory")
-    arcpy.Intersect_analysis(to_intersect, temp_intersect, "ALL", "", "POINT")
-    # "PART_COUNT" provides de amount of points in each intersection between the two line shapefiles. Analyzing this
-    # value allows to choose the correct combination in the near_table (temp_merged). If we have a combination like
-    # 5-8 with a part_count=1 (being the 5 the # routeID and 8 the RID) and 5-10 with a part_count = 256, the last
-    # combination is the correct one.
-    arcpy.AddGeometryAttributes_management(temp_intersect, "PART_COUNT")
-    B_fields = [f.name for f in arcpy.Describe(shapefile_B).fields]
-    RID_B_index = B_fields.index(RID_B)
-    inter_RID_B_index = len(arcpy.Describe(shapefile_A).fields)+RID_B_index
-    inter_fields = [f.name for f in arcpy.Describe(temp_intersect).fields]
-    inter_RID_B = inter_fields[inter_RID_B_index]
-    numpyrelatetable = arcpy.da.FeatureClassToNumPyArray(temp_intersect, [RID_A, inter_RID_B, "PART_COUNT"])
+    resultA = arcpy.GetCount_management(shapefile_A)
+    resultB = arcpy.GetCount_management(shapefile_B)
+    countA = int(resultA.getOutput(0))
+    countB = int(resultB.getOutput(0))
 
-    # Combinations of RID with the highest PART_COUNT should be kept.
-    uniques_RIDs = np.unique(numpyrelatetable[[RID_A]])
-    filtered_RIDA = None
-    for i in uniques_RIDs:
-        tmp = numpyrelatetable[np.where(numpyrelatetable[[RID_A]] == i)]
-        tmp_max = np.max(tmp["PART_COUNT"])
-        tmp_res = tmp[tmp["PART_COUNT"] == tmp_max]
-        if filtered_RIDA is None:
-            filtered_RIDA = np.copy(tmp_res)
-        else:
-            filtered_RIDA = np.concatenate((filtered_RIDA, tmp_res))
 
-    uniques_RIDs = np.unique(filtered_RIDA[[RID_B]])
-    filtered_RIDB = None
-    for i in uniques_RIDs:
-        tmp = filtered_RIDA[np.where(filtered_RIDA[[RID_B]] == i)]
-        tmp_max = np.max(tmp["PART_COUNT"])
-        tmp_res = tmp[tmp["PART_COUNT"] == tmp_max]
-        if filtered_RIDB is None:
-            filtered_RIDB = np.copy(tmp_res)
-        else:
-            filtered_RIDB = np.concatenate((filtered_RIDB, tmp_res))
+    if countA != countB:
+        arcpy.AddError("The feature classes have different number of rows. This tool runs when row value is equal")
 
-    arcpy.da.NumPyArrayToTable(filtered_RIDB, out_table)
+    else:
+
+        # Intersection between the two line shapefiles and counting the points of the intersection.
+        to_intersect = [shapefile_A, shapefile_B]
+        temp_intersect = arcpy.CreateScratchName("temp", data_type="FeatureClass", workspace="in_memory")
+        arcpy.Intersect_analysis(to_intersect, temp_intersect, "ALL", "", "POINT")
+        # "PART_COUNT" provides de amount of points in each intersection between the two line shapefiles. Analyzing this
+        # value allows to choose the correct combination in the near_table (temp_merged). If we have a combination like
+        # 5-8 with a part_count=1 (being the 5 the # routeID and 8 the RID) and 5-10 with a part_count = 256, the last
+        # combination is the correct one.
+        arcpy.AddGeometryAttributes_management(temp_intersect, "PART_COUNT")
+        B_fields = [f.name for f in arcpy.Describe(shapefile_B).fields]
+        RID_B_index = B_fields.index(RID_B)
+        inter_RID_B_index = len(arcpy.Describe(shapefile_A).fields)+RID_B_index
+        inter_fields = [f.name for f in arcpy.Describe(temp_intersect).fields]
+        inter_RID_B = inter_fields[inter_RID_B_index]
+        numpyrelatetable = arcpy.da.FeatureClassToNumPyArray(temp_intersect, [RID_A, inter_RID_B, "PART_COUNT"])
+
+        # Combinations of RID with the highest PART_COUNT should be kept.
+        uniques_RIDs = np.unique(numpyrelatetable[[RID_A]])
+        filtered_RIDA = None
+        for i in uniques_RIDs:
+            tmp = numpyrelatetable[np.where(numpyrelatetable[[RID_A]] == i)]
+            tmp_max = np.max(tmp["PART_COUNT"])
+            tmp_res = tmp[tmp["PART_COUNT"] == tmp_max]
+            if filtered_RIDA is None:
+                filtered_RIDA = np.copy(tmp_res)
+            else:
+                filtered_RIDA = np.concatenate((filtered_RIDA, tmp_res))
+
+        uniques_RIDs = np.unique(filtered_RIDA[[RID_B]])
+        filtered_RIDB = None
+        for i in uniques_RIDs:
+            tmp = filtered_RIDA[np.where(filtered_RIDA[[RID_B]] == i)]
+            tmp_max = np.max(tmp["PART_COUNT"])
+            tmp_res = tmp[tmp["PART_COUNT"] == tmp_max]
+            if filtered_RIDB is None:
+                filtered_RIDB = np.copy(tmp_res)
+            else:
+                filtered_RIDB = np.concatenate((filtered_RIDB, tmp_res))
+
+        arcpy.da.NumPyArrayToTable(filtered_RIDB, out_table)
 
 
 

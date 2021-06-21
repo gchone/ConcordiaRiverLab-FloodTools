@@ -13,13 +13,13 @@ from tree.TreeTools import *
 
 class PlacePointsAlongReaches(object):
     def __init__(self):
-        self.label = "Create points along route layer (minimum distance)"
+        self.label = "Create points along route feature class"
         self.description = "This tool creates a layer of points on a network based on a fixed interval"
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_network_shp = arcpy.Parameter(
-            displayName="Network layer",
+            displayName="Network feature class",
             name="network_shp",
             datatype="GPFeatureLayer",
             parameterType="Required",
@@ -31,7 +31,7 @@ class PlacePointsAlongReaches(object):
             parameterType="Required",
             direction="Input")
         param_RID_field = arcpy.Parameter(
-            displayName="RouteID field in Network layer",
+            displayName="RouteID field in Network feature class",
             name="RID_field",
             datatype="Field",
             parameterType="Required",
