@@ -324,7 +324,7 @@ class Reach(_NumpyArrayFedObject):
         else:
             return None
 
-    def add_point(self, distance, offset, collection):
+    def add_point(self, distance, collection):
 
         #Find the max currently used id in the collection, and add 1
         newid = numpy.max(collection._numpyarray[collection.dict_attr_fields['id']]) + 1
@@ -332,7 +332,6 @@ class Reach(_NumpyArrayFedObject):
         to_add = numpy.empty(1, dtype=collection._numpyarray.dtype)
         to_add[collection.dict_attr_fields['id']] = newid
         to_add[collection.dict_attr_fields['dist']] = distance
-        to_add[collection.dict_attr_fields['offset']] = offset
         to_add[collection.dict_attr_fields['reach_id']] = self.id
         collection._numpyarray = numpy.append(collection._numpyarray, to_add)
         datapoint = DataPoint(collection, self, to_add)
@@ -348,8 +347,7 @@ class Points_collection(_NumpyArrayHolder):
 
     dict_attr_fields = {"id": "id",
                        "reach_id": "RID",
-                       "dist": "MEAS",
-                       "offset": "Distance"
+                       "dist": "MEAS"
                         }
 
     def __init__(self, rivernetwork, name):
@@ -360,8 +358,7 @@ class Points_collection(_NumpyArrayHolder):
         rivernetwork.points_collection[name]=self
         self._numpyarray = np.empty(0, dtype=[(self.dict_attr_fields['id'], 'i4'),
                                               (self.dict_attr_fields['reach_id'], 'i4'),
-                                              (self.dict_attr_fields['dist'], 'f8'),
-                                              (self.dict_attr_fields['offset'], 'f8')])
+                                              (self.dict_attr_fields['dist'], 'f8')])
         self._points = np.empty(0, dtype=[('id', 'i4'), ('object', 'O')])
 
     def load_table(self, points_table):

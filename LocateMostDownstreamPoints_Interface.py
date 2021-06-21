@@ -59,12 +59,6 @@ class LocateMostDownstreamPoints(object):
             datatype="GPString",
             parameterType="Required",
             direction="Input")
-        param_offset_field_pts = arcpy.Parameter(
-            displayName="Name for offset field of point layer",
-            name="offset_field_pts",
-            datatype="GPString",
-            parameterType="Required",
-            direction="Input")
         param_X_field_pts = arcpy.Parameter(
             displayName="Name for X field of point layer",
             name="X_field_pts",
@@ -88,12 +82,11 @@ class LocateMostDownstreamPoints(object):
         param_id_field_pts.value = "ID"
         param_RID_field_pts.value = "RID"
         param_Distance_field_pts.value = "dist"
-        param_offset_field_pts.value = "offset"
         param_X_field_pts.value = "X"
         param_Y_field_pts.value = "Y"
 
 
-        params = [param_network_shp, param_links_table, param_RID_field, param_datapoints, param_id_field_pts, param_RID_field_pts, param_Distance_field_pts, param_offset_field_pts, param_X_field_pts, param_Y_field_pts, param_output_pts]
+        params = [param_network_shp, param_links_table, param_RID_field, param_datapoints, param_id_field_pts, param_RID_field_pts, param_Distance_field_pts, param_X_field_pts, param_Y_field_pts, param_output_pts]
 
         return params
 
@@ -114,11 +107,10 @@ class LocateMostDownstreamPoints(object):
         id_field_pts = parameters[4].valueAsText
         RID_field_pts = parameters[5].valueAsText
         Distance_field_pts = parameters[6].valueAsText
-        offset_field_pts = parameters[7].valueAsText
-        X_field_pts = parameters[8].valueAsText
-        Y_field_pts = parameters[9].valueAsText
-        output_pts = parameters[10].valueAsText
+        X_field_pts = parameters[7].valueAsText
+        Y_field_pts = parameters[8].valueAsText
+        output_pts = parameters[9].valueAsText
 
-        execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, X_field_pts, Y_field_pts, output_pts)
+        execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, X_field_pts, Y_field_pts, output_pts)
 
         return

@@ -582,7 +582,7 @@ def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B,
         score = perc_occurences*0.6+geomatch*0.4
         insert.insertRow([reach.id, matching_id, perc_occurences, geomatch, score])
 
-def execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, X_field_pts, Y_field_pts, output_pts):
+def execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, X_field_pts, Y_field_pts, output_pts):
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -592,7 +592,6 @@ def execute_LocateMostDownstreamPoints(network_shp, links_table, RID_field, data
     collection.dict_attr_fields['id'] = id_field_pts
     collection.dict_attr_fields['reach_id'] = RID_field_pts
     collection.dict_attr_fields['dist'] = Distance_field_pts
-    collection.dict_attr_fields['offset'] = offset_field_pts
     collection.dict_attr_fields['X'] = X_field_pts
     collection.dict_attr_fields['Y'] = Y_field_pts
     collection.load_table(datapoints)
@@ -619,7 +618,7 @@ def execute_PlacePointsAlongReaches(network_shp, links_table, RID_field, interva
 
     newpoints.save_points(output_pt)
 
-def execute_OrderTreeByFlowAcc(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, offset_field_pts, flow_acc_field, output_field = "order"):
+def execute_OrderTreeByFlowAcc(network_shp, links_table, RID_field, datapoints, id_field_pts, RID_field_pts, Distance_field_pts, flow_acc_field, output_field = "order"):
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
     network.load_data(network_shp, links_table)
@@ -628,7 +627,6 @@ def execute_OrderTreeByFlowAcc(network_shp, links_table, RID_field, datapoints, 
     collection.dict_attr_fields['id'] = id_field_pts
     collection.dict_attr_fields['reach_id'] = RID_field_pts
     collection.dict_attr_fields['dist'] = Distance_field_pts
-    collection.dict_attr_fields['offset'] = offset_field_pts
     collection.dict_attr_fields['discharge'] = flow_acc_field
 
     collection.load_table(datapoints)
