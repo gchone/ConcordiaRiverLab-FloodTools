@@ -44,27 +44,15 @@ if __name__ == "__main__":
     flowdir = arcpy.Raster(
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowdir")
 
-    ### DO NOT DO THAT: THESE STEPS ARE NOW INCLUDED IN execute_OrderReaches ###
-    #fpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
-    #splits = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\splits"
-    ##execute_CreateFromPointsAndSplits(routes, links, "RID", fpoints, splits)
-    # frompoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
-    # #frompoints = r"E:\InfoCrue\tmp\fp0.shp"
-    # routesD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD8"
-    # linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
-    # pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
-    # #execute_TreeFromFlowDir(flowdir, frompoints, routesD8, linksD8, "RID", pathpoints, messages)
-    #
-    # QpointsD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\QpointsD8"
-    # # execute_LocateMostDownstreamPoints(routesD8, linksD8, "RID", pathpoints, "id", "RID", "dist", "offset", "X", "Y", QpointsD8)
-    #
-    # basicnet_to_D8_linktable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable3"
-    # #execute_RelateNetworks(routes_main, "RID", routesD8, "RID", basicnet_to_D8_linktable, messages)
-    ################
+    routesD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD8"
+    linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
+    pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
+    basicnet_to_D8_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable4"
+    #execute_D8path(routes_main, links_main, "RID", flowdir, routesD8, linksD8, pathpoints, basicnet_to_D8_relatetable, messages)
 
     flowacc = arcpy.Raster(
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
-    execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder2", messages)
+    #execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder2", messages)
 
 
     ### Water Surface ####
@@ -106,24 +94,32 @@ if __name__ == "__main__":
 
 
     ### Discharge ###
-    atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_full2"
-    route_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_routes"
-    links_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_links"
+    atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_full2_corr"
+    route_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_routes2"
+    links_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_links2"
     #execute_CreateTreeFromShapefile(atlas, route_atlas, links_atlas, "RID", "DownEnd", messages)
-    fpoints_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_fp"
-    splits_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_splits"
+    fpoints_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_fp2"
+    splits_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Atlas_splits2"
     #execute_CreateFromPointsAndSplits(route_atlas, links_atlas, "RID", fpoints_atlas, splits_atlas)
-    routesD8_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\routeD8_atlas"
-    linksD8_atlas =r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\linksD8_atlas"
-    pathpoints_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\pathpointsD8_atlas"
+    routesD8_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\routeD8_atlas2"
+    linksD8_atlas =r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\linksD8_atlas2"
+    pathpoints_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\pathpointsD8_atlas2"
     #execute_TreeFromFlowDir(flowdir, fpoints_atlas, routesD8_atlas, linksD8_atlas, "RID", pathpoints_atlas, messages, splits_atlas, 10000)
-    matchatlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\match_nets"
-    #execute_CheckNetFitFromUpStream(routesD8_atlas, linksD8_atlas, "RID", route_atlas, links_atlas, "RID", fpoints_atlas, matchatlas)
 
+    Qpoints_match = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Qpoints_match"
+    # execute_ExtractDischarges(route_atlas, links_atlas, "RID", routesD8_atlas, linksD8_atlas,
+    #                               "RID", pathpoints_atlas, fpoints_atlas, routesD8, "RID", routes_main,
+    #                               "RID", basicnet_to_D8_relatetable, flowacc, Qpoints_match, messages)
 
+    Qpoints_match_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Qpoints_match_Atlas"
+    Qcsv_file = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\qlidaratlas2020c.csv"
+    Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Final_Qpoints"
+    execute_SpatializeQ(routesD8, "RID", pathpoints, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
+                            "Drainage", "Sup_mod_km", "IDTRONCON",
+                            smoothedpts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
+                            Qcsv_file, Qpoints_spatialized)
 
-
-    # Width postproc
+# Width postproc
     #widthdata = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_raw"
     #widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_merge2"
     #execute_WidthPostProc(routes, "RID", "Main", links, widthdata, "CSid", "RID", "Distance_m", "Largeur_m", widthoutput, messages)

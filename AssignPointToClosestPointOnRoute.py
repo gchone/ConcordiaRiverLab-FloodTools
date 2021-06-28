@@ -4,7 +4,7 @@ import arcpy
 import os
 import numpy as np
 
-def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_fields_to_keep, routes, routes_IDfield, points_onroute, points_onroute_RIDfield, points_onroute_distfield, output_table):
+def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_fields_to_keep, routes, routes_IDfield, points_onroute, points_onroute_RIDfield, points_onroute_distfield, output_table, stat="MEAN"):
 
     """ This tool searches the closest point on a reach for each point with a route ID. It returns a shapefile with
     the points on route selected and the original data from the points layer"""
@@ -39,43 +39,60 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
     arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
     arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
 
+    if stat == "MEAN":
 
-    # Join tables in order to have the data from the points linked with the points on route
-    onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
-    points_lyr_IDfield = arcpy.Describe("points_lyr").OIDFieldName
+        # Join tables in order to have the data from the points linked with the points on route
+        onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
+        points_lyr_IDfield = arcpy.Describe("points_lyr").OIDFieldName
 
-    arcpy.AddJoin_management("points_lyr", points_lyr_IDfield, table, "IN_FID", "KEEP_COMMON")
-    arcpy.AddJoin_management("points_lyr", os.path.basename(table) + ".NEAR_FID", "onroute_lyr", onroute_lyr_IDfield,
-                             "KEEP_COMMON")
+        arcpy.AddJoin_management("points_lyr", points_lyr_IDfield, table, "IN_FID", "KEEP_COMMON")
+        arcpy.AddJoin_management("points_lyr", os.path.basename(table) + ".NEAR_FID", "onroute_lyr", onroute_lyr_IDfield,
+                                 "KEEP_COMMON")
 
-    total_fields_list = [str(f.name) for f in arcpy.ListFields("points_lyr")]
-    onroute_fields_names = [str(f.name) for f in arcpy.ListFields("onroute_lyr")]
-    data_fields_names = [str(f.name) for f in arcpy.ListFields(points)]
-    fields_to_keep = total_fields_list[len(data_fields_names)+5:]
-    for field in list_fields_to_keep:
-        fields_to_keep.append(arcpy.Describe(points).basename + "." + field)
-
-    nparray = arcpy.da.FeatureClassToNumPyArray("points_lyr", fields_to_keep)
-
-    # rename fields
-    data_fields_names.remove(points_RIDfield)  # remove the second "RID"
-    wanted_fields_name = onroute_fields_names[1:-1]
-    for field in list_fields_to_keep:
-        wanted_fields_name.append(field)
-    nparray.dtype.names = wanted_fields_name
-
-    # compute values for the same main channel points -> average
-    idfield = nparray.dtype.names[0]
-    means_ids = np.unique(nparray[[idfield]])
-    means = np.empty(means_ids.shape[0], dtype=nparray.dtype)
-    i = 0
-    for id in means_ids:
-        tmp_all = nparray[np.where(nparray[[idfield]] == id)]
-        means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
+        total_fields_list = [str(f.name) for f in arcpy.ListFields("points_lyr")]
+        onroute_fields_names = [str(f.name) for f in arcpy.ListFields("onroute_lyr")]
+        data_fields_names = [str(f.name) for f in arcpy.ListFields(points)]
+        fields_to_keep = total_fields_list[len(data_fields_names)+5:]
         for field in list_fields_to_keep:
-            means[field][i] = np.mean(tmp_all[field])
-        i+=1
+            fields_to_keep.append(arcpy.Describe(points).basename + "." + field)
 
-    arcpy.da.NumPyArrayToTable(means, output_table)
+        nparray = arcpy.da.FeatureClassToNumPyArray("points_lyr", fields_to_keep)
+
+        # rename fields
+        data_fields_names.remove(points_RIDfield)  # remove the second "RID"
+        wanted_fields_name = onroute_fields_names[1:-1]
+        for field in list_fields_to_keep:
+            wanted_fields_name.append(field)
+        nparray.dtype.names = wanted_fields_name
+
+
+        # compute values for the same main channel points -> average
+        idfield = nparray.dtype.names[0]
+        means_ids = np.unique(nparray[[idfield]])
+        means = np.empty(means_ids.shape[0], dtype=nparray.dtype)
+        i = 0
+        for id in means_ids:
+            tmp_all = nparray[np.where(nparray[[idfield]] == id)]
+            means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
+            for field in list_fields_to_keep:
+                means[field][i] = np.mean(tmp_all[field])
+            i+=1
+
+        arcpy.da.NumPyArrayToTable(means, output_table)
+
+    else:
+        # stat == "CLOSEST"
+        # In the case we only need the data from the closest point, the join needs to be done in reverse
+        #  (joining the onroute points with the data points instead of the data points with the onroute points)
+
+        # Join tables in order to have the data from the points linked with the points on route
+        onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
+        points_lyr_IDfield = arcpy.Describe("points_lyr").OIDFieldName
+
+        arcpy.AddJoin_management("onroute_lyr", onroute_lyr_IDfield, table, "NEAR_FID", "KEEP_COMMON")
+        arcpy.AddJoin_management("onroute_lyr", os.path.basename(table) + ".IN_FID", "points_lyr",
+                                 points_lyr_IDfield,
+                                 "KEEP_COMMON")
+
 
 

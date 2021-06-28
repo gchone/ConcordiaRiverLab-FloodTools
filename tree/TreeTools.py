@@ -484,15 +484,18 @@ def execute_CreateFromPointsAndSplits(network_shp, links_table, RID_field, point
 
 def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, matching_table):
 
+    # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
     refD8_net = RiverNetwork()
     refD8_net.dict_attr_fields['id'] = RID_A
+    refD8_net.dict_attr_fields['ORIG_FID'] = "ORIG_FID"
     refD8_net.load_data(routes_A, links_A)
 
     second_net = RiverNetwork()
     second_net.dict_attr_fields['id'] = RID_B
+
     second_net.load_data(routes_B, links_B)
 
-    # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
+
 
     dict_match = {}
     frompoints_OID = arcpy.Describe(frompoints).OIDFieldName
