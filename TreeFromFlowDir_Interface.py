@@ -6,7 +6,6 @@
 # Date: 11 June 2021
 # Description: Create Tree from Flow Direction raster
 #####################################################
-
 from tree.TreeTools import *
 
 class TreeFromFlowDir(object):

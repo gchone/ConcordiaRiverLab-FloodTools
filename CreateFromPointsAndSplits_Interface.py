@@ -18,31 +18,31 @@ class CreateFromPointsAndSplits(object):
 
     def getParameterInfo(self):
         param_network_shp = arcpy.Parameter(
-            displayName="Network layer",
+            displayName="Network feature class",
             name="network_shp",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_links_table = arcpy.Parameter(
-            displayName="Link table (obtained with 'Create network from feature class or flow direction')",
+            displayName="Link table (obtained with 'Create network from feature class')",
             name="links_table",
             datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_RID_field = arcpy.Parameter(
-            displayName="RouteID field in the network layer",
+            displayName="RouteID field in the network feature class",
             name="RID_field",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_points = arcpy.Parameter(
-            displayName="From points output layer",
+            displayName="From points output feature class",
             name="points",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Output")
         param_splits = arcpy.Parameter(
-            displayName="Split points output layer",
+            displayName="Split points output feature class",
             name="splits",
             datatype="GPFeatureLayer",
             parameterType="Required",

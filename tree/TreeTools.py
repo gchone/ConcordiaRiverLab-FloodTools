@@ -211,7 +211,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
         arcpy.Delete_management(str_output_points)
     arcpy.da.NumPyArrayToTable(pointsarray, str_output_points)
 
-    # Splitting lines if necessary
+    #Splitting lines if necessary
     if split_pts is not None:
         # a temp file of the points is necessary, to do a spatial join
         #pts_table = arcpy.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
