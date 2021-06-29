@@ -44,6 +44,12 @@ class ChannelCorrection(object):
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
+        param_footprints = arcpy.Parameter(
+            displayName="Empreinte des DEMs utilisés",
+            name="footprints",
+            datatype="GPFeatureLayer",
+            parameterType="Required",
+            direction="Input")
         param_breachedmnt = arcpy.Parameter(
             displayName="Output: Nom du raster contenant l'élévation corrigée de la surface de l'eau",
             name="breachedmnt",
@@ -53,9 +59,10 @@ class ChannelCorrection(object):
 
         param_boundary.filter.list = ["Polyline"]
         param_riverbed.filter.list = ["Polygon"]
+        param_footprints.filter.list = ["Polygon"]
         param_riverline.filter.list = ["Polyline"]
 
-        params = [param_mnt, param_boundary, param_riverbed, param_riverline, param_breachedmnt]
+        params = [param_mnt, param_boundary, param_riverbed, param_riverline, param_footprints, param_breachedmnt]
 
         return params
 
@@ -74,8 +81,9 @@ class ChannelCorrection(object):
         boundary = parameters[1].valueAsText
         riverbed = parameters[2].valueAsText
         riverline = parameters[3].valueAsText
-        breachedmnt = parameters[4].valueAsText
+        footprints = parameters[4].valueAsText
+        breachedmnt = parameters[5].valueAsText
 
-        execute_ChannelCorrection(mnt, boundary, riverbed, riverline, breachedmnt, messages)
+        execute_ChannelCorrection(mnt, boundary, riverbed, riverline, footprints, breachedmnt, messages)
 
         return
