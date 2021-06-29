@@ -222,23 +222,20 @@ class _NumpyArrayFedObject(object):
                 # champ pour la valeur:
                 valuefield = self._numpyarray_holder.dict_attr_fields[name]
                 array[valuefield][array[idfield] == self.id] = value
-            elif not name in self.__dict__:
-                # creating a new attribute
-                # if isinstance(value, int):
-                #     self._numpyarray_holder._variablesset.add(name)
-                #     self._numpyarray_holder._variablestype[name] = ['int']
-                # elif isinstance(value, float):
-                if isinstance(value, float) or isinstance(value, int):
-                    self._numpyarray_holder._variablesset.add(name)
-                    self._numpyarray_holder._variablestype[name] = ['float']
-                elif isinstance(value, str):
-                    self._numpyarray_holder._variablesset.add(name)
-                    if name in self._numpyarray_holder._variablestype.keys():
-                        maxlength = max(len(value), self._numpyarray_holder._variablestype[name][1])
-                    else:
-                        maxlength = len(value)
-                    self._numpyarray_holder._variablestype[name] = ['str', maxlength]
-                # if the attribute is not an int, a float or a string, it is not added to the list and can't be saved
+            # Following part removed: the attributes to be saved at set up manually
+            # elif not name in self.__dict__:
+            #     # creating a new attribute
+            #     if isinstance(value, float) or isinstance(value, int):
+            #         self._numpyarray_holder._variablesset.add(name)
+            #         self._numpyarray_holder._variablestype[name] = ['float']
+            #     elif isinstance(value, str):
+            #         self._numpyarray_holder._variablesset.add(name)
+            #         if name in self._numpyarray_holder._variablestype.keys():
+            #             maxlength = max(len(value), self._numpyarray_holder._variablestype[name][1])
+            #         else:
+            #             maxlength = len(value)
+            #         self._numpyarray_holder._variablestype[name] = ['str', maxlength]
+            # if the attribute is not an int, a float or a string, it is not added to the list and can't be saved
 
 
         else:
