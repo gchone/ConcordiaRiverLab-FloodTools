@@ -157,6 +157,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
 
                     if len_of_upstream_meet_reach > 0:
                         pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
+                        pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - confluencepoint["dist"]
                         # The link table need to be updated too (new RID for the upstream part of the met reach)
                         links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
                     else:
@@ -233,6 +234,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
             matchingrid = pointsarray["RID"] == split[0]
             matchingdist = pointsarray["dist"] < split[1]
             pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid
+            pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - split[1]
             # update the links
             links[RiverNetwork.reaches_linkfieldup][links[RiverNetwork.reaches_linkfieldup] == split[0]] = segmentid
             to_add = numpy.empty(1, dtype=links.dtype)
