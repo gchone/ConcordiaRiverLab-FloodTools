@@ -59,7 +59,6 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         nparray = arcpy.da.FeatureClassToNumPyArray("points_lyr", fields_to_keep)
 
         # rename fields
-        data_fields_names.remove(points_RIDfield)  # remove the second "RID"
         wanted_fields_name = onroute_fields_names[1:-1]
         for field in list_fields_to_keep:
             wanted_fields_name.append(field)
@@ -94,5 +93,22 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
                                  points_lyr_IDfield,
                                  "KEEP_COMMON")
 
+        total_fields_list = [str(f.name) for f in arcpy.ListFields("onroute_lyr")]
+        onroute_fields_names = [str(f.name) for f in arcpy.ListFields(points_onroute)]
+        data_fields_names = [str(f.name) for f in arcpy.ListFields("points_lyr")]
+        fields_to_keep = total_fields_list[1:len(onroute_fields_names)]
 
+        for field in list_fields_to_keep:
+            fields_to_keep.append(arcpy.Describe(points).basename + "." + field)
+
+        nparray = arcpy.da.FeatureClassToNumPyArray("onroute_lyr", fields_to_keep)
+
+        # rename fields
+        wanted_fields_name = onroute_fields_names[1:]
+        for field in list_fields_to_keep:
+            wanted_fields_name.append(field)
+
+        nparray.dtype.names = wanted_fields_name
+
+        arcpy.da.NumPyArrayToTable(nparray, output_table)
 

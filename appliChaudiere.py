@@ -77,13 +77,13 @@ if __name__ == "__main__":
     routesD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\DEM3m_routeD8"
     linksD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\DEM3m_linksD8"
     pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\DEM3m_pathpointsD8"
-    execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
+    #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
     lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\dem3m_forws2")
     smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\smoothedpts2"
 
-    execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
-                                lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, smoothedpts, messages)
+    #execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
+    #                            lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, smoothedpts, messages)
 
 
 
