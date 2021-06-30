@@ -65,22 +65,24 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
     switchelev = SetNull(IsNull(rasterlimit) == 0, -1 * (Con(IsNull(streambed), Con(bedwalls, Con(IsNull(statpts), chanwalls)), chanelev) - chanmax))
     switchelev.save(switchelev_file)
 
+    env.extent = demras
+
+    filled = Fill(switchelev_file)
+    breach1 = arcpy.sa.Con(arcpy.sa.IsNull(streambed), demras, chanmax - filled)
+
+    breachedtemp = arcpy.sa.Con(arcpy.sa.IsNull(rasterlimit), breach1, demras)
+    breachedtemp.save(breachedmnt)
+
     Delete(rasterbed)
     Delete(bedwalls)
     Delete(endsras)
     Delete(rasterline)
     Delete(statpts)
     Delete(chanelev)
-
-    env.extent = demras
-    breachedtemp = Con(IsNull(rasterlimit) == 0, demras, Con(IsNull(streambed), demras, (-1*Fill(switchelev_file)) + chanmax))
-
-    breachedtemp.save(breachedmnt)
-
     Delete(switchelev_file)
     Delete(switchelev)
     Delete(streambed)
     Delete(rasterlimit)
-    # Delete(switchfilled)
+
     return
 

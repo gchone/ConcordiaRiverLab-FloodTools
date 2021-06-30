@@ -56,6 +56,16 @@ if __name__ == "__main__":
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
     #execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder2", messages)
 
+    #test
+    a = r"E:\InfoCrue\PetiteNation\CorrectionWS\lidar3m_cor"
+    b= r"Z:\Projects\Info-Crue\PetiteNation\Tosort\polycuts.shp"
+    c = r"Z:\Projects\Info-Crue\PetiteNation\Tosort\channel_poly_d.shp"
+    d=r"Z:\Projects\Info-Crue\PetiteNation\Tosort\rnetwork_d.shp"
+    e=r"E:\InfoCrue\PetiteNation\CorrectionWS\Limites_merge_PN.shp"
+
+    f=r"E:\InfoCrue\PetiteNation\CorrectionWS\forws"
+    execute_ChannelCorrection(arcpy.Raster(a), b, c, d, e, f, messages)
+
 
     ### Water Surface ####
     lidar3m = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\WaterSurface2.gdb\dem3mmin_br_cor")
