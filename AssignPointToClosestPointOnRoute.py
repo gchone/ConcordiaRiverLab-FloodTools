@@ -23,23 +23,22 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         list_RIDs.append(point[0])
     list_RIDs = set(list_RIDs)
 
-    list_tables = []
-    i=0
-    for RID in list_RIDs:
-        i+=1
-        arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
-        arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
-        table = arcpy.CreateScratchName("nt"+str(i), data_type="ArcInfoTable", workspace="in_memory")
-        # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
-        # point on route to the original point.
-        arcpy.GenerateNearTable_analysis("points_lyr", "onroute_lyr", table, closest="CLOSEST")
-        list_tables.append(table)
-    table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
-    arcpy.Merge_management(list_tables, table)
-    arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
-    arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
-
     if stat == "MEAN":
+        list_tables = []
+        i=0
+        for RID in list_RIDs:
+            i+=1
+            arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
+            arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
+            table = arcpy.CreateScratchName("nt"+str(i), data_type="ArcInfoTable", workspace="in_memory")
+            # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
+            # point on route to the original point.
+            arcpy.GenerateNearTable_analysis("points_lyr", "onroute_lyr", table, closest="CLOSEST")
+            list_tables.append(table)
+        table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
+        arcpy.Merge_management(list_tables, table)
+        arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
+        arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
 
         # Join tables in order to have the data from the points linked with the points on route
         onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
@@ -84,12 +83,28 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         # In the case we only need the data from the closest point, the join needs to be done in reverse
         #  (joining the onroute points with the data points instead of the data points with the onroute points)
 
-        # Join tables in order to have the data from the points linked with the points on route
+        list_tables = []
+        i=0
+        for RID in list_RIDs:
+            i+=1
+            arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
+            arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
+            table = arcpy.CreateScratchName("nt"+str(i), data_type="ArcInfoTable", workspace="in_memory")
+            # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
+            # data point to the point on route.
+            arcpy.GenerateNearTable_analysis("onroute_lyr", "points_lyr", table, closest="CLOSEST")
+            list_tables.append(table)
+        table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
+        arcpy.Merge_management(list_tables, table)
+        arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
+        arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
+
+        # Join tables in order to have the data from the points on route linked with the data points
         onroute_lyr_IDfield = arcpy.Describe("onroute_lyr").OIDFieldName
         points_lyr_IDfield = arcpy.Describe("points_lyr").OIDFieldName
 
-        arcpy.AddJoin_management("onroute_lyr", onroute_lyr_IDfield, table, "NEAR_FID", "KEEP_COMMON")
-        arcpy.AddJoin_management("onroute_lyr", os.path.basename(table) + ".IN_FID", "points_lyr",
+        arcpy.AddJoin_management("onroute_lyr", onroute_lyr_IDfield, table, "IN_FID", "KEEP_COMMON")
+        arcpy.AddJoin_management("onroute_lyr", os.path.basename(table) + ".NEAR_FID", "points_lyr",
                                  points_lyr_IDfield,
                                  "KEEP_COMMON")
 
