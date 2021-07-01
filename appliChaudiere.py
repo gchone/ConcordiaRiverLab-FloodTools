@@ -49,22 +49,12 @@ if __name__ == "__main__":
     routesD8 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD8"
     linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
     pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
-    basicnet_to_D8_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable4"
+    basicnet_to_D8_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable5"
     #execute_D8path(routes_main, links_main, "RID", flowdir, routesD8, linksD8, pathpoints, basicnet_to_D8_relatetable, messages)
 
     flowacc = arcpy.Raster(
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
     #execute_OrderReaches(routes_main, links_main, "RID", flowdir, flowacc, "Qorder2", messages)
-
-    #test
-    a = r"E:\InfoCrue\PetiteNation\CorrectionWS\lidar3m_cor"
-    b= r"Z:\Projects\Info-Crue\PetiteNation\Tosort\polycuts.shp"
-    c = r"Z:\Projects\Info-Crue\PetiteNation\Tosort\channel_poly_d.shp"
-    d=r"Z:\Projects\Info-Crue\PetiteNation\Tosort\rnetwork_d.shp"
-    e=r"E:\InfoCrue\PetiteNation\CorrectionWS\Limites_merge_PN.shp"
-
-    f=r"E:\InfoCrue\PetiteNation\CorrectionWS\forws"
-    execute_ChannelCorrection(arcpy.Raster(a), b, c, d, e, f, messages)
 
 
     ### Water Surface ####
@@ -76,7 +66,6 @@ if __name__ == "__main__":
     DEMs_footprints_id = "ORIG_FID"
     ws3m = "E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\DEM3m_forws"
     #execute_ChannelCorrection(lidar3m, ends, channel, linear, DEMs_footprints, ws3m, messages)
-    # NB: There was some weird crashes when running ChannelCorrection. Could be linked with the antivirus or lack of memory
 
     fpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\from_points"
     # splits = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\splits"
@@ -90,10 +79,10 @@ if __name__ == "__main__":
     #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
     lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\dem3m_forws2")
-    smoothedpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\smoothedpts2"
+    bathy_datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\smoothedpts"
 
     #execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
-    #                            lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, smoothedpts, messages)
+    #                            lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, bathy_datapts, messages)
 
 
 
@@ -118,9 +107,9 @@ if __name__ == "__main__":
     Qpoints_match_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Qpoints_match_Atlas"
     Qcsv_file = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\qlidaratlas2020c.csv"
     Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Final_Qpoints"
-    # execute_SpatializeQ(routesD8, "RID", pathpoints, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
-    #                         "Drainage", "Sup_mod_km", "IDTRONCON",
-    #                         smoothedpts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
+    # execute_SpatializeQ(routesD8, "RID", pathpoints, basicnet_to_D8_relatetable, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
+    #                         "Sup_mod_km", "IDTRONCON",
+    #                         bathy_datapts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
     #                         Qcsv_file, Qpoints_spatialized)
 
 # Width postproc

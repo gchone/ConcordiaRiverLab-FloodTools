@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import arcpy
+import numpy
 
 from tree.TreeTools import *
 from RelateNetworks import *
@@ -7,8 +8,8 @@ from LocatePointsAlongRoutes import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
 from WSsmoothing import *
-
-from numpy import genfromtxt
+from numpy.lib import recfunctions as rfn
+import csv
 
 def execute_D8path(routes, links, RID_field, r_flow_dir, routeD8, linksD8, ptsonD8, relatetable, messages):
     fp = arcpy.CreateScratchName("fp", data_type="FeatureClass", workspace="in_memory")
@@ -79,7 +80,7 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
     QpointsD8 = arcpy.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
     execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
-    Qpoints_subD8 = arcpy.CreateScratchName("QptsSub", data_type="ArcInfoTable", workspace="in_memory")
+    Qpoints_subD8 = arcpy.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
     arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON")
 
     arcpy.sa.ExtractMultiValuesToPoints(Qpoints_subD8, [[r_flowacc, "flowacc"]])
@@ -92,7 +93,6 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
     D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
     arcpy.AddJoin_management("qpts_lyr", routeD8_RID, relate_table,
                              D8_RID_field_in_relatetable)
-
 
     # Numpy array conversion to keep only the relevant fields (Main route RID and RID from the Atlas)
     fields_to_keep = [arcpy.Describe(relate_table).basename + "." + route_main_RID]
@@ -119,7 +119,7 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
 
     arcpy.CopyFeatures_management("res_lyr", outpoints)
 
-def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, Drainage_field_Qpoints, Atlas_Drainage_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points):
+def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, Atlas_Drainage_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points):
 
     # Extract Flow Acc along D8
     arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
@@ -127,11 +127,14 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, r_flowacc, routes,
     # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... don't know why
     arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
     arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
+    arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
+    D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
+    arcpy.AddJoin_management("D8pts_lyr2", RID_field_D8, relate_table,
+                             D8_RID_field_in_relatetable)
 
     # Join target points with the closest D8 point with the same RID
-    #targets_withFlowAcc = arcpy.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
-    targets_withFlowAcc = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\targets_withFlowAcc"
-    execute_AssignPointToClosestPointOnRoute(D8pts, RID_field_D8, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc)
+    targets_withFlowAcc = arcpy.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -141,7 +144,6 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, r_flowacc, routes,
     Qcollection.dict_attr_fields['id'] = id_field_Qpoints
     Qcollection.dict_attr_fields['reach_id'] = RID_Qpoints
     Qcollection.dict_attr_fields['dist'] = dist_field_Qpoints
-    Qcollection.dict_attr_fields['FlowAccArea'] = Drainage_field_Qpoints
     Qcollection.dict_attr_fields['AtlasArea'] = Atlas_Drainage_field_Qpoints
     Qcollection.dict_attr_fields['AtlasID'] = AtlasReach_field_Qpoints
     Qcollection.load_table(Qpoints)
@@ -169,14 +171,14 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, r_flowacc, routes,
                 for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
                     if targetpts.dist >= min_dist and targetpts.dist < Qpts.dist:
                         targetpts.lastQpts = lastQpts
-                        targetpts.lastQptsID = lastQpts.AtlasID # TEMP
+                        targetpts.QptsID = lastQpts.AtlasID
             lastQpts = Qpts
         if lastQpts is not None:
             # Assign the lastQpts to target points until the end of the reach
-            for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-                if targetpts.dist >= lastQpts.dist:
-                    targetpts.lastQpts = lastQpts
-                    targetpts.lastQptsID = lastQpts.AtlasID  # TEMP
+            for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                if targetpt.dist >= lastQpts.dist:
+                    targetpt.lastQpts = lastQpts
+                    targetpt.QptsID = lastQpts.AtlasID
 
     # First browse bis: assign the closest upstream Q point for points without downstream Q points
     for reach in network.browse_reaches_up_to_down():
@@ -184,22 +186,41 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, r_flowacc, routes,
             lastQpts = None
         for Qpts in reach.browse_points(Qcollection, orientation="UP_TO_DOWN"):
             if lastQpts is not None:
-                for targetpts in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
-                    if not hasattr(targetpts, "lastQpts"):
-                        targetpts.lastQpts = lastQpts
-                        targetpts.lastQptsID = lastQpts.AtlasID  # TEMP
-
+                for targetpt in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
+                    if not hasattr(targetpt, "lastQpts"):
+                        targetpt.lastQpts = lastQpts
+                        targetpt.QptsID = lastQpts.AtlasID
+            lastQpts = Qpts
 
     # Second browse: Extract the right Q LiDAR discharge and do the drainage area correction
-    Qdata_array = genfromtxt(Qcsv_file, delimiter=',')
+    #  but first, the csv file is loaded into a dictionary
+    #Qdata_array = genfromtxt(Qcsv_file, delimiter=',')
+    Q_dict = {}
+    with open(Qcsv_file, 'r') as csvfile:
+        csvreader = csv.DictReader(csvfile)
+        firstrowname = csvreader.fieldnames[0]
+        for line in csvreader:
+            Q_dict[line[firstrowname]]=line
     for reach in network.browse_reaches_down_to_up():
-        for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-            #Qlidar = Qdata_array[targetpts.DEM][targetpts.lastQpts.AtlasID]
-            #targetpts.Qlidar = Qlidar/lastQpts.AtlasArea*lastQpts.FlowAccArea
-            pass
+        for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+            Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
+            targetpt.Qlidar = Qlidar/lastQpts.AtlasArea * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
 
-    # Save
-    targetcollection.add_SavedVariable("lastQptsID", "lastQptsID")
-    targetcollection.add_SavedVariable("flowacc", "flowacc")
-    #targetcollection.add_SavedVariable("Qlidar", "Qlidar")
-    targetcollection.save_points(output_points)
+    # Join the final results to the original target shapefile
+    targetcollection.add_SavedVariable("QptsID", "str", 20)
+    targetcollection.add_SavedVariable("Qlidar", "float")
+    targets_withQ = arcpy.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
+    targetcollection.save_points(targets_withQ)
+
+    # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.
+    # Resolved by using numpyarray
+    originalfields = [f.name for f in arcpy.Describe(targetpoints).fields]
+    original_nparray = arcpy.da.TableToNumPyArray(targetpoints, originalfields)
+    original_nparray = numpy.sort(original_nparray, order=id_field_target)
+    result_nparray = arcpy.da.TableToNumPyArray(targets_withQ, [id_field_target, "QptsID", "Qlidar"])
+    result_nparray = numpy.sort(result_nparray, order=id_field_target)
+    finalarray = rfn.merge_arrays([original_nparray, result_nparray[["QptsID", "Qlidar"]]], flatten=True)
+    if arcpy.env.overwriteOutput and arcpy.Exists(output_points):
+        arcpy.Delete_management(output_points)
+    arcpy.da.NumPyArrayToTable(finalarray, output_points)
+
