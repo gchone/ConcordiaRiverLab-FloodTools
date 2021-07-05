@@ -15,6 +15,7 @@ For fixing this issue, the tool has to run twice (A to B and B to A). Then 2 cle
 import os.path
 import numpy as np
 import arcpy
+import ArcpyGarbageCollector as gc
 
 
 def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, messages):

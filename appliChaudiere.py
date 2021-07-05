@@ -115,7 +115,7 @@ if __name__ == "__main__":
     #### Width assessment ####
     widthpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthcalcpts"
     widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthtransects"
-    execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
+    #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
     #widthdata = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_raw"
     #widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_merge2"
