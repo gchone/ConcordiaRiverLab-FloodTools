@@ -24,7 +24,7 @@ def execute_LocatePointsAlongRoutes(points, points_RIDfield, routes, routes_RIDf
         i+=1
         arcpy.SelectLayerByAttribute_management("pts_layer", "NEW_SELECTION", points_RIDfield + " = "+ str(reach[0]))
         arcpy.SelectLayerByAttribute_management("route_layer", "NEW_SELECTION", routes_RIDfield + " = "+ str(reach[0]))
-        table = arcpy.CreateScratchName("net"+str(i), data_type="ArcInfoTable", workspace="in_memory")
+        table = gc.CreateScratchName("net"+str(i), data_type="ArcInfoTable", workspace="in_memory")
         arcpy.lr.LocateFeaturesAlongRoutes("pts_layer", "route_layer", "RID", distance, table, routes_RIDfield+" POINT MEAS")
         list_tables.append(table)
 

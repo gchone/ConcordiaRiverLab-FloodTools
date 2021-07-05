@@ -13,7 +13,7 @@ from arcpy.management import AddField, CalculateField, SelectLayerByLocation, Ma
     Dissolve, FeatureToLine, CreateTable, PointsToLine
 from arcpy.analysis import Intersect, Buffer, Statistics, Erase, Near, CreateThiessenPolygons, SpatialJoin
 from arcpy.da import NumPyArrayToTable, TableToNumPyArray, FeatureClassToNumPyArray
-from DataManagementDEH import addfieldtoarray, deleteuselessfields, getfieldproperty, ScratchIndex
+from DataManagementDEH import addfieldtoarray, deleteuselessfields, getfieldproperty
 
 from tree.RiverNetwork import *
 import ArcpyGarbageCollector as gc
@@ -37,39 +37,34 @@ def pointsdextremites(streamnetwork, banklines, endpoints):
     # enpoints = STRING, les points d'extrémités des branches sont enregistrés.
     # **************************************************************************
 
-    gc = ScratchIndex()  # Régistre des couches de données temporaires
-    try:
-        # Création d'un ensemble de points aux extrémités aval des tronçons
-        confpts = gc.scratchname("ptex", "FeatureClass", workspace=env.scratchWorkspace)
-        FeatureVerticesToPoints(streamnetwork, confpts, "END")
-        DeleteIdentical(confpts, ["Shape"])  # Suppression des doublons
 
-        # Suppression des points aval qui ne sont pas des confluences
-        dangpts = gc.scratchname("mptex", "FeatureClass")
-        FeatureVerticesToPoints(streamnetwork, dangpts, "DANGLE")
-        MakeFeatureLayer(confpts, "confpts_lyr")
-        SelectLayerByLocation("confpts_lyr", "INTERSECT", dangpts, "", "NEW_SELECTION")
-        DeleteRows("confpts_lyr")
-        SelectLayerByAttribute("confpts_lyr", "CLEAR_SELECTION")
 
-        # Calcul de la distance des points de confluence avec la berge la plus proche
-        Near(confpts, banklines, None, "NO_LOCATION", "NO_ANGLE", "PLANAR")
-        AddField(confpts, "Buff_dist", "FLOAT")
-        # HARDCODED : Il est préférable de prendre 2 fois le cellsize du MNT utilisé pour le pré-traitement.
-        cellsize = 4
-        CalculateField(confpts, "Buff_dist", "!NEAR_DIST! + {0}".format(2 * cellsize), "PYTHON3")  # Résolution du MNT
+    # Création d'un ensemble de points aux extrémités aval des tronçons
+    confpts = gc.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    FeatureVerticesToPoints(streamnetwork, confpts, "END")
+    DeleteIdentical(confpts, ["Shape"])  # Suppression des doublons
 
-        # Création d'un ensemble de points situés immédiatement en amont ou en aval des points de confluence
-        confbuff = gc.scratchname("mptex", "FeatureClass")
-        Buffer(confpts, confbuff, "Buff_dist", "FULL", "ROUND", "NONE", "", "PLANAR")
+    # Suppression des points aval qui ne sont pas des confluences
+    dangpts = gc.CreateScratchName("mptex", data_type="FeatureClass", workspace="in_memory")
+    FeatureVerticesToPoints(streamnetwork, dangpts, "DANGLE")
+    MakeFeatureLayer(confpts, "confpts_lyr")
+    SelectLayerByLocation("confpts_lyr", "INTERSECT", dangpts, "", "NEW_SELECTION")
+    DeleteRows("confpts_lyr")
+    SelectLayerByAttribute("confpts_lyr", "CLEAR_SELECTION")
 
-        buffend = gc.scratchname("mptex", "FeatureClass")
-        Intersect([confbuff, streamnetwork], buffend, "ALL", "", "POINT")
-        MultipartToSinglepart(buffend, endpoints)
+    # Calcul de la distance des points de confluence avec la berge la plus proche
+    Near(confpts, banklines, None, "NO_LOCATION", "NO_ANGLE", "PLANAR")
+    AddField(confpts, "Buff_dist", "FLOAT")
+    # HARDCODED : Il est préférable de prendre 2 fois le cellsize du MNT utilisé pour le pré-traitement.
+    cellsize = 4
+    CalculateField(confpts, "Buff_dist", "!NEAR_DIST! + {0}".format(2 * cellsize), "PYTHON3")  # Résolution du MNT
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
+    # Création d'un ensemble de points situés immédiatement en amont ou en aval des points de confluence
+    confbuff = gc.CreateScratchName("mptex", data_type="FeatureClass", workspace="in_memory")
+    Buffer(confpts, confbuff, "Buff_dist", "FULL", "ROUND", "NONE", "", "PLANAR")
+    buffend = gc.CreateScratchName("mptex", data_type="FeatureClass", workspace="in_memory")
+    Intersect([confbuff, streamnetwork], buffend, "ALL", "", "POINT")
+    MultipartToSinglepart(buffend, endpoints)
 
     return
 
@@ -99,97 +94,100 @@ def pointsdemesure(streamnetwork, idfield, csfield, distfield, typefield, spacin
     # **************************************************************************
 
     sws = env.scratchWorkspace
-    gc = ScratchIndex()  # Régistre des couches de données temporaires
 
-    try:
-        idln = FeatureClassToNumPyArray(streamnetwork, [idfield, "SHAPE@LENGTH"], null_value=-9999)
-        forkid = idln[idfield]
-        length = idln["SHAPE@LENGTH"]
-        strt = np.zeros(length.shape)
-        stop = np.copy(length)
-        tips = np.tile(np.array([1, 1, 1, 0]), [length.shape[0], 1])
 
-        # Afin d'exclure les zones de confluence, les points sont générés entre les points d'extrémités (inclus)
-        # Si les points d'extrémités ne sont pas spécifiés, les points de mesure sont générés sur toute la longueur.
-        if endpoints is not None:
-            endevnt = gc.scratchname("ptme", "Table", workspace=sws)
-            LocateFeaturesAlongRoutes(endpoints, streamnetwork, idfield, "0.1 Meters", endevnt, "Routeid Point Measure",
-                                      "ALL", "NO_DISTANCE", "", "NO_FIELDS", "")
-            endarr = TableToNumPyArray(endevnt, ["Routeid", "Measure"], null_value=-9999)
-            for i in range(0, forkid.shape[0], 1):
-                ends = endarr["Measure"][endarr["Routeid"] == forkid[i]]
-                if ends.shape[0] >= 1:
-                    strt[i] = np.min(ends)
-                    stop[i] = np.max(ends)
-            ratio = np.divide(strt, length)
-            con1 = np.logical_and(strt == stop, ratio >= 0.5)
-            con2 = np.logical_and(strt == stop, ratio < 0.5)
-            strt[con1] = 0
-            stop[con2] = length[con2]
-            tips[strt != 0] = np.array([0, 2, 1, 1])
-            tips[stop != length, 2:] = np.array([3, 0])
+    idln = FeatureClassToNumPyArray(streamnetwork, [idfield, "SHAPE@LENGTH"], null_value=-9999)
+    forkid = idln[idfield]
+    length = idln["SHAPE@LENGTH"]
+    strt = np.zeros(length.shape)
+    stop = np.copy(length)
+    tips = np.tile(np.array([1, 1, 1, 0]), [length.shape[0], 1])
 
-        # Requête des paramètres du champ idfield
-        idft = getfieldproperty(streamnetwork, idfield, "type", default="STRING")
-        if idft == "STRING":
-            idft = "TEXT"
+    # Afin d'exclure les zones de confluence, les points sont générés entre les points d'extrémités (inclus)
+    # Si les points d'extrémités ne sont pas spécifiés, les points de mesure sont générés sur toute la longueur.
+    if endpoints is not None:
+        endevnt = gc.CreateScratchName("table", data_type="ArcInfoTable",
+                                                  workspace=arcpy.env.scratchWorkspace)
+        LocateFeaturesAlongRoutes(endpoints, streamnetwork, idfield, "0.1 Meters", endevnt, "Routeid Point Measure",
+                                  "ALL", "NO_DISTANCE", "", "NO_FIELDS", "")
+        endarr = TableToNumPyArray(endevnt, ["Routeid", "Measure"], null_value=-9999)
+        for i in range(0, forkid.shape[0], 1):
+            ends = endarr["Measure"][endarr["Routeid"] == forkid[i]]
+            if ends.shape[0] >= 1:
+                strt[i] = np.min(ends)
+                stop[i] = np.max(ends)
+        ratio = np.divide(strt, length)
+        con1 = np.logical_and(strt == stop, ratio >= 0.5)
+        con2 = np.logical_and(strt == stop, ratio < 0.5)
+        strt[con1] = 0
+        stop[con2] = length[con2]
+        tips[strt != 0] = np.array([0, 2, 1, 1])
+        tips[stop != length, 2:] = np.array([3, 0])
 
-        # Création des champs dans la table vide
-        temptabl = gc.scratchname("ptme", "Table", workspace=sws)
-        CreateTable(sws, basename(temptabl))  # Champ OBJECTID créé avec la table
-        fieldnames = [csfield, distfield, idfield, typefield]
-        for field, dtype in zip(fieldnames, ["LONG", "FLOAT", idft, "LONG"]):
-            AddField(temptabl, field, dtype)
+    # Requête des paramètres du champ idfield
+    idft = getfieldproperty(streamnetwork, idfield, "type", default="STRING")
+    if idft == "STRING":
+        idft = "TEXT"
 
-        s1arr = TableToNumPyArray(temptabl, fieldnames, null_value=-9999)
-        arrlist = []
-        trows = 0
-        dt1 = s1arr.dtype
-        for sa, so, tip, ln, fkid in zip(strt, stop, tips, length, forkid):
-            arcpy.AddMessage("La branche {0} commence à {1}, finit à {2}, a une longueur de {3}.".format(fkid, sa, so, ln))
+    # Création des champs dans la table vide
+    temptabl = gc.CreateScratchName("table", data_type="ArcInfoTable",
+                                      workspace=arcpy.env.scratchWorkspace)
+    CreateTable(sws, basename(temptabl))  # Champ OBJECTID créé avec la table
 
-            if (so - sa) < 0:
-                arcpy.AddMessage("La branche {0} est trop courte, elle ne peut être traitée.".format(fkid))
-                continue
+    fieldnames = [csfield, distfield, idfield, typefield]
+    for field, dtype in zip(fieldnames, ["LONG", "FLOAT", idft, "LONG"]):
+        AddField(temptabl, field, dtype)
 
-            if (so - sa) < (3 * spacing):
-                dist = np.arange(sa, so + 0.0001, (so - sa)/3)  # Position par rapport à l'amont de la branche
+    s1arr = TableToNumPyArray(temptabl, fieldnames, null_value=-9999)
+    arrlist = []
+    trows = 0
+    dt1 = s1arr.dtype
+    for sa, so, tip, ln, fkid in zip(strt, stop, tips, length, forkid):
+        #arcpy.AddMessage("La branche {0} commence à {1}, finit à {2}, a une longueur de {3}.".format(fkid, sa, so, ln))
 
-                arcpy.AddMessage("La branche {0} est courte, l'espacement ne sera pas respecté.".format(fkid))
-                # continue
-            else:
-                dist = np.arange(sa, so, spacing)  # Position par rapport à l'amont de la branche de chaque transect
+        if (so - sa) < 0:
+            arcpy.AddMessage("La branche {0} est trop courte, elle ne peut être traitée.".format(fkid))
+            continue
 
-            if (so - dist[-1]) > (spacing / 2):  # Dernier transect déplacé ou ajouté
-                dist = np.append(dist, so)
-            else:
-                dist[-1] = so
+        if (so - sa) < (3 * spacing):
+            dist = np.arange(sa, so + 0.0001, (so - sa)/3)  # Position par rapport à l'amont de la branche
 
-            if sa != 0:  # Si la CS amont n'est pas à la confluence, on ajoute un point
-                dist = np.append([0], dist)
+            arcpy.AddMessage("La branche {0} est courte, l'espacement ne sera pas respecté.".format(fkid))
+            # continue
+        else:
+            dist = np.arange(sa, so, spacing)  # Position par rapport à l'amont de la branche de chaque transect
 
-            if so != ln:  # Si la CS aval n'est pas à la confluence, on ajoute un point
-                dist = np.append(dist, [ln])
+        if (so - dist[-1]) > (spacing / 2):  # Dernier transect déplacé ou ajouté
+            dist = np.append(dist, so)
+        else:
+            dist[-1] = so
 
-            nrows = dist.shape[0]
-            trows += nrows
-            newblock = np.repeat(np.array([(0, 0, fkid, 0)], dtype=dt1), nrows)
-            newblock[distfield] = dist
+        if sa != 0:  # Si la CS amont n'est pas à la confluence, on ajoute un point
+            dist = np.append([0], dist)
 
-            newblock[typefield] = np.concatenate((tip[:2], np.repeat(1, nrows - 4), tip[2:]))  # Assignation du CSType
-            arrlist.append(newblock)
+        if so != ln:  # Si la CS aval n'est pas à la confluence, on ajoute un point
+            dist = np.append(dist, [ln])
 
-        s1arr = np.concatenate(arrlist)
-        s1arr[csfield] = np.arange(1, trows + 1, 1)
-        s1evnt = gc.scratchname("ptme", "Table", workspace=sws)
-        NumPyArrayToTable(s1arr, s1evnt)
-        eventtype = "{0} Point {1}".format(idfield, distfield)
-        MakeRouteEventLayer(streamnetwork, idfield, s1evnt, eventtype, "s1evnt_lyr", None)
-        CopyFeatures("s1evnt_lyr", datapoints)  # Enregistre les points de repère de distance et le type de chaque CS
+        nrows = dist.shape[0]
+        trows += nrows
+        newblock = np.repeat(np.array([(0, 0, fkid, 0)], dtype=dt1), nrows)
+        newblock[distfield] = dist
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
+        newblock[typefield] = np.concatenate((tip[:2], np.repeat(1, nrows - 4), tip[2:]))  # Assignation du CSType
+        arrlist.append(newblock)
+
+    s1arr = np.concatenate(arrlist)
+    s1arr[csfield] = np.arange(1, trows + 1, 1)
+    s1evnt = gc.CreateScratchName("table", data_type="ArcInfoTable",
+                                       workspace=arcpy.env.scratchWorkspace)
+    print(s1evnt)
+    NumPyArrayToTable(s1arr, s1evnt)
+
+    eventtype = "{0} Point {1}".format(idfield, distfield)
+    MakeRouteEventLayer(streamnetwork, idfield, s1evnt, eventtype, "s1evnt_lyr", None)
+    CopyFeatures("s1evnt_lyr", datapoints)  # Enregistre les points de repère de distance et le type de chaque CS
+
+
 
     return
 
@@ -220,41 +218,40 @@ def transectsauxpointsdemesure(streamnetwork, idfield, cspoints, csfield, distfi
     # transects = STRING, les transects sont enregistrés sous forme de lignes
     # **************************************************************************
     sws = env.scratchWorkspace
-    gc = ScratchIndex()  # Régistre des couches de données temporaires
 
-    try:
-        MakeFeatureLayer(cspoints, "cspoints_lyr")
-        SelectLayerByAttribute("cspoints_lyr", "NEW_SELECTION", '"{0}" >= 1'.format(typefield), "")
+    MakeFeatureLayer(cspoints, "cspoints_lyr")
+    SelectLayerByAttribute("cspoints_lyr", "NEW_SELECTION", '"{0}" >= 1'.format(typefield), "")
 
-        csarr = TableToNumPyArray("cspoints_lyr", [csfield, idfield, distfield], null_value=-9999)
-        csarr = np.sort(csarr, order=csfield)  # Au cas où l'ordre des points aurait été mélangé
+    csarr = TableToNumPyArray("cspoints_lyr", [csfield, idfield, distfield], null_value=-9999)
+    csarr = np.sort(csarr, order=csfield)  # Au cas où l'ordre des points aurait été mélangé
 
-        SelectLayerByAttribute("cspoints_lyr", "CLEAR_SELECTION")
+    SelectLayerByAttribute("cspoints_lyr", "CLEAR_SELECTION")
 
-        # On ajoute le champ et les valeurs de offset pour générer les évènements de chaque côté du réseau
-        ofstfield = "Offset"
-        transarr = addfieldtoarray(np.repeat(csarr, 2), (ofstfield, '<f8'))  # Deux points pour chaque transects
-        transarr[ofstfield] = np.tile([maxwidth / 2, -maxwidth / 2], csarr.shape[0])
+    # On ajoute le champ et les valeurs de offset pour générer les évènements de chaque côté du réseau
+    ofstfield = "Offset"
+    transarr = addfieldtoarray(np.repeat(csarr, 2), (ofstfield, '<f8'))  # Deux points pour chaque transects
+    transarr[ofstfield] = np.tile([maxwidth / 2, -maxwidth / 2], csarr.shape[0])
 
-        # Création des transects en reliant les points générés de part et d'autre du réseau de cours d'eau
-        transevnt = gc.scratchname("trpt", "Table", workspace=sws)
-        NumPyArrayToTable(transarr, transevnt)
-        eventtype = "{0} Point {1}".format(idfield, distfield)
-        MakeRouteEventLayer(streamnetwork, idfield, transevnt, eventtype, "transevnt_lyr", offset_field=ofstfield)
+    # Création des transects en reliant les points générés de part et d'autre du réseau de cours d'eau
+    transevnt = gc.CreateScratchName("table", data_type="ArcInfoTable",
+                                       workspace=arcpy.env.scratchWorkspace)
+    NumPyArrayToTable(transarr, transevnt)
 
-        rawtrans = gc.scratchname("trpt", "FeatureClass", workspace=sws)
-        PointsToLine("transevnt_lyr", rawtrans, csfield, "", "NO_CLOSE")
 
-        transends = gc.scratchname("trpt", "FeatureClass", workspace=sws)
-        Intersect([rawtrans, riverbanks], transends, "ONLY_FID", "", "POINT")
+    eventtype = "{0} Point {1}".format(idfield, distfield)
+    MakeRouteEventLayer(streamnetwork, idfield, transevnt, eventtype, "transevnt_lyr", offset_field=ofstfield)
 
-        # Découpage des transects brutes en fonction des lignes de berges
-        SplitLineAtPoint(rawtrans, transends, transects, "0.05 Meters")
-        deleteuselessfields(transects, ["SHAPE_LENGTH", "OBJECTID", "SHAPE"], mapping="FC")
+    rawtrans = gc.CreateScratchName("trpt", data_type="FeatureClass",
+                                        workspace=arcpy.env.scratchWorkspace)
+    PointsToLine("transevnt_lyr", rawtrans, csfield, "", "NO_CLOSE")
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
+    transends = gc.CreateScratchName("trpt", data_type="FeatureClass",
+                                       workspace=arcpy.env.scratchWorkspace)
+    Intersect([rawtrans, riverbanks], transends, "ONLY_FID", "", "POINT")
+
+    # Découpage des transects brutes en fonction des lignes de berges
+    SplitLineAtPoint(rawtrans, transends, transects, "0.05 Meters")
+    deleteuselessfields(transects, ["SHAPE_LENGTH", "OBJECTID", "SHAPE"], mapping="FC")
 
     # Sélection des transects et suppression des lignes situés à l'extérieur des lignes de berge
     MakeFeatureLayer(transects, "splitrans_lyr")
@@ -282,33 +279,26 @@ def transectsauxconfluences(cspoints, typefield, riverbanks, transects):
     # SORTIE :
     # transects = STRING, les transects sont enregistrés sous forme de lignes
     # **************************************************************************
-    sws = env.scratchWorkspace
 
-    gc = ScratchIndex()  # Régistre des couches de données temporaires
+    MakeFeatureLayer(cspoints, "cspts_lyr")
+    SelectLayerByAttribute("cspts_lyr", "NEW_SELECTION", '"{0}" >= 2'.format(typefield))
 
-    try:
-        MakeFeatureLayer(cspoints, "cspts_lyr")
-        SelectLayerByAttribute("cspts_lyr", "NEW_SELECTION", '"{0}" >= 2'.format(typefield))
+    thiepoly = gc.CreateScratchName("mtrco", data_type="FeatureClass", workspace="in_memory")
+    CreateThiessenPolygons("cspts_lyr", thiepoly, "ALL")
 
-        thiepoly = gc.scratchname("mtrco", "FeatureClass")
-        CreateThiessenPolygons("cspts_lyr", thiepoly, "ALL")
+    disspoly = gc.CreateScratchName("mtrco", data_type="FeatureClass", workspace="in_memory")
+    Dissolve(thiepoly, disspoly, "CSType", "", "SINGLE_PART", "DISSOLVE_LINES")
 
-        disspoly = gc.scratchname("mtrco", "FeatureClass")
-        Dissolve(thiepoly, disspoly, "CSType", "", "SINGLE_PART", "DISSOLVE_LINES")
+    conftrans = gc.CreateScratchName("trco", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    FeatureToLine([disspoly], conftrans, "0.001 Meters", "NO_ATTRIBUTES")
 
-        conftrans = gc.scratchname("trco", "FeatureClass", workspace=sws)
-        FeatureToLine([disspoly], conftrans, "0.001 Meters", "NO_ATTRIBUTES")
+    transends = gc.CreateScratchName("trco", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    Intersect([conftrans, riverbanks], transends, "ONLY_FID", "", "POINT")
 
-        transends = gc.scratchname("trco", "FeatureClass", workspace=sws)
-        Intersect([conftrans, riverbanks], transends, "ONLY_FID", "", "POINT")
+    # Découpage des transects brutes en fonction des lignes de berges
+    SplitLineAtPoint(conftrans, transends, transects, "0.05 Meters")
+    deleteuselessfields(transects, ["SHAPE_LENGTH", "OBJECTID", "SHAPE"], mapping="FC")
 
-        # Découpage des transects brutes en fonction des lignes de berges
-        SplitLineAtPoint(conftrans, transends, transects, "0.05 Meters")
-        deleteuselessfields(transects, ["SHAPE_LENGTH", "OBJECTID", "SHAPE"], mapping="FC")
-
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
 
     # Sélection des transects et suppression des lignes situés à l'extérieur des lignes de berge
     MakeFeatureLayer(transects, "splitrans_lyr")
@@ -337,33 +327,27 @@ def transectsverspoints(transects, datapoints):
     # sont conservés.
     # **************************************************************************
 
-    gc = ScratchIndex()  # Régistre des couches de données temporaires
-
     fieldnames = [f.name for f in arcpy.ListFields(datapoints)] + [f.name for f in arcpy.ListFields(transects)]
     fms = arcpy.FieldMappings()  # Table d'attribut suite à l'ajout des extrémités des pré-découpages/confluences
     fms.addTable(transects)
 
-    try:
-        oldpts = gc.scratchname("trpt", "FeatureClass", workspace=env.scratchWorkspace)
-        CopyFeatures(datapoints, oldpts)
+    oldpts = gc.CreateScratchName("trpt", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    CopyFeatures(datapoints, oldpts)
 
-        MakeFeatureLayer(oldpts, "datapts_lyr")
-        SelectLayerByLocation("datapts_lyr", "INTERSECT", transects, "0.1 Meters", "NEW_SELECTION")
-        fms.addTable("datapts_lyr")
+    MakeFeatureLayer(oldpts, "datapts_lyr")
+    SelectLayerByLocation("datapts_lyr", "INTERSECT", transects, "0.1 Meters", "NEW_SELECTION")
+    fms.addTable("datapts_lyr")
 
-        tol = 1
-        # HARDCODED : Portée (en m) pour le SpatialJoin. Puisque les points de mesure sont normalement situés
-        # directement sur les transects, une tolérance de 0.5 m est amplement suffisante.
-        # Attention, le spacing entre les transects doit être supérieur à la portée.
+    tol = 1
+    # HARDCODED : Portée (en m) pour le SpatialJoin. Puisque les points de mesure sont normalement situés
+    # directement sur les transects, une tolérance de 0.5 m est amplement suffisante.
+    # Attention, le spacing entre les transects doit être supérieur à la portée.
 
-        SpatialJoin("datapts_lyr", transects, datapoints, "JOIN_ONE_TO_ONE",
-                    "KEEP_ALL", fms, "WITHIN_A_DISTANCE", "{0} Meters".format(tol), None)
+    SpatialJoin("datapts_lyr", transects, datapoints, "JOIN_ONE_TO_ONE",
+                "KEEP_ALL", fms, "WITHIN_A_DISTANCE", "{0} Meters".format(tol), None)
 
-        deleteuselessfields(datapoints, fieldnames, mapping="FC")
+    deleteuselessfields(datapoints, fieldnames, mapping="FC")
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
 
     return
 
@@ -396,38 +380,34 @@ def largeurdestransects(streamnetwork, transects, widthfield):
 
     # **************************************************************************
     mflag = env.outputMFlag
-    sws = env.scratchWorkspace
-    gc = ScratchIndex()
 
-    try:
-        env.outputMFlag = "Disabled"  # Pour que DeleteIdentical fonctionne aux confluences
+    env.outputMFlag = "Disabled"  # Pour que DeleteIdentical fonctionne aux confluences
 
-        # Nettoyage des transects qui traversent deux chenaux ou plus
-        overlaps = gc.scratchname("latr", "FeatureClass", workspace=sws)
-        Intersect([transects, streamnetwork], overlaps, "ALL", "", "POINT")
+    # Nettoyage des transects qui traversent deux chenaux ou plus
+    overlaps = gc.CreateScratchName("latr", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    Intersect([transects, streamnetwork], overlaps, "ALL", "", "POINT")
 
-        singols = gc.scratchname("latr", "FeatureClass", workspace=sws)
-        MultipartToSinglepart(overlaps, singols)
-        DeleteIdentical(singols, ["Shape"])  # Les transects aux confluences génèrent des doublons
+    singols = gc.CreateScratchName("latr", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+    MultipartToSinglepart(overlaps, singols)
 
-        tabletemp = gc.scratchname("tlatr", "Table", workspace=sws)
-        fname = "FID_{0}".format(basename(transects))
-        Statistics(singols, tabletemp, [["{0}".format(fname), "COUNT"]], fname)
+    DeleteIdentical(singols, ["Shape"])  # Les transects aux confluences génèrent des doublons
 
-        MakeFeatureLayer(transects, "transects_lyr")
-        JoinField("transects_lyr", "OBJECTID", tabletemp, fname, "COUNT_{0}".format(fname))
-        AlterField("transects_lyr", "COUNT_{0}".format(fname), "Bad_Ori")
-        SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"Bad_Ori" >= 2', "")
-        desc = arcpy.Describe("transects_lyr")
-        if desc.FIDSet != "":
-            DeleteRows("transects_lyr")
+    tabletemp = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
 
-        SelectLayerByAttribute("transects_lyr", "CLEAR_SELECTION")
-        DeleteField(transects, "Bad_Ori")  # On supprime le champ temporaire
+    fname = "FID_{0}".format(basename(transects))
+    Statistics(singols, tabletemp, [["{0}".format(fname), "COUNT"]], fname)
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
+    MakeFeatureLayer(transects, "transects_lyr")
+    JoinField("transects_lyr", "OBJECTID", tabletemp, fname, "COUNT_{0}".format(fname))
+    AlterField("transects_lyr", "COUNT_{0}".format(fname), "Bad_Ori")
+    SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"Bad_Ori" >= 2', "")
+    desc = arcpy.Describe("transects_lyr")
+    if desc.FIDSet != "":
+        DeleteRows("transects_lyr")
+
+    SelectLayerByAttribute("transects_lyr", "CLEAR_SELECTION")
+    DeleteField(transects, "Bad_Ori")  # On supprime le champ temporaire
+
 
     # Ajout d'un champ pour le calcul de la largeur
     AddField(transects, widthfield, "FLOAT", field_alias=widthfield, field_is_nullable="NULLABLE")
@@ -450,33 +430,28 @@ def supprimercroisements(transects, nx):
     # SORTIES :
     # Les transects avec trop de croisements sont supprimés.
     # **************************************************************************
-    sws = env.scratchWorkspace
-    gc = ScratchIndex()
 
-    try:
-        fname = "FID_{0}".format(basename(transects))
-        MakeFeatureLayer(transects, "transects_lyr")
-        for ii in range(5, nx, -1):
-            overlaps = gc.scratchname("msucr", "FeatureClass")
-            Intersect("transects_lyr", overlaps, "ONLY_FID", "", "POINT")
 
-            tabletemp = gc.scratchname("sucr", "Table", workspace=sws)
-            Statistics(overlaps, tabletemp, [[fname, "COUNT"]], fname)
-            JoinField("transects_lyr", "OBJECTID", tabletemp, fname, "COUNT_{0}".format(fname))
-            # AlterField("transects_lyr", "COUNT_{0}".format(fname), "Overlap{0:02d}".format(ii))
+    fname = "FID_{0}".format(basename(transects))
+    MakeFeatureLayer(transects, "transects_lyr")
+    for ii in range(5, nx, -1):
+        overlaps = gc.CreateScratchName("msucr", data_type="FeatureClass", workspace="in_memory")
+        Intersect("transects_lyr", overlaps, "ONLY_FID", "", "POINT")
 
-            # SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"Overlap{0:02d}" >= {1}'.format(ii, ii), "")
-            SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"COUNT_{0}" >= {1}'.format(fname, ii), "")
-            desc = arcpy.Describe("transects_lyr")
-            if desc.FIDSet != "":
-                DeleteRows("transects_lyr")
+        tabletemp = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
+        Statistics(overlaps, tabletemp, [[fname, "COUNT"]], fname)
+        gc.AddToGarbageBin(tabletemp)
+        JoinField("transects_lyr", "OBJECTID", tabletemp, fname, "COUNT_{0}".format(fname))
+        # AlterField("transects_lyr", "COUNT_{0}".format(fname), "Overlap{0:02d}".format(ii))
 
-            SelectLayerByAttribute("transects_lyr", "CLEAR_SELECTION")
-            DeleteField("transects_lyr", "COUNT_{0}".format(fname))  # On supprime le champ temporaire
+        # SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"Overlap{0:02d}" >= {1}'.format(ii, ii), "")
+        SelectLayerByAttribute("transects_lyr", "NEW_SELECTION", '"COUNT_{0}" >= {1}'.format(fname, ii), "")
+        desc = arcpy.Describe("transects_lyr")
+        if desc.FIDSet != "":
+            DeleteRows("transects_lyr")
 
-    finally:
-        # Suppression des couches de données temporaires
-        gc.wipeindex()
+        SelectLayerByAttribute("transects_lyr", "CLEAR_SELECTION")
+        DeleteField("transects_lyr", "COUNT_{0}".format(fname))  # On supprime le champ temporaire
 
     return
 
@@ -506,13 +481,11 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
     # **************************************************************************
 
     # Paramètres d'environnement et de gestion des couches temporaires
-    sws = env.scratchWorkspace
-    gc = ScratchIndex()
 
     try:
         # Suppression des zones d'écoulement ineffectives
         if ineffarea and ineffarea != "#":
-            effbed = gc.scratchname("mmexlt", "FeatureClass")
+            effbed = gc.CreateScratchName("mmexlt", data_type="FeatureClass", workspace="in_memory")
             Erase(riverbed, ineffarea, effbed)
             inpoly = effbed
         else:
@@ -521,38 +494,40 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
         csfield, distfield, typefield = "CSid", "Distance_m", "CSType"  # HARDCODED
 
         # Création des lignes des berges de cours d'eau
-        riverbanks = gc.scratchname("mexlt", "FeatureClass")
+        riverbanks = gc.CreateScratchName("mmexlt", data_type="FeatureClass", workspace="in_memory")
         PolygonToLine(inpoly, riverbanks, "IGNORE_NEIGHBORS")
 
         # Création d'un ensemble de points situés immédiatement en amont et en aval des points de confluence
-        endcs = gc.scratchname("mexlt", "FeatureClass")
+        endcs = gc.CreateScratchName("mexlt", data_type="FeatureClass", workspace="in_memory")
         pointsdextremites(streamnetwork, riverbanks, endcs)
 
         # Création de l'ensemble de points où sera mesurée la largeur sur le réseau (entre les points d'extrémités)
         pointsdemesure(streamnetwork, idfield, csfield, distfield, typefield, spacing, cspoints, endcs)
 
         # Création des transects équidistants situés sur les branches de cours d'eau
-        rawtrans = gc.scratchname("exlt", "FeatureClass", workspace=sws)
+        rawtrans = gc.CreateScratchName("exlt", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         transectsauxpointsdemesure(streamnetwork, idfield, cspoints, csfield, distfield,
                                    typefield, maxwidth, riverbanks, rawtrans)
+        gc.AddToGarbageBin(rawtrans)
 
         # Création des transects en pointe situés aux confluences
-        conftrans = gc.scratchname("exlt", "FeatureClass", workspace=sws)
+        conftrans = gc.CreateScratchName("exlt", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         transectsauxconfluences(cspoints, typefield, riverbanks, conftrans)
+
 
         Merge([rawtrans, conftrans], transects)
 
+        widthfield = "Largeur_m"  # HARDCODED
+        largeurdestransects(streamnetwork, transects, widthfield)
+
+        nx = 2  # Nombre de croisements tolérés
+        supprimercroisements(transects, nx)
+
+        transectsverspoints(transects, cspoints)
+
     finally:
         # Suppression des couches de données temporaires
-        gc.wipeindex()
-
-    widthfield = "Largeur_m"  # HARDCODED
-    largeurdestransects(streamnetwork, transects, widthfield)
-
-    nx = 2  # Nombre de croisements tolérés
-    supprimercroisements(transects, nx)
-
-    transectsverspoints(transects, cspoints)
+        gc.CleanAllTempFiles()
 
     return
 
@@ -585,9 +560,9 @@ def execute_WidthPostProc(network_shp, RID_field, main_field, links_table, width
 
 
         # Join the main channels points to the secondary channels ones
-        join_channels = arcpy.CreateScratchName("join", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        join_channels = gc.CreateScratchName("join", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         arcpy.SpatialJoin_analysis("width_second_lyr", "width_main_lyr", join_channels, match_option="CLOSEST")
-        gc.AddToGarbageBin(join_channels)
+
 
         #  The Spatial join creates weird field names. The best way to find back the name of a field after the spatial join is to use the field position in the table
         main_widthid_field = arcpy.ListFields(join_channels)[len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in arcpy.ListFields("width_main_lyr")].index(os.path.basename(widthdata)+"."+widthid)].name
@@ -632,9 +607,8 @@ def execute_WidthPostProc(network_shp, RID_field, main_field, links_table, width
 
         ### Test with Dissolve. Doesn't work because it creates Multipoints. Better to work with just the tables instead as numpy arrays (although it could have been simpler with Panda).
         # Group (Dissolve) the values from the same secondary channel and the same main channel points -> average
-        # dissolve_avg = arcpy.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        # dissolve_avg = gc.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         # arcpy.Dissolve_management(join_channels, dissolve_avg, [width_RID_field, main_widthid_field], [[width_field, "MEAN"]])
-        # gc.AddToGarbageBin(dissolve_avg)
         # # Group (Dissolve) the computed values for the same main channel points -> sum
         # print([f.name for f in arcpy.ListFields(dissolve_avg)])
         # print([f.name for f in arcpy.ListFields("width_main_lyr")])
@@ -659,13 +633,13 @@ def execute_WidthPostProc(network_shp, RID_field, main_field, links_table, width
         # fieldMappings = arcpy.FieldMappings()
         # fieldMappings.addFieldMap(fldMap_id)
         # fieldMappings.addFieldMap(fldMap_width)
-        # merge = arcpy.CreateScratchName("merge", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        # merge = gc.CreateScratchName("merge", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         # arcpy.Merge_management(["width_main_lyr", dissolve_avg], merge, fieldMappings)
-        # gc.AddToGarbageBin(merge)
-        # dissolve_sum = arcpy.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+
+        # dissolve_sum = gc.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         # arcpy.Dissolve_management(merge, widthoutput, [widthid],
         #                           [[width_field], "SUM"])
-        # gc.AddToGarbageBin(dissolve_avg)
+
     finally:
         gc.CleanAllTempFiles()
 

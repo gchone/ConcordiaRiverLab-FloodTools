@@ -3,6 +3,7 @@
 import arcpy
 import os
 import numpy as np
+import ArcpyGarbageCollector as gc
 
 def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_fields_to_keep, routes, routes_IDfield, points_onroute, points_onroute_RIDfield, points_onroute_distfield, output_table, stat="MEAN"):
 
@@ -25,17 +26,15 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
 
     if stat == "MEAN":
         list_tables = []
-        i=0
         for RID in list_RIDs:
-            i+=1
             arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
             arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
-            table = arcpy.CreateScratchName("nt"+str(i), data_type="ArcInfoTable", workspace="in_memory")
+            table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
             # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
             # point on route to the original point.
             arcpy.GenerateNearTable_analysis("points_lyr", "onroute_lyr", table, closest="CLOSEST")
             list_tables.append(table)
-        table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
+        table = gc.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
         arcpy.Merge_management(list_tables, table)
         arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
         arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
@@ -84,17 +83,15 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         #  (joining the onroute points with the data points instead of the data points with the onroute points)
 
         list_tables = []
-        i=0
         for RID in list_RIDs:
-            i+=1
             arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
             arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
-            table = arcpy.CreateScratchName("nt"+str(i), data_type="ArcInfoTable", workspace="in_memory")
+            table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
             # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
             # data point to the point on route.
             arcpy.GenerateNearTable_analysis("onroute_lyr", "points_lyr", table, closest="CLOSEST")
             list_tables.append(table)
-        table = arcpy.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
+        table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
         arcpy.Merge_management(list_tables, table)
         arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
         arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")

@@ -178,7 +178,7 @@ class RiverNetwork(_NumpyArrayHolder):
 
     def placePointsAtRegularInterval(self, interval, collection):
         # Place points at regular interval. The collection must be existing but must be empty
-        tablename = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
+        tablename = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace="in_memory")
         table = arcpy.CreateTable_management("in_memory", os.path.basename(tablename))
         arcpy.AddField_management(table, self.dict_attr_fields["id"], "LONG")
         arcpy.AddField_management(table, "MEAS", "DOUBLE")

@@ -215,15 +215,15 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     #Splitting lines if necessary
     if split_pts is not None:
         # a temp file of the points is necessary, to do a spatial join
-        #pts_table = arcpy.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        #pts_table = gc.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
         #arcpy.da.NumPyArrayToTable(pointsarray, pts_table)
-        #gc.AddToGarbageBin(pts_table)
-        points_shp = arcpy.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+
+        points_shp = gc.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         arcpy.MakeXYEventLayer_management(str_output_points, "X", "Y", "pts_layer", spatial_reference=r_flowdir)
         arcpy.CopyFeatures_management("pts_layer", points_shp)
-        gc.AddToGarbageBin(points_shp)
+
         #gc.CleanTempFile(pts_table)
-        join_split = arcpy.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
+        join_split = gc.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
         arcpy.SpatialJoin_analysis(split_pts, points_shp, join_split, match_option="CLOSEST", join_type="KEEP_COMMON", search_radius=tolerance)
         gc.CleanTempFile(points_shp)
 
@@ -355,24 +355,20 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         with arcpy.EnvManager(outputMFlag="Disabled"):
             with arcpy.EnvManager(outputZFlag="Disabled"):
                 # Do not included Z and M values in the points, as it will mess with the grouping by Shape step (it should only be based on X and Y position)
-                junctions_end = arcpy.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-                gc.AddToGarbageBin(junctions_end)
+                junctions_end = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
                 arcpy.FeatureVerticesToPoints_management(rivernet, junctions_end, "END")
-                junctions_start = arcpy.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-                gc.AddToGarbageBin(junctions_start)
+                junctions_start = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
                 arcpy.FeatureVerticesToPoints_management(rivernet, junctions_start, "START")
         arcpy.AddField_management(junctions_end, "ENDTYPE", "TEXT", field_length=10)
         arcpy.AddField_management(junctions_start, "ENDTYPE", "TEXT", field_length=10)
         arcpy.CalculateField_management(junctions_end, "ENDTYPE", "'End'", "PYTHON")
         arcpy.CalculateField_management(junctions_start, "ENDTYPE", "'Start'", "PYTHON")
-        junctions = arcpy.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        gc.AddToGarbageBin(junctions)
+        junctions = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         arcpy.Merge_management([junctions_end, junctions_start], junctions)
         junctionid_name = arcpy.Describe(junctions).OIDFieldName
 
         # Add a id ("FEAT_SEQ") to the junction grouping junctions at the same place (same place = same id))
-        junctions_table = arcpy.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
-        gc.AddToGarbageBin(junctions_table)
+        junctions_table = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
         arcpy.FindIdentical_management(junctions, junctions_table, ["Shape"])
         arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
         # Add also the rivernet data into the junctions files (make the query to treat the main channel in priority easier after)
@@ -407,8 +403,7 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         downstream_junctions = np.extract(np.logical_and(condition, condition2), np_junctions)
 
         # Make a layer from a copy of the feature class (used for flipping lines)
-        rivernetcopy = arcpy.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        gc.AddToGarbageBin(rivernetcopy)
+        rivernetcopy = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
         arcpy.CopyFeatures_management(rivernet, rivernetcopy)
         arcpy.MakeFeatureLayer_management(rivernetcopy, "netlyr")
         arcpy.SelectLayerByAttribute_management("netlyr", "CLEAR_SELECTION")
@@ -542,11 +537,11 @@ def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B,
                         dict_match[list_reaches_refD8[i]].append(list_reaches_second[i+shift])
 
     # Geometric comparison: looking for the closest reach based on centroid
-    d8centroid = arcpy.CreateScratchName("pts_D8", data_type="FeatureClass", workspace="in_memory")
+    d8centroid = gc.CreateScratchName("pts_D8", data_type="FeatureClass", workspace="in_memory")
     arcpy.FeatureToPoint_management(refD8_net.shapefile, d8centroid)
-    secondcentroid = arcpy.CreateScratchName("pts_second", data_type="FeatureClass", workspace="in_memory")
+    secondcentroid = gc.CreateScratchName("pts_second", data_type="FeatureClass", workspace="in_memory")
     arcpy.FeatureToPoint_management(second_net.shapefile, secondcentroid)
-    neartable = arcpy.CreateScratchName("neartable", data_type="ArcInfoTable", workspace="in_memory")
+    neartable = gc.CreateScratchName("neartable", data_type="ArcInfoTable", workspace="in_memory")
     arcpy.GenerateNearTable_analysis(d8centroid, secondcentroid, neartable)
 
     arcpy.JoinField_management(neartable, "IN_FID", d8centroid, arcpy.Describe(d8centroid).OIDFieldName, refD8_net.dict_attr_fields["id"])

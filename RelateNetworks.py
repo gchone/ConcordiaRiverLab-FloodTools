@@ -33,7 +33,7 @@ def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, me
 
         # Intersection between the two line shapefiles and counting the points of the intersection.
         to_intersect = [shapefile_A, shapefile_B]
-        temp_intersect = arcpy.CreateScratchName("temp", data_type="FeatureClass", workspace="in_memory")
+        temp_intersect = gc.CreateScratchName("temp", data_type="FeatureClass", workspace="in_memory")
         arcpy.Intersect_analysis(to_intersect, temp_intersect, "ALL", "", "POINT")
         # "PART_COUNT" provides de amount of points in each intersection between the two line shapefiles. Analyzing this
         # value allows to choose the correct combination in the near_table (temp_merged). If we have a combination like

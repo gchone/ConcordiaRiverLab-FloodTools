@@ -12,8 +12,8 @@ from numpy.lib import recfunctions as rfn
 import csv
 
 def execute_D8path(routes, links, RID_field, r_flow_dir, routeD8, linksD8, ptsonD8, relatetable, messages):
-    fp = arcpy.CreateScratchName("fp", data_type="FeatureClass", workspace="in_memory")
-    splits = arcpy.CreateScratchName("splits", data_type="FeatureClass", workspace="in_memory")
+    fp = gc.CreateScratchName("fp", data_type="FeatureClass", workspace="in_memory")
+    splits = gc.CreateScratchName("splits", data_type="FeatureClass", workspace="in_memory")
     execute_CreateFromPointsAndSplits(routes, links, RID_field, fp, splits)
 
     execute_TreeFromFlowDir(r_flow_dir, fp, routeD8, linksD8, RID_field, ptsonD8, messages, splits, 10000)
@@ -27,7 +27,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
     # NB: extracting only the most points downstream points could have been avoided (as OrderTreeByFlowAcc use the most downstream point)
     # but maybe it's better that way as it avoid doing a costly convertion from table to shapefile and then ExtractMultiValuesToPoints
-    QpointsD8 = arcpy.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
+    QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
     execute_LocateMostDownstreamPoints(routeD8, linksD8, RID_field, ptsonD8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
     arcpy.sa.ExtractMultiValuesToPoints(QpointsD8, [[r_flowacc, "flowacc"]])
@@ -36,7 +36,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
     arcpy.AddJoin_management("qpts_lyr", "id", ptsonD8, "id")
     arcpy.AddJoin_management("qpts_lyr", arcpy.Describe(ptsonD8).basename + ".RID", relatetable, D8_RID_field_in_relatetable)
 
-    QpointsMain = arcpy.CreateScratchName("QptsMain", data_type="ArcInfoTable", workspace="in_memory")
+    QpointsMain = gc.CreateScratchName("QptsMain", data_type="ArcInfoTable", workspace="in_memory")
 
     execute_LocatePointsAlongRoutes("qpts_lyr", arcpy.Describe(relatetable).basename + "." + RID_field, routes, RID_field, QpointsMain, 10000)
 
@@ -44,7 +44,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
 def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, X_field_pts, Y_field_pts, pts_table, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
 
-    relatetable = arcpy.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
+    relatetable = gc.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
     execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)
     RID3m_field_in_relatetable = [f.name for f in arcpy.Describe(relatetable).fields][-2]
 
@@ -53,34 +53,34 @@ def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m
 
     arcpy.AddJoin_management("pts_layer", RID_field_3m, relatetable, RID3m_field_in_relatetable)
 
-    pts_bathy = arcpy.CreateScratchName("pts_bathy", data_type="ArcInfoTable", workspace="in_memory")
+    pts_bathy = gc.CreateScratchName("pts_bathy", data_type="ArcInfoTable", workspace="in_memory")
     execute_PlacePointsAlongReaches(routes, links, RID_field, interval, pts_bathy)
 
-    pts_bathy_withws = arcpy.CreateScratchName("pts_withws", data_type="ArcInfoTable", workspace="in_memory")
+    pts_bathy_withws = gc.CreateScratchName("pts_withws", data_type="ArcInfoTable", workspace="in_memory")
 
     lidar3m_cor_basename = arcpy.Describe(lidar3m_cor).basename
     lidar3m_forws_basename = arcpy.Describe(lidar3m_forws).basename
     execute_AssignPointToClosestPointOnRoute("pts_layer", arcpy.Describe(relatetable).basename + "." + RID_field, [lidar3m_cor_basename, lidar3m_forws_basename], routes, RID_field, pts_bathy, RID_field, "MEAS", pts_bathy_withws)
 
-    pts_interpolated = arcpy.CreateScratchName("pts_interp", data_type="ArcInfoTable", workspace="in_memory")
+    pts_interpolated = gc.CreateScratchName("pts_interp", data_type="ArcInfoTable", workspace="in_memory")
     execute_InterpolatePoints(pts_bathy_withws, "ObjectID_1", RID_field, "MEAS", [lidar3m_cor_basename, lidar3m_forws_basename], pts_bathy, "ObjectID_1", RID_field, "MEAS", routes, links, RID_field, order_field, pts_interpolated)
 
     arcpy.MakeRouteEventLayer_lr(routes, RID_field, pts_interpolated, RID_field + " POINT MEAS", "interpolated_lyr")
-    interpolated_withDEM = arcpy.CreateScratchName("interpDEM", data_type="FeatureClass", workspace="in_memory")
+    interpolated_withDEM = gc.CreateScratchName("interpDEM", data_type="FeatureClass", workspace="in_memory")
     arcpy.SpatialJoin_analysis("interpolated_lyr", DEMs_footprints, interpolated_withDEM)
 
     execute_WSsmoothing(routes, links, RID_field, interpolated_withDEM, "ObjectID_1", RID_field, "MEAS", lidar3m_cor_basename, lidar3m_forws_basename, DEMs_field, ouput_table)
 
 def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, fpoints_atlas, routesD8, routeD8_RID, routes_main, route_main_RID, relate_table, r_flowacc, outpoints, messages):
 
-    matchatlas = arcpy.CreateScratchName("matchatlas", data_type="ArcInfoTable", workspace="in_memory")
+    matchatlas = gc.CreateScratchName("matchatlas", data_type="ArcInfoTable", workspace="in_memory")
     execute_CheckNetFitFromUpStream(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, routes_Atlas, links_Atlas, RID_field_Atlas,
                                     fpoints_atlas, matchatlas)
 
-    QpointsD8 = arcpy.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
+    QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
     execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
-    Qpoints_subD8 = arcpy.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
+    Qpoints_subD8 = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
     arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON")
 
     arcpy.sa.ExtractMultiValuesToPoints(Qpoints_subD8, [[r_flowacc, "flowacc"]])
@@ -106,10 +106,10 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
 
     nparray.dtype.names = [route_main_RID, "MATCH_ID", "Flowacc", "TYPO", "CLOSEST", "SCORE", "XY"]
 
-    Qpoints_subD8_bis = arcpy.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
+    Qpoints_subD8_bis = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
     arcpy.da.NumPyArrayToFeatureClass(nparray, Qpoints_subD8_bis, "XY", arcpy.Describe(routesD8).spatialReference)
 
-    res_table = arcpy.CreateScratchName("QptsTable", data_type="ArcInfoTable", workspace="in_memory")
+    res_table = gc.CreateScratchName("QptsTable", data_type="ArcInfoTable", workspace="in_memory")
     execute_LocatePointsAlongRoutes(Qpoints_subD8_bis, route_main_RID, routes_main, route_main_RID, res_table, 10000)
 
     arcpy.AddField_management(res_table, "Drainage", "DOUBLE")
@@ -123,7 +123,7 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
 
     # Extract Flow Acc along D8
     arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
-    D8pts = arcpy.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    D8pts = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
     # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... don't know why
     arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
     arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
@@ -133,7 +133,7 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
                              D8_RID_field_in_relatetable)
 
     # Join target points with the closest D8 point with the same RID
-    targets_withFlowAcc = arcpy.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
     execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
 
     network = RiverNetwork()
@@ -209,7 +209,7 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
     # Join the final results to the original target shapefile
     targetcollection.add_SavedVariable("QptsID", "str", 20)
     targetcollection.add_SavedVariable("Qlidar", "float")
-    targets_withQ = arcpy.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
+    targets_withQ = gc.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
     targetcollection.save_points(targets_withQ)
 
     # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.

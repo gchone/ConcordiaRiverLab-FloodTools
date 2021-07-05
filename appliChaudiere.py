@@ -78,7 +78,7 @@ if __name__ == "__main__":
     pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\DEM3m_pathpointsD8"
     #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
-    lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\dem3m_forws2")
+    lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\dem3m_forws")
     bathy_datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\smoothedpts"
 
     #execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
@@ -112,7 +112,11 @@ if __name__ == "__main__":
     #                         bathy_datapts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
     #                         Qcsv_file, Qpoints_spatialized)
 
-# Width postproc
+    #### Width assessment ####
+    widthpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthcalcpts"
+    widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthtransects"
+    execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
+
     #widthdata = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_raw"
     #widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_merge2"
     #execute_WidthPostProc(routes, "RID", "Main", links, widthdata, "CSid", "RID", "Distance_m", "Largeur_m", widthoutput, messages)
