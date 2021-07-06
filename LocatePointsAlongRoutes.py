@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import arcpy
+import ArcpyGarbageCollector as gc
+
 def execute_LocatePointsAlongRoutes(points, points_RIDfield, routes, routes_RIDfield, output, distance):
 
     """ To Locate Features Along Routes, we want the point to be located following the Near Table relationship in the reach
