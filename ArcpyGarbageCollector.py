@@ -50,7 +50,13 @@ def CreateScratchName(prefix, data_type, workspace):
         if data_type == "ArcInfoTable" or data_type == "FeatureClass":
             if arcpy.Describe(workspace).dataType == "Workspace":
                 # In a Geodatabase, tables name should be created with data_type == "FeatureClass"
+                # It's still not working properly, so the loop with Exists fixes that
                 name = arcpy.CreateScratchName(prefix, data_type="FeatureClass", workspace=workspace)
+                shortname = os.path.basename(name)[:len(prefix)]
+                index = int(os.path.basename(name)[len(prefix):])
+                while arcpy.Exists(name):
+                    index += 1
+                    name = os.path.join(workspace, shortname+str(index))
             else: #arcpy.Describe(workspace).dataType == "Folder"
                 name = arcpy.CreateScratchName(prefix, data_type=data_type, workspace=workspace)
         AddToGarbageBin(name)
