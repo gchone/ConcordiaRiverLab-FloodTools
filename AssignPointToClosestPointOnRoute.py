@@ -34,7 +34,7 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
             # point on route to the original point.
             arcpy.GenerateNearTable_analysis("points_lyr", "onroute_lyr", table, closest="CLOSEST")
             list_tables.append(table)
-        table = gc.CreateScratchName("nt" + str(i+1), data_type="ArcInfoTable", workspace="in_memory")
+        table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
         arcpy.Merge_management(list_tables, table)
         arcpy.SelectLayerByAttribute_management("points_lyr", "CLEAR_SELECTION")
         arcpy.SelectLayerByAttribute_management("onroute_lyr", "CLEAR_SELECTION")
