@@ -61,23 +61,6 @@ def CreateScratchName(prefix, data_type, workspace):
                 name = arcpy.CreateScratchName(prefix, data_type=data_type, workspace=workspace)
         AddToGarbageBin(name)
         return name
-            # tablecsn = arcpy.CreateScratchName(prefix, data_type="ArcInfoTable", workspace=workspace)
-            # featurecsn = arcpy.CreateScratchName(prefix, data_type="FeatureClass", workspace=workspace)
-            # tablename = os.path.splitext(os.path.basename(tablecsn))[0] # splittext( )[0] is for retrieving only the file name if there is an extension
-            # featurename = os.path.splitext(os.path.basename(featurecsn))[0]
-            # if len(tablename) > len(featurename):
-            #     selectedname = tablename
-            # elif len(tablename) < len(featurename):
-            #     selectedname = featurename
-            # else:
-            #     selectedname = max(tablename, featurename)
-            #
-            # if data_type == "ArcInfoTable":
-            #     # In addition, there are some issues with tables without extension in folders. It's better to use dbf tables
-            #     return os.path.join(workspace, selectedname+".dbf")
-            # else:
-            #     return os.path.join(workspace, selectedname + ".shp")
-
 
 
 
