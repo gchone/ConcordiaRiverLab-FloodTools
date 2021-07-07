@@ -42,7 +42,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
     execute_OrderTreeByFlowAcc(routes, links, RID_field, QpointsMain, "id", "RID", "MEAS", "flowacc", outputfield)
 
-def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, X_field_pts, Y_field_pts, pts_table, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
+def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table,X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
 
     relatetable = arcpy.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
     execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)

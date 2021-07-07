@@ -55,7 +55,7 @@ class OrderReaches(object):
         param_ptsonD8 = arcpy.Parameter(
             displayName="Point on route D8 feature class (lines)",
             name="ptsonD8",
-            datatype="GPFeatureLayer",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_relatetable = arcpy.Parameter(
@@ -67,13 +67,12 @@ class OrderReaches(object):
         param_outputfield = arcpy.Parameter(
             displayName="Output field",
             name="outputfield",
-            datatype="Field",
+            datatype="GPString",
             parameterType="Required",
             direction="Input")
 
-        # param_routeID_field.parameterDependencies = [param_rivernet.name]
-        # param_downstream_reach_field.parameterDependencies = [param_rivernet.name]
-        # param_channeltype_field.parameterDependencies = [param_rivernet.name]
+        param_RID_field.parameterDependencies = [param_routes.name]
+
 
         params = [param_routes, param_links, param_RID_field, param_r_flowacc, param_routeD8, param_linksD8, param_ptsonD8, param_relatetable, param_outputfield]
 
