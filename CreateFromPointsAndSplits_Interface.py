@@ -24,7 +24,7 @@ class CreateFromPointsAndSplits(object):
             parameterType="Required",
             direction="Input")
         param_links_table = arcpy.Parameter(
-            displayName="Link table (obtained with 'Create network from feature class')",
+            displayName="Link table",
             name="links_table",
             datatype="GPTableView",
             parameterType="Required",

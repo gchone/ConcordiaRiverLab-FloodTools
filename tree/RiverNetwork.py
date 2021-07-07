@@ -313,8 +313,8 @@ class Reach(_NumpyArrayFedObject):
 
     def get_first_point(self, collection):
         sortedlist = np.sort(
-            collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id],
-            order=collection.dict_attr_fields['dist'])
+            collection._numpyarray[collection._numpyarray[collection.dict_attr_fields['reach_id']] == self.id], order=collection.dict_attr_fields['dist'])
+
         if len(sortedlist) > 0:
             firstid = sortedlist[collection.dict_attr_fields['id']][0]
             return collection._points[collection._points['id'] == firstid]['object'][0]

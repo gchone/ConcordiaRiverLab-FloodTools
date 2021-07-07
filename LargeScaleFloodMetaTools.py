@@ -26,7 +26,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
     D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relatetable).fields][-2]
 
     # NB: extracting only the most points downstream points could have been avoided (as OrderTreeByFlowAcc use the most downstream point)
-    # but maybe it's better that way as it avoid doing a costly convertion from table to shapefile and then ExtractMultiValuesToPoints
+    # but maybe it's better that way as it avoids doing a costly convertion from table to shapefile and then ExtractMultiValuesToPoints
     QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
     execute_LocateMostDownstreamPoints(routeD8, linksD8, RID_field, ptsonD8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
@@ -42,7 +42,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
     execute_OrderTreeByFlowAcc(routes, links, RID_field, QpointsMain, "id", "RID", "MEAS", "flowacc", outputfield)
 
-def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, X_field_pts, Y_field_pts, pts_table, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
+def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table,X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
 
     relatetable = gc.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
     execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)
