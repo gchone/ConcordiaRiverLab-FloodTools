@@ -28,7 +28,8 @@ class Messages():
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
     arcpy.env.overwriteOutput = True
-    arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
+    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
+    arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
 
     messages = Messages()
 
@@ -117,6 +118,5 @@ if __name__ == "__main__":
     widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthtransects"
     #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
-    #widthdata = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_raw"
-    #widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_points_merge2"
-    #execute_WidthPostProc(routes, "RID", "Main", links, widthdata, "CSid", "RID", "Distance_m", "Largeur_m", widthoutput, messages)
+    widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\test"
+    execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
