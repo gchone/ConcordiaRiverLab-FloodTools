@@ -103,7 +103,7 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
                 # update the distance
                 up_point[datacollection.dict_attr_fields['dist']] = up_point[datacollection.dict_attr_fields['dist']] + reach.length
                 # add the most downstream point in the upstream reach in the data
-                sorteddata = np.concatenate(([up_point], sorteddata))
+                sorteddata = np.concatenate((sorteddata, [up_point]))
             upend = up_reach.is_upstream_end()
 
         newres = np.empty(targetdata.shape[0], dtype=newdtype)
