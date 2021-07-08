@@ -28,8 +28,8 @@ class Messages():
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
     arcpy.env.overwriteOutput = True
-    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
-    arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
+    arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
+    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
 
     messages = Messages()
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\dem3m_forws")
     bathy_datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Watersurface2.gdb\smoothedpts"
 
-    #execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", "X", "Y", pathpoints_ws3m,
+    # execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", pathpoints_ws3m, "X", "Y",
     #                            lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, bathy_datapts, messages)
 
 
@@ -119,4 +119,4 @@ if __name__ == "__main__":
     #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
     widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\test"
-    execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
+    execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
