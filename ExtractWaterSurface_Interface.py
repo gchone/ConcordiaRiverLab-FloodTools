@@ -148,7 +148,7 @@ class ExtractWaterSurface(object):
         ouput_table = parameters[14].valueAsText
 
 
-        eexecute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table, X_field_pts,
+        execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table, X_field_pts,
                                     Y_field_pts, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints,
                                     DEMs_field, ouput_table, messages)
         return
