@@ -19,6 +19,7 @@ from tree.RiverNetwork import *
 import ArcpyGarbageCollector as gc
 from InterpolatePoints import *
 import numpy.lib.recfunctions as rfn
+from LocatePointsAlongRoutes import *
 
 def pointsdextremites(streamnetwork, banklines, endpoints):
     # **************************************************************************
@@ -531,39 +532,41 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
 
     return
 
-def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_main_only, RID_field_main, order_field, network_main_only_links, widthdata, widthid, width_RID_field, width_distance, width_field, datapoints, id_field_datapts, distance_field_datapts, rid_field_datapts, output_table, messages):
+def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_main_only, RID_field_main, network_main_l_field, order_field, network_main_only_links, widthdata, widthid, width_RID_field, width_distance, width_field, datapoints, id_field_datapts, distance_field_datapts, rid_field_datapts, output_table, messages):
     try:
         ### 1a - Project points in the main channel on the main_only network
         # Selection only the points on the main channels
         arcpy.MakeFeatureLayer_management(widthdata, "width_main_lyr")
         arcpy.AddJoin_management("width_main_lyr", width_RID_field, network_shp, RID_field)
         arcpy.SelectLayerByAttribute_management("width_main_lyr", "NEW_SELECTION",
-                                                os.path.basename(network_shp) + "." + main_channel_field + " = 1")
+                                                arcpy.Describe(network_shp).basename + "." + main_channel_field + " = 1")
         # Linear reference them on the network_main_only
 
-        #main_width_pts = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
-        main_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\main_width_pts"
-        #arcpy.LocateFeaturesAlongRoutes_lr("width_main_lyr", network_main_only, RID_field_main, None, main_width_pts,  RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
+        main_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
+        arcpy.MakeFeatureLayer_management(network_shp, "network_lyr")
+        arcpy.SelectLayerByAttribute_management("network_lyr", "NEW_SELECTION",
+                                                main_channel_field + " = 1")
+        splitted_to_unsplitted("network_lyr", RID_field, "width_main_lyr", widthid, width_RID_field, width_distance, width_field, network_main_only, RID_field_main, network_main_l_field, main_width_pts)
 
         ### 1b - Interpolate width data on datapoints
-        interp_main_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\main_width_interp"
-        #execute_InterpolatePoints(main_width_pts, widthid, RID_field_main, "MEAS", [width_field], datapoints, id_field_datapts, rid_field_datapts, distance_field_datapts, network_main_only, network_main_only_links, RID_field_main, order_field, interp_main_width_pts, extrapolation_value="CONFLUENCE")
+        interp_main_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
+        execute_InterpolatePoints(main_width_pts, widthid, RID_field_main, width_distance, [width_field], datapoints, id_field_datapts, rid_field_datapts, distance_field_datapts, network_main_only, network_main_only_links, RID_field_main, order_field, interp_main_width_pts, extrapolation_value="CONFLUENCE")
 
         ### 2a - Project width point of secondary channels on the main_only network
         arcpy.MakeFeatureLayer_management(widthdata, "width_second_lyr")
         arcpy.AddJoin_management("width_second_lyr", width_RID_field, network_shp, RID_field)
         arcpy.SelectLayerByAttribute_management("width_second_lyr", "NEW_SELECTION",
-                                                os.path.basename(network_shp) + "." + main_channel_field + " = 0")
-        secondary_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\secondary_width_pts"
+                                                arcpy.Describe(network_shp).basename + "." + main_channel_field + " = 0")
+        secondary_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
         # Points on secondary channels are projected on the closest main channel
-        #arcpy.LocateFeaturesAlongRoutes_lr("width_second_lyr", network_main_only, RID_field_main, 10000, secondary_width_pts,
-        #                                   RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
+        arcpy.LocateFeaturesAlongRoutes_lr("width_second_lyr", network_main_only, RID_field_main, 10000, secondary_width_pts,
+                                          RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
 
         ### 2b - Interpolate width data for every secondary channel (with 0 upstream and downstream of the secondary channel)
         ### 3 - Sum all width measurements
         secondary_channel_RID_field = [f.name for f in arcpy.ListFields(secondary_width_pts)][
             [f.name for f in arcpy.ListFields("width_main_lyr")].index(
-                os.path.basename(widthdata) + "." + width_RID_field) + 1]
+                arcpy.Describe(widthdata).basename + "." + width_RID_field) + 1]
         secondary_width_pts_np = arcpy.da.TableToNumPyArray(secondary_width_pts, ["MEAS", width_field, secondary_channel_RID_field])
         secondary_RIDs = np.unique(secondary_width_pts_np[[secondary_channel_RID_field]])
         arcpy.MakeTableView_management(secondary_width_pts, "secondary_width_lyr")
@@ -596,126 +599,48 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         # Suppression des couches de données temporaires
         gc.CleanAllTempFiles()
 
-def execute_WidthPostProc_old(network_shp, RID_field, main_field, links_table, widthdata, widthid, width_RID_field, width_distance, width_field, widthoutput, messages):
-    # - Merge together side-by-side channels
-    # - Filter out sudden increases of width
 
+def splitted_to_unsplitted(splitted_net, splitted_RID_field, pts_lyr, pts_ID_field, pts_RID_field, pts_dist_field, width_field, unsplitted_net, unsplitted_RID_field, unslitted_l_field, outpts):
+    # Find correspondance between a splitted and an unsplitted network
 
-    # network = RiverNetwork()
-    # network.dict_attr_fields['id'] = RID_field
-    # network.load_data(network_shp, links_table)
-    #
-    # widthcoll = Points_collection(network, "width")
-    # widthcoll.dict_attr_fields['id'] = widthid
-    # widthcoll.dict_attr_fields['reach_id']= width_RID_field
-    # widthcoll.dict_attr_fields['dist'] = width_distance
-    # widthcoll.dict_attr_fields.pop('offset')
-    # widthcoll.dict_attr_fields['width'] = width_field
-    # widthcoll.load_table(widthdata)
+    # Find a RID match using a spatial join
+    match_RID_table = gc.CreateScratchName("match", data_type="ArcInfoTable", workspace="in_memory")
+    fms = arcpy.FieldMappings()
+    # dans un premier temps j'ajoute le champ d'identification des iunités spatiales
+    fmID = arcpy.FieldMap()
+    fmID.addInputField(splitted_net, splitted_RID_field)
+    type_name = fmID.outputField
+    type_name.name = 'RID_A'
+    fmID.outputField = type_name
+    fms.addFieldMap(fmID)
+    fmID_B = arcpy.FieldMap()
+    fmID_B.addInputField(unsplitted_net, unsplitted_RID_field)
+    type_name_B = fmID_B.outputField
+    type_name_B.name = 'RID_B'
+    fmID_B.outputField = type_name_B
+    fms.addFieldMap(fmID_B)
+    arcpy.SpatialJoin_analysis(splitted_net, unsplitted_net, match_RID_table, match_option="WITHIN", field_mapping=fms)
 
-    # Create a layer with only the main channels and one with only the secondary channels
-    arcpy.MakeFeatureLayer_management(widthdata, "width_main_lyr")
-    arcpy.AddJoin_management("width_main_lyr", width_RID_field, network_shp, RID_field)
-    arcpy.SelectLayerByAttribute_management("width_main_lyr", "NEW_SELECTION", os.path.basename(network_shp)+"."+main_field+ " = 1")
-    arcpy.MakeFeatureLayer_management(widthdata, "width_second_lyr")
-    arcpy.AddJoin_management("width_second_lyr", width_RID_field, network_shp, RID_field)
-    arcpy.SelectLayerByAttribute_management("width_second_lyr", "NEW_SELECTION",
-                                             os.path.basename(network_shp) + "." + main_field + " = 0")
-    try:
+    # Then correct the distances, in points, using the distance of the "START" point of the splitted reach
+    #  Find the start points
+    start_pts = gc.CreateScratchName("pts", data_type="FeatureClass", workspace="in_memory")
+    arcpy.FeatureVerticesToPoints_management(splitted_net, start_pts, "START")
+    #  Join to have the unsplitted RID
+    arcpy.MakeFeatureLayer_management(start_pts, "start_lyr")
+    arcpy.AddJoin_management("start_lyr", splitted_RID_field, match_RID_table, "RID_A")
+    #  Project start points on the right unsplitted reach
+    splits_along = gc.CreateScratchName("split", data_type="ArcInfoTable", workspace="in_memory")
+    execute_LocatePointsAlongRoutes("start_lyr", arcpy.Describe(match_RID_table).basename + ".RID_B", unsplitted_net, unsplitted_RID_field, splits_along, 1)
+    #  Join the result to the data points
+    arcpy.AddJoin_management(pts_lyr, pts_RID_field, splits_along, "RID_A")
+    #  Join the river network to get the max possible length (needed to fix issues where the measured distance is slightly over the reach length
+    arcpy.AddJoin_management(pts_lyr, arcpy.Describe(splits_along).basename+".RID_B", unsplitted_net, unsplitted_RID_field)
 
-        # Join the main channels points to the secondary channels ones
-        table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
-        arcpy.GenerateNearTable_analysis("points_lyr", "onroute_lyr", table, closest="CLOSEST")
-
-        ### First try with Spatial Join. Incomplete
-        # # Join the main channels points to the secondary channels ones
-        # join_channels = gc.CreateScratchName("join", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        # arcpy.SpatialJoin_analysis("width_second_lyr", "width_main_lyr", join_channels, match_option="CLOSEST")
-        #
-        #
-        # #  The Spatial join creates weird field names. The best way to find back the name of a field after the spatial join is to use the field position in the table
-        # main_widthid_field = arcpy.ListFields(join_channels)[len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in arcpy.ListFields("width_main_lyr")].index(os.path.basename(widthdata)+"."+widthid)].name
-        # main_distance_field = arcpy.ListFields(join_channels)[
-        #     len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in
-        #                                                                                       arcpy.ListFields(
-        #                                                                                           "width_main_lyr")].index(
-        #         os.path.basename(widthdata) + "." + width_distance)].name
-        # join_table = arcpy.da.TableToNumPyArray(join_channels, [width_RID_field, main_widthid_field, width_field])
-        # # compute values for the same main channel points and same secondary channel -> average
-        # means_table = np.unique(join_table[[width_RID_field, main_widthid_field]])
-        # means = []
-        # for i in means_table:
-        #     tmp = join_table[np.where(join_table[[width_RID_field, main_widthid_field]] == i)]
-        #     means.append(np.mean(tmp[width_field]))
-        # means_table = rfn.merge_arrays([means_table, np.array(means, dtype=[("width_avg", "f4")])], flatten=True)
-        # # merge the computed averages for the secondary channels with the values in the main channels
-        # main_table = arcpy.da.TableToNumPyArray("width_main_lyr", [os.path.basename(widthdata) + "." +widthid, os.path.basename(widthdata) + "." +width_field])
-        # main_table.dtype.names = [widthid, width_field]
-        # means_table = means_table[[main_widthid_field, "width_avg"]]
-        # means_table.dtype.names = [widthid, width_field]
-        #
-        # # record the minimum and maximum distance (on the main channel), for each secondary channel, to filter out unmatched points
-        # main_distance_field = arcpy.ListFields(join_channels)[
-        #     len(arcpy.ListFields(join_channels)) - len(arcpy.ListFields("width_main_lyr")) + [f.name for f in
-        #                                                                                       arcpy.ListFields(
-        #                                                                                           "width_main_lyr")].index(
-        #         os.path.basename(widthdata) + "." + width_distance)].name
-        # min_max_table = np.unique(join_table[[width_RID_field]])
-        # min_max = {}
-        # for i in min_max_table:
-        #     tmp = join_table[np.where(join_table[[width_RID_field]] == i)]
-        #     min_max[i[width_RID_field]] = (np.min(tmp[main_distance_field]), np.max(tmp[main_distance_field]))
-        #
-        # print(main_table.dtype.fields)
-        # print(means_table.dtype.fields)
-        # merge_table = np.concatenate((main_table, means_table))
-        # sums_table = np.unique(merge_table[[widthid]])
-        # sums = []
-        # for i in sums_table:
-        #     tmp = merge_table[np.where(merge_table[[widthid]] == i)]
-        #     sums.append(np.sum(tmp[width_field]))
-        # sum_table = rfn.merge_arrays([sums_table, np.array(sums, dtype=[("width", "f8")])], flatten=True)
-        #
-        # # export
-        # arcpy.da.NumPyArrayToTable(sum_table, widthoutput)
-
-
-
-        ### Test with Dissolve. Doesn't work because it creates Multipoints. Better to work with just the tables instead as numpy arrays (although it could have been simpler with Panda).
-        # Group (Dissolve) the values from the same secondary channel and the same main channel points -> average
-        # dissolve_avg = gc.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        # arcpy.Dissolve_management(join_channels, dissolve_avg, [width_RID_field, main_widthid_field], [[width_field, "MEAN"]])
-        # # Group (Dissolve) the computed values for the same main channel points -> sum
-        # print([f.name for f in arcpy.ListFields(dissolve_avg)])
-        # print([f.name for f in arcpy.ListFields("width_main_lyr")])
-        # #  First, the previous result (dissolve_avg) must be merge with the main channels points
-        # #  Field mapping:
-        # #   - in the dissolve_avg, the point ID of the main reach from the spatial join (main_widthid_field), with the point ID of the main reach
-        # fldMap_id = arcpy.FieldMap()
-        # fldMap_id.addInputField(dissolve_avg, main_widthid_field)
-        # fldMap_id.addInputField("width_main_lyr", os.path.basename(widthdata) + "." + widthid)
-        # fieldName = fldMap_id.outputField
-        # fieldName.name = widthid
-        # fldMap_id.outputField = fieldName
-        # #   - in the dissolve_avg, the computed width average (last field), with the width average of the main reach
-        # mean_field = arcpy.ListFields(dissolve_avg)[-1].name
-        # fldMap_width = arcpy.FieldMap()
-        # fldMap_width.addInputField("width_main_lyr", os.path.basename(widthdata) + "." + width_field)
-        # fldMap_width.addInputField(dissolve_avg, mean_field)
-        # fieldName2 = fldMap_width.outputField
-        # fieldName2.name = width_field
-        # fldMap_width.outputField = fieldName2
-        #
-        # fieldMappings = arcpy.FieldMappings()
-        # fieldMappings.addFieldMap(fldMap_id)
-        # fieldMappings.addFieldMap(fldMap_width)
-        # merge = gc.CreateScratchName("merge", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        # arcpy.Merge_management(["width_main_lyr", dissolve_avg], merge, fieldMappings)
-
-        # dissolve_sum = gc.CreateScratchName("dissolve", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        # arcpy.Dissolve_management(merge, widthoutput, [widthid],
-        #                           [[width_field], "SUM"])
-
-    finally:
-        gc.CleanAllTempFiles()
-
+    #  Correct distances
+    result_np = arcpy.da.TableToNumPyArray(pts_lyr, [arcpy.Describe(pts_lyr).basename+"."+pts_ID_field, arcpy.Describe(pts_lyr).basename+"."+width_field,
+                                                     arcpy.Describe(pts_lyr).basename+"."+pts_dist_field, arcpy.Describe(splits_along).basename+".RID_B",
+                                                     arcpy.Describe(splits_along).basename+".MEAS", arcpy.Describe(unsplitted_net).basename+"."+unslitted_l_field])
+    result_np.dtype.names = [pts_ID_field, width_field, pts_dist_field, pts_RID_field, "MEAS", "Max_l"]
+    result_np[pts_dist_field] = result_np[pts_dist_field] + result_np["MEAS"]
+    result_np[pts_dist_field] = np.minimum(result_np[pts_dist_field], result_np["Max_l"])
+    arcpy.da.NumPyArrayToTable(result_np[[pts_ID_field, width_field, pts_dist_field, pts_RID_field]], outpts)

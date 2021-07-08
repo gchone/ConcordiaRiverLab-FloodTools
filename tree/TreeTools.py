@@ -640,32 +640,6 @@ def execute_OrderTreeByFlowAcc(network_shp, links_table, RID_field, datapoints, 
         reach[1] = network.get_reach(reach[0]).order
         cursor.updateRow(reach)
 
-def splitted_to_unsplitted(splitted_net, splitted_RID_field, splitted_pts, pts_RID_field, pts_dist_field, unsplitted_net, unsplitted_RID_field, outpts):
-    # Find correspondance between a splitted and an unsplitted network
-    # Find a RID match using a spatial join
-    # Then correct the distances, in points, using the distance of the "START" point of the splitted reach
-    start_pts = gc.CreateScratchName("pts", data_type="FeatureClass", workspace="in_memory")
-    arcpy.FeatureVerticesToPoints_management(splitted_net, start_pts, "START")
-    identicals = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
-    arcpy.FindIdentical_management(start_pts, identicals, "Shape")
-    start_pts_np = arcpy.da.FeatureClassToNumPyArray(start_pts, [splitted_RID_field, "SHAPE@X", "SHAPE@Y"])
-    identicals_np = arcpy.da.TableToNumPyArray(identicals, [splitted_RID_field])
-    # Keep start point not in identicals (not at junctions)
-    start_pts_np = np.delete(start_pts_np,
-                                      np.invert(np.in1d(start_pts_np[splitted_RID_field], identicals_np)))
-    splits = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\splits"
-    arcpy.da.NumPyArrayToFeatureClass(start_pts_np, splits, ("SHAPE@X", "SHAPE@Y"),
-                                      arcpy.Describe(splitted_net).spatialReference)
-    splits_along = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\splitsalong"
-    # Find correspondance between RID in the two networks
-    arcpy.LocateFeaturesAlongRoutes_lr(splits, unsplitted_net, unsplitted_RID_field, None, splits_along, unsplitted_RID_field + " POINT MEAS")
-
-
-    unsplitted_RID_in_locatetable = [f.name for f in arcpy.ListFields(splits_along)][-1]
-    cursor = arcpy.da.SearchCursor(splits_along, [unsplitted_RID_field, "MEAS", unsplitted_RID_in_locatetable])
-    result_np = arcpy.da.TableToNumPyArray(splitted_pts, [f.name for f in arcpy.ListFields(splitted_pts)])
-    for reach in cursor:
-        pass
 
 
 
