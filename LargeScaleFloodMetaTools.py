@@ -11,7 +11,7 @@ from WSsmoothing import *
 from numpy.lib import recfunctions as rfn
 import csv
 
-def execute_D8path(routes, links, RID_field, r_flow_dir, routeD8, linksD8, ptsonD8, relatetable, messages):
+def execute_FlowDirNetwork(routes, links, RID_field, r_flow_dir, routeD8, linksD8, ptsonD8, relatetable, messages):
     fp = gc.CreateScratchName("fp", data_type="FeatureClass", workspace="in_memory")
     splits = gc.CreateScratchName("splits", data_type="FeatureClass", workspace="in_memory")
     execute_CreateFromPointsAndSplits(routes, links, RID_field, fp, splits)
