@@ -206,21 +206,23 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
             Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
             targetpt.Qlidar = Qlidar/lastQpts.AtlasArea * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
 
-    # Join the final results to the original target shapefile
+    # Originaly (commented below): Join the final results to the original target shapefile
+    # Final thought: Better to leave this to be done manually
     targetcollection.add_SavedVariable("QptsID", "str", 20)
     targetcollection.add_SavedVariable("Qlidar", "float")
-    targets_withQ = gc.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
-    targetcollection.save_points(targets_withQ)
 
-    # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.
-    # Resolved by using numpyarray
-    originalfields = [f.name for f in arcpy.Describe(targetpoints).fields]
-    original_nparray = arcpy.da.TableToNumPyArray(targetpoints, originalfields)
-    original_nparray = numpy.sort(original_nparray, order=id_field_target)
-    result_nparray = arcpy.da.TableToNumPyArray(targets_withQ, [id_field_target, "QptsID", "Qlidar"])
-    result_nparray = numpy.sort(result_nparray, order=id_field_target)
-    finalarray = rfn.merge_arrays([original_nparray, result_nparray[["QptsID", "Qlidar"]]], flatten=True)
-    if arcpy.env.overwriteOutput and arcpy.Exists(output_points):
-        arcpy.Delete_management(output_points)
-    arcpy.da.NumPyArrayToTable(finalarray, output_points)
+    #targets_withQ = gc.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
+    targetcollection.save_points(output_points)
+
+    # # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.
+    # # Resolved by using numpyarray
+    # originalfields = [f.name for f in arcpy.Describe(targetpoints).fields]
+    # original_nparray = arcpy.da.TableToNumPyArray(targetpoints, originalfields)
+    # original_nparray = numpy.sort(original_nparray, order=id_field_target)
+    # result_nparray = arcpy.da.TableToNumPyArray(targets_withQ, [id_field_target, "QptsID", "Qlidar"])
+    # result_nparray = numpy.sort(result_nparray, order=id_field_target)
+    # finalarray = rfn.merge_arrays([original_nparray, result_nparray[["QptsID", "Qlidar"]]], flatten=True)
+    # if arcpy.env.overwriteOutput and arcpy.Exists(output_points):
+    #     arcpy.Delete_management(output_points)
+    # arcpy.da.NumPyArrayToTable(finalarray, output_points)
 
