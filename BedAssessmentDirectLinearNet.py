@@ -10,26 +10,30 @@
 
 import os
 import arcpy
-import pickle
-from RasterIO import *
+
 from tree.RiverNetwork import *
 from tree.TreeTools import *
-#from Solver2 import *
+
 from SolverDirect import *
 
 
-def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
-    """
-    Compute the bed assessment
-    Require three attributes in the points collection points_coll: "wslidar", "Q", "width"
-    Create a new attribute: "z"
-    :param rivernet: The river network (instance of RiverNetwork)
-    :param points_coll: The point collection (instance of Points_collection) storing the input data
-    :param manning: Manning's n
-    :param upstream_s: Upstream slope to be used as a upstream boundart condition (TO BE REMOVED)
-    :param messages: ArcGIS Messages object
-    :return:
-    """
+def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages):
+
+    rivernet = RiverNetwork()
+    rivernet.dict_attr_fields['id'] = route_RID_field
+    rivernet.dict_attr_fields['order'] = route_order_field
+    rivernet.load_data(route, routelinks)
+
+    points_coll = Points_collection(rivernet, "data")
+    points_coll.dict_attr_fields['id'] = points_IDfield
+    points_coll.dict_attr_fields['reach_id'] = points_RIDfield
+    points_coll.dict_attr_fields['dist'] = points_distfield
+    points_coll.dict_attr_fields['wslidar'] = points_WSfield
+    points_coll.dict_attr_fields['Q'] = points_Qfield
+    points_coll.dict_attr_fields['width'] = points_Wfield
+    points_coll.dict_attr_fields['DEM'] = points_DEMfield
+    points_coll.load_table(points)
+
 
     # hardcoded parameter: Minimum difference of water surface elevation for backwater area
     delta_z_min = 0.01
@@ -67,8 +71,6 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
                     cs.s = max(cs.s_min, (cs.wslidar-prev_cs.wslidar)/localdist)
             prev_cs = cs
 
-    # adding the 'order' attribute to reaches according to discharge
-    rivernet.order_reaches_by_discharge(points_coll, "Q")
     # Current behaviour is to process main stream in priority (based on discharge)
     # Process is stopped when meeting an already-processed reach (bathymetry is never computed twice)
 
@@ -104,11 +106,19 @@ def execute_BedAssessment(rivernet, points_coll, manning, upstream_s, messages):
 
         done_reaches.append(reach)
 
+    points_coll.add_SavedVariable("solver", "str", 10)
+    points_coll.add_SavedVariable("y", "float")
+    points_coll.add_SavedVariable("R", "float")
+    points_coll.add_SavedVariable("v", "float")
+    points_coll.add_SavedVariable("z", "float")
+    points_coll.add_SavedVariable("h", "float")
+    points_coll.add_SavedVariable("s", "float")
+    points_coll.add_SavedVariable("Fr", "float")
+    points_coll.save_points(output_pts)
+
     return
 
 def __recursive_inverse1Dhydro(cs, prev_cs):
-
-
 
     flag = cs_solver(prev_cs, cs)
     if flag != 1:
@@ -126,15 +136,15 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
     if prev_cs.Fr > 0 and (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and cs.dist - prev_cs.dist > 0.1:
         # add a point in the middle
         if cs.reach == prev_cs.reach:
-            newcs = cs.reach.add_point((cs.dist + prev_cs.dist) / 2., 0, cs.points_collection)
+            newcs = cs.reach.add_point((cs.dist + prev_cs.dist) / 2., cs.points_collection)
         else:
             # case where the interpolation takes place between two reaches
             downdist = prev_cs.reach.length - prev_cs.dist
             totaldist = downdist + cs.dist
             if totaldist / 2. < cs.dist:
-                newcs = cs.reach.add_point(totaldist / 2., 0, cs.points_collection)
+                newcs = cs.reach.add_point(totaldist / 2., cs.points_collection)
             else:
-                newcs = prev_cs.reach.add_point(prev_cs.dist + totaldist / 2., 0, cs.points_collection)
+                newcs = prev_cs.reach.add_point(prev_cs.dist + totaldist / 2., cs.points_collection)
 
         # Linear interpolation of width, discharge and water surface.
         # Although more accurate spatialization could be done, this is deemed accurate enough
@@ -153,5 +163,5 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
         newcs.type = 3
         __recursive_inverse1Dhydro(cs, newcs)
 
-
+    return
 

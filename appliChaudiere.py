@@ -9,6 +9,7 @@ from WSsmoothing import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
 from ChannelCorrection import *
+from BedAssessmentDirectLinearNet import *
 
 from LargeScaleFloodMetaTools import *
 
@@ -119,4 +120,10 @@ if __name__ == "__main__":
     #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
     widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\test"
-    execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
+    #execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
+
+    #### Bathy assessment ####
+    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapts"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy"
+    execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
+                          "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
