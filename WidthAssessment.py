@@ -534,6 +534,7 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
 
 def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_main_only, RID_field_main, network_main_l_field, order_field, network_main_only_links, widthdata, widthid, width_RID_field, width_distance, width_field, datapoints, id_field_datapts, distance_field_datapts, rid_field_datapts, output_table, messages):
     try:
+        messages.addMessage("Processing main channels")
         ### 1a - Project points in the main channel on the main_only network
         # Selection only the points on the main channels
         arcpy.MakeFeatureLayer_management(widthdata, "width_main_lyr")
@@ -575,9 +576,10 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
                                                             [id_field_datapts, "MEAS", RID_field_main, width_field])
         interp_main_width_pts_np = np.sort(interp_main_width_pts_np, order=id_field_datapts) # ordering to ensure match latter
 
-
+        i=0
         for rid in secondary_RIDs:
-            print("rid: "+str(rid[0]))
+            i+=1
+            messages.addMessage("Processing secondary channels (" + str(i) + "/" + str(len(secondary_RIDs)) + ")")
             new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace="in_memory")
             arcpy.SelectLayerByAttribute_management("secondary_width_lyr", "NEW_SELECTION",
                                                     secondary_channel_RID_field + " = " + str(rid[0]))
