@@ -430,16 +430,15 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
         for link_row in list_down_up_links:
             linkcursor.insertRow(link_row)
 
-
         # Flip the wrongly orientated lines
         arcpy.FlipLine_edit("netlyr")
 
         # Create routes from start point to end point
         arcpy.AddField_management(rivernetcopy, "FromF", "FLOAT")
+        arcpy.CalculateField_management(rivernetcopy, "FromF", "0", "PYTHON")
         if arcpy.Describe(arcpy.env.scratchWorkspace).dataType=="Folder":
             # if the scrach workspace is a folder, the copy of the river network is a shapefile (else, it's within a
             # File geodatabase and already has a Length field)
-            arcpy.CalculateField_management(rivernetcopy, "FromF", "0", "PYTHON")
             #arcpy.AddGeometryAttributes_management(rivernetcopy, "LENGTH") # "LENGTH" is not an available option and I can't get why
             arcpy.AddField_management(rivernetcopy, "LENGTH", "DOUBLE")
             arcpy.CalculateField_management(rivernetcopy, "LENGTH", "!shape.length!", "PYTHON")
@@ -447,6 +446,7 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
             Lengthfield = "LENGTH"
         else:
             Lengthfield = "SHAPE_LENGTH"
+
         arcpy.CreateRoutes_lr(rivernetcopy, routeID_field, route_shapefile, "TWO_FIELDS",
                                  from_measure_field="FromF",
                                  to_measure_field=Lengthfield)
