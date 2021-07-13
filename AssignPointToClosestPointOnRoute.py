@@ -27,8 +27,8 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
     if stat == "MEAN":
         list_tables = []
         for RID in list_RIDs:
-            arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = "+ str(RID))
-            arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = "+ str(RID))
+            arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = " + str(RID))
+            arcpy.SelectLayerByAttribute_management("onroute_lyr", "NEW_SELECTION", points_onroute_RIDfield + " = " + str(RID))
             table = gc.CreateScratchName("nt", data_type="ArcInfoTable", workspace="in_memory")
             # For the each points and points on route with the same RID, we generate a near table that will keep only the closest
             # point on route to the original point.

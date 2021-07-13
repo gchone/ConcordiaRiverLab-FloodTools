@@ -115,7 +115,7 @@ class ExtractWaterSurface(object):
         param_Y_field_pts.parameterDependencies = [param_pts_table.name]
         param_DEMs_field.parameterDependencies = [param_DEMs_footprints.name]
 
-        params = [param_routes, param_links, param_RID_field, param_order_field, param_routes_3m, param_RID_field_3m, param_X_field_pts, param_Y_field_pts, param_pts_table, param_lidar3m_cor, param_lidar3m_forws, param_interval, param_DEMs_footprints, param_DEMs_field, param_output_table]
+        params = [param_routes, param_links, param_RID_field, param_order_field, param_routes_3m, param_RID_field_3m, param_pts_table, param_X_field_pts, param_Y_field_pts, param_lidar3m_cor, param_lidar3m_forws, param_interval, param_DEMs_footprints, param_DEMs_field, param_output_table]
 
 
         return params
@@ -142,7 +142,7 @@ class ExtractWaterSurface(object):
         Y_field_pts = parameters[8].valueAsText
         lidar3m_cor = parameters[9].valueAsText
         lidar3m_forws = parameters[10].valueAsText
-        interval = parameters[11].valueAsText
+        interval = float(parameters[11].valueAsText)
         DEMs_footprints = parameters[12].valueAsText
         DEMs_field = parameters[13].valueAsText
         ouput_table = parameters[14].valueAsText

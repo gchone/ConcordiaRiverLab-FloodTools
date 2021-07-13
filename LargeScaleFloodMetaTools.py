@@ -58,8 +58,8 @@ def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m
 
     pts_bathy_withws = gc.CreateScratchName("pts_withws", data_type="ArcInfoTable", workspace="in_memory")
 
-    lidar3m_cor_basename = arcpy.Describe(lidar3m_cor).basename
-    lidar3m_forws_basename = arcpy.Describe(lidar3m_forws).basename
+    lidar3m_cor_basename = str(arcpy.Describe(lidar3m_cor).basename)
+    lidar3m_forws_basename = str(arcpy.Describe(lidar3m_forws).basename)
     execute_AssignPointToClosestPointOnRoute("pts_layer", arcpy.Describe(relatetable).basename + "." + RID_field, [lidar3m_cor_basename, lidar3m_forws_basename], routes, RID_field, pts_bathy, RID_field, "MEAS", pts_bathy_withws)
 
     pts_interpolated = gc.CreateScratchName("pts_interp", data_type="ArcInfoTable", workspace="in_memory")
