@@ -5,6 +5,7 @@ import arcpy
 
 from OrderReaches_Interface import *
 from ExtractWaterSurface_Interface import *
+from FlowDirNetwork_Interface import *
 
 
 class Toolbox(object):
@@ -13,5 +14,5 @@ class Toolbox(object):
         self.label = "Metatools for linear referencing"
         self.alias = ""
 
-        self.tools = [OrderReaches, ExtractWaterSurface]
+        self.tools = [OrderReaches, ExtractWaterSurface, FlowDirNetwork]
 
