@@ -110,7 +110,7 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
 
             if prev_cs == None:
                 manning_solver(cs)
-                cs.solver = "manning"
+                cs.solver = "manning up"
                 cs.type = 0
 
             else:
@@ -153,19 +153,19 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
     if cs.reach == prev_cs.reach:
         localdist = (prev_cs.dist - cs.dist)
     else:
-        localdist = prev_cs.reach.length - prev_cs.dist + cs.dist
+        localdist = cs.reach.length - cs.dist + prev_cs.dist
 
     # Adding a cross-section if the Froude number varies too much
-    #if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and localdist > 0.1: # Is a minimal resolution required? It seems not on the Chaudière. TBC.
-    if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5:
+    if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and localdist > 0.1: # Minimum 10cm between cs
         if cs.reach == prev_cs.reach:
             newcs = cs.reach.add_point((cs.dist + prev_cs.dist) / 2., cs.points_collection)
         else:
             # case where the interpolation takes place between two reaches
-            if localdist / 2. < cs.dist:
-                newcs = cs.reach.add_point(localdist / 2., cs.points_collection)
+            if localdist / 2. < prev_cs.dist:
+                # point is in the upstream reach (prev_cs reach)
+                newcs = prev_cs.reach.add_point(localdist / 2., cs.points_collection)
             else:
-                newcs = prev_cs.reach.add_point(prev_cs.dist + localdist / 2., cs.points_collection)
+                newcs = cs.reach.add_point(cs.dist + localdist / 2., cs.points_collection)
 
         # Linear interpolation of width, discharge and water surface.
         # Although more accurate spatialization could be done, this is deemed accurate enough

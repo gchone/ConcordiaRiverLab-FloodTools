@@ -30,8 +30,8 @@ class Messages():
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
     arcpy.env.overwriteOutput = True
-    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
-    arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
+    arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
+    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
 
     messages = Messages()
 
@@ -136,9 +136,9 @@ if __name__ == "__main__":
 
     #### Bathy assessment ####
     datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapts"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy4"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy5"
     execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
-                          "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
+                         "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
 
     #### Transform results for Lisflood #####
     flowdirD4 = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_D4fd")
