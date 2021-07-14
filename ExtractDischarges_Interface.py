@@ -48,7 +48,7 @@ class ExtractDischarges(object):
             direction="Input")
         param_RID_field_AtlasD8 = arcpy.Parameter(
             displayName="Atlas route feature class (lines)",
-            name="Rid_field_AtlasD8",
+            name="RID_field_AtlasD8",
             datatype="FIeld",
             parameterType="Required",
             direction="Input")
@@ -66,7 +66,7 @@ class ExtractDischarges(object):
             direction="Input")
         param_routesD8 = arcpy.Parameter(
             displayName="Input route D8 feature class (lines)",
-            name="routeD8",
+            name="routesD8",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
