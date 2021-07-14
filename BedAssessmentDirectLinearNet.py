@@ -35,41 +35,61 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
     points_coll.load_table(points)
 
 
-    # hardcoded parameter: Minimum difference of water surface elevation for backwater area
-    delta_z_min = 0.01
+    # Following code was changed:
+    # Instead of imposing a minimum slope that varies with the length of the backwater ares (defined as no-slope area),
+    #   a constant minimum slope is imposed everywhere
+    min_slope = 0.00001
 
-    # First pass to identify minimum slope for backwater area and upstream boundary condition
-    backwater_pts = []
-    length = 0
-    prev_cs = None
     for reach in rivernet.browse_reaches_down_to_up():
         lastpoint = reach.get_last_point(points_coll)
+        if reach.is_downstream_end():
+            prev_cs = None
+        else:
+            prev_cs = reach.get_downstream_reach().get_last_point(points_coll)
         for cs in reach.browse_points(points_coll):
-            if prev_cs is not None:
+            if reach.is_upstream_end() and cs == lastpoint:
                 if cs.reach == prev_cs.reach:
                     localdist = (cs.dist - prev_cs.dist)
                 else:
                     localdist = prev_cs.reach.length - prev_cs.dist + cs.dist
-
-                if cs.wslidar <= prev_cs.wslidar:
-                    backwater_pts.append(cs)
-                    length += localdist
-                else:
-                    cs.s_min = 0
-                    for backcs in backwater_pts:
-                        backcs.s_min = delta_z_min/length
-                    length = 0
-                    backwater_pts = []
-            else:
-                cs.s_min = 0
-            if reach.is_upstream_end():
-                if cs == lastpoint:
-                    for backcs in backwater_pts:
-                        backcs.s_min = delta_z_min/length
-                    length = 0
-                    backwater_pts = []
-                    cs.s = max(cs.s_min, (cs.wslidar-prev_cs.wslidar)/localdist)
+                cs.s = max(min_slope, (cs.wslidar-prev_cs.wslidar)/localdist) # Compute upstream boundary condition
             prev_cs = cs
+
+    # # hardcoded parameter: Minimum difference of water surface elevation for backwater area
+    # delta_z_min = 0.01
+    #
+    # # First pass to identify minimum slope for backwater area and upstream boundary condition
+    # backwater_pts = []
+    # length = 0
+    # prev_cs = None
+    # for reach in rivernet.browse_reaches_down_to_up():
+    #     lastpoint = reach.get_last_point(points_coll)
+    #     for cs in reach.browse_points(points_coll):
+    #         if prev_cs is not None:
+    #             if cs.reach == prev_cs.reach:
+    #                 localdist = (cs.dist - prev_cs.dist)
+    #             else:
+    #                 localdist = prev_cs.reach.length - prev_cs.dist + cs.dist
+    #
+    #             if cs.wslidar <= prev_cs.wslidar:
+    #                 backwater_pts.append(cs)
+    #                 length += localdist
+    #             else:
+    #                 cs.s_min = 0
+    #                 for backcs in backwater_pts:
+    #                     backcs.s_min = delta_z_min/length
+    #                 length = 0
+    #                 backwater_pts = []
+    #         else:
+    #             cs.s_min = 0
+    #         if reach.is_upstream_end():
+    #             if cs == lastpoint:
+    #                 for backcs in backwater_pts:
+    #                     backcs.s_min = delta_z_min/length
+    #                 length = 0
+    #                 backwater_pts = []
+    #                 cs.s = max(cs.s_min, (cs.wslidar-prev_cs.wslidar)/localdist) # Compute upstream boundary condition
+    #         prev_cs = cs # ERREUR A CORRIGER : CHANGEMENT DE REACH
 
     # Current behaviour is to process main stream in priority (based on discharge)
     # Process is stopped when meeting an already-processed reach (bathymetry is never computed twice)
@@ -100,7 +120,9 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
                     cs.solver = "manning"
                     cs.type = 0
                 else:
-                    __recursive_inverse1Dhydro(cs, prev_cs)
+                    cs.solver = "regular"
+                    cs.type = 1
+                    __recursive_inverse1Dhydro(cs, prev_cs, min_slope)
 
             prev_cs = cs
 
@@ -118,33 +140,32 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
 
     return
 
-def __recursive_inverse1Dhydro(cs, prev_cs):
+def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
 
-    flag = cs_solver(prev_cs, cs)
+    flag = cs_solver(prev_cs, cs, min_slope)
     if flag != 1:
         # The solver issued a warning
         # It's usually because no solution was found
         # The last attempt is the closes value found, so we keep it
         cs.solver = "error"
         cs.type = -999
-    else:
-        cs.solver = "regular"
-        cs.type = 1
 
+    if cs.reach == prev_cs.reach:
+        localdist = (prev_cs.dist - cs.dist)
+    else:
+        localdist = prev_cs.reach.length - prev_cs.dist + cs.dist
 
     # Adding a cross-section if the Froude number varies too much
-    if prev_cs.Fr > 0 and (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and cs.dist - prev_cs.dist > 0.1:
-        # add a point in the middle
+    #if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and localdist > 0.1: # Is a minimal resolution required? It seems not on the Chaudière. TBC.
+    if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5:
         if cs.reach == prev_cs.reach:
             newcs = cs.reach.add_point((cs.dist + prev_cs.dist) / 2., cs.points_collection)
         else:
             # case where the interpolation takes place between two reaches
-            downdist = prev_cs.reach.length - prev_cs.dist
-            totaldist = downdist + cs.dist
-            if totaldist / 2. < cs.dist:
-                newcs = cs.reach.add_point(totaldist / 2., cs.points_collection)
+            if localdist / 2. < cs.dist:
+                newcs = cs.reach.add_point(localdist / 2., cs.points_collection)
             else:
-                newcs = prev_cs.reach.add_point(prev_cs.dist + totaldist / 2., cs.points_collection)
+                newcs = prev_cs.reach.add_point(prev_cs.dist + localdist / 2., cs.points_collection)
 
         # Linear interpolation of width, discharge and water surface.
         # Although more accurate spatialization could be done, this is deemed accurate enough
@@ -156,12 +177,12 @@ def __recursive_inverse1Dhydro(cs, prev_cs):
         newcs.wslidar = a* newcs.dist + cs.wslidar - a* cs.dist
         newcs.n = cs.n
         newcs.s_min = 0
+        newcs.DEM = prev_cs.DEM
 
-
-        __recursive_inverse1Dhydro(newcs, prev_cs)
+        __recursive_inverse1Dhydro(newcs, prev_cs, min_slope)
         newcs.solver = "added"
         newcs.type = 3
-        __recursive_inverse1Dhydro(cs, newcs)
+        __recursive_inverse1Dhydro(cs, newcs, min_slope)
 
     return
 

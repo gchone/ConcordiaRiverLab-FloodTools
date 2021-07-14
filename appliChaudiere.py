@@ -11,6 +11,7 @@ from InterpolatePoints import *
 from ChannelCorrection import *
 from BedAssessmentDirectLinearNet import *
 
+
 from LargeScaleFloodMetaTools import *
 
 class Messages():
@@ -29,8 +30,8 @@ class Messages():
 if __name__ == "__main__":
     arcpy.CheckOutExtension("Spatial")
     arcpy.env.overwriteOutput = True
-    arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
-    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
+    #arcpy.env.scratchWorkspace = r"E:\InfoCrue\tmp"
+    arcpy.env.scratchWorkspace = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb"
 
     messages = Messages()
 
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     linksD8 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD8"
     pathpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD8"
     basicnet_to_D8_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\net_to_D8_relationshiptable5"
-    #execute_D8path(routes_main, links_main, "RID", flowdir, routesD8, linksD8, pathpoints, basicnet_to_D8_relatetable, messages)
+    #execute_FlowDirNetwork(routes_main, links_main, "RID", flowdir, routesD8, linksD8, pathpoints, basicnet_to_D8_relatetable, messages)
 
     flowacc = arcpy.Raster(
         r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_avg_full_burned_flowacc")
@@ -115,8 +116,19 @@ if __name__ == "__main__":
     #                         Qcsv_file, Qpoints_spatialized)
 
     #### Width assessment ####
-    widthpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthcalcpts"
-    widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthtransects"
+
+    # Tests with a smoothed version of the lines
+    # shape = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\net_smooth_merge"
+    # routes = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\routes_smooth"
+    # links = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\routes_links_smooth"
+    # #execute_CreateTreeFromShapefile(shape, routes, links, "RID", "DownEnd", messages, "Main")
+    # shape_main = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\net_smooth_main"
+    # routes_main = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\routes_main_smooth"
+    # links_main = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\routes_main_links_smooth"
+    #execute_CreateTreeFromShapefile(shape_main, routes_main, links_main, "RID", "DownEnd", messages)
+
+    widthpts = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthcalcpts_smooth"
+    widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\widthtransects_smooth"
     #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
     widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\Width\Width.gdb\test"
@@ -124,6 +136,24 @@ if __name__ == "__main__":
 
     #### Bathy assessment ####
     datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapts"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy4"
     execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
                           "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
+
+    #### Transform results for Lisflood #####
+    flowdirD4 = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_D4fd")
+    routesD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\routeD4"
+    linksD4 =r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\linksD4"
+    pathpointsD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\pathpointsD4"
+    basicnet_to_D4_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\relatetableD4"
+    #execute_FlowDirNetwork(routes_main, links_main, "RID", flowdirD4, routesD4, linksD4, pathpointsD4, basicnet_to_D4_relatetable, messages)
+
+    # NO. Could be more efficient to use an AssignToClosest. (MAX for the bathy)
+    #arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
+    #arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
+    #bathy_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\bathy_onD4"
+    #execute_LocatePointsAlongRoutes("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", routesD4, "RID", bathy_onD4, 10000)
+    #arcpy.MakeRouteEventLayer_lr(routes_main, "RID", widthoutput, "RID POINT MEAS", "width_lyr")
+    #arcpy.AddJoin_management("width_lyr", "RID", basicnet_to_D4_relatetable, "RID")
+    #width_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\width_onD4"
+    #execute_LocatePointsAlongRoutes("width_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", routesD4, "RID", width_onD4, 10000)
