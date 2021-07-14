@@ -35,8 +35,8 @@ class FlowDirNetwork(object):
             parameterType="Required",
             direction="Input")
         param_r_flow_dir= arcpy.Parameter(
-            displayName="Flow accumulation raster",
-            name="r_flowacc",
+            displayName="Flow Direction raster",
+            name="r_flow_dir",
             datatype="GPRasterLayer",
             parameterType="Required",
             direction="Input")
@@ -45,7 +45,7 @@ class FlowDirNetwork(object):
             name="routeD8",
             datatype="GPFeatureLayer",
             parameterType="Required",
-            direction="Input")
+            direction="Output")
         param_linksD8 = arcpy.Parameter(
             displayName="Link table",
             name="linksD8",
