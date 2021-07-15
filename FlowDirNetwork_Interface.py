@@ -88,7 +88,7 @@ class FlowDirNetwork(object):
         routes = parameters[0].valueAsText
         links = parameters[1].valueAsText
         RID_field = parameters[2].valueAsText
-        r_flow_dir = parameters[3].valueAsText
+        r_flow_dir = arcpy.Raster(parameters[3].valueAsText)
         routeD8 = parameters[4].valueAsText
         linksD8 = parameters[5].valueAsText
         ptsonD8 = parameters[6].valueAsText

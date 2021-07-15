@@ -140,8 +140,8 @@ class ExtractWaterSurface(object):
         pts_table = parameters[6].valueAsText
         X_field_pts = parameters[7].valueAsText
         Y_field_pts = parameters[8].valueAsText
-        lidar3m_cor = parameters[9].valueAsText
-        lidar3m_forws = parameters[10].valueAsText
+        lidar3m_cor = arcpy.Raster(parameters[9].valueAsText)
+        lidar3m_forws = arcpy.Raster(parameters[10].valueAsText)
         interval = float(parameters[11].valueAsText)
         DEMs_footprints = parameters[12].valueAsText
         DEMs_field = parameters[13].valueAsText

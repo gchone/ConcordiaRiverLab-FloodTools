@@ -29,7 +29,7 @@ class ExtractDischarges(object):
             parameterType="Required",
             direction="Input")
         param_RID_field_Atlas = arcpy.Parameter(
-            displayName="Atlas route feature class (lines)",
+            displayName="Atlas RouteID field",
             name="Rid_field_Atlas",
             datatype="FIeld",
             parameterType="Required",
@@ -47,7 +47,7 @@ class ExtractDischarges(object):
             parameterType="Required",
             direction="Input")
         param_RID_field_AtlasD8 = arcpy.Parameter(
-            displayName="Atlas route feature class (lines)",
+            displayName="Atlas D8 RouteID field",
             name="RID_field_AtlasD8",
             datatype="FIeld",
             parameterType="Required",
@@ -59,7 +59,7 @@ class ExtractDischarges(object):
             parameterType="Required",
             direction="Input")
         param_fpoints_atlas = arcpy.Parameter(
-            displayName="From Points Atlas",
+            displayName="From Points corresponding to Atlas",
             name="fpoints_atlas",
             datatype="GPTableView",
             parameterType="Required",
@@ -71,19 +71,19 @@ class ExtractDischarges(object):
             parameterType="Required",
             direction="Input")
         param_routeD8_RID = arcpy.Parameter(
-            displayName="RouteID field",
+            displayName="RouteID field in routeD8",
             name="routeD8_RID",
             datatype="Field",
             parameterType="Required",
             direction="Input")
         param_routes_main = arcpy.Parameter(
-            displayName="Input route feature class (lines)",
+            displayName="Input main route feature class (lines)",
             name="routes_main",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_route_main_RID = arcpy.Parameter(
-            displayName="RouteID field",
+            displayName="RouteID field in main route",
             name="route_main_RID",
             datatype="Field",
             parameterType="Required",
@@ -96,7 +96,7 @@ class ExtractDischarges(object):
             direction="Input")
         param_r_flowacc = arcpy.Parameter(
             displayName="Flow Accumulation raster",
-            name="r_flow_dir",
+            name="r_flowacc",
             datatype="GPRasterLayer",
             parameterType="Required",
             direction="Input")
@@ -140,7 +140,7 @@ class ExtractDischarges(object):
         routes_main = parameters[10].valueAsText
         route_main_RID = parameters[11].valueAsText
         relate_table = parameters[12].valueAsText
-        r_flowacc = parameters[13].valueAsText
+        r_flowacc = arcpy.Raster(parameters[13].valueAsText)
         outpoints = parameters[14].valueAsText
 
         execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, fpoints_atlas, routesD8, routeD8_RID, routes_main, route_main_RID, relate_table, r_flowacc, outpoints, messages)
