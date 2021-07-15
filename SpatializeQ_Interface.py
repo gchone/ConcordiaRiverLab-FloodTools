@@ -162,7 +162,7 @@ class SpatializeQ(object):
         RID_field_D8 = parameters[1].valueAsText
         D8pathpoints = parameters[2].valueAsText
         relate_table = parameters[3].valueAsText
-        r_flowacc = parameters[4].valueAsText
+        r_flowacc = arcpy.Raster(parameters[4].valueAsText)
         routes = parameters[5].valueAsText
         links = parameters[6].valueAsText
         RID_field = parameters[7].valueAsText

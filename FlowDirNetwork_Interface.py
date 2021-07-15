@@ -41,7 +41,7 @@ class FlowDirNetwork(object):
             parameterType="Required",
             direction="Input")
         param_routeD8 = arcpy.Parameter(
-            displayName="Input route D8 feature class (lines)",
+            displayName="Output route D8 feature class (lines)",
             name="routeD8",
             datatype="GPFeatureLayer",
             parameterType="Required",
