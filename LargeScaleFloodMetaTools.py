@@ -119,12 +119,12 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
 
     arcpy.CopyFeatures_management("res_lyr", outpoints)
 
-def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, Atlas_Drainage_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points):
+def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points, messages):
 
     # Extract Flow Acc along D8
     arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
     D8pts = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
-    # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... don't know why
+    # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... I don't know why
     arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
     arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
     arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
@@ -144,7 +144,6 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
     Qcollection.dict_attr_fields['id'] = id_field_Qpoints
     Qcollection.dict_attr_fields['reach_id'] = RID_Qpoints
     Qcollection.dict_attr_fields['dist'] = dist_field_Qpoints
-    Qcollection.dict_attr_fields['AtlasArea'] = Atlas_Drainage_field_Qpoints
     Qcollection.dict_attr_fields['AtlasID'] = AtlasReach_field_Qpoints
     Qcollection.load_table(Qpoints)
 
@@ -158,10 +157,18 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
 
     # First browse: assign the closest downstream Q point at each target point
     for reach in network.browse_reaches_down_to_up():
+        # Look for the closest downstream point in targetcollection
+        down_point = None
+        down_reach = reach
+        while down_point is None and not down_reach.is_downstream_end():
+            down_reach = down_reach.get_downstream_reach()
+            down_point = down_reach.get_last_point(targetcollection)
         if reach.is_downstream_end():
             lastQpts = None
         else:
-            lastQpts = reach.get_downstream_reach().get_last_point(targetcollection).lastQpts
+            # discharge point associated with the closest downstream point in targetcollection
+            lastQpts = down_point.lastQpts
+        # Is there a discharge point on the current reach?
         for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
             if lastQpts is not None:
                 if lastQpts.reach.id == reach.id:
@@ -175,8 +182,12 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
             lastQpts = Qpts
         if lastQpts is not None:
             # Assign the lastQpts to target points until the end of the reach
+            if lastQpts.reach.id == reach.id:
+                min_dist = lastQpts.dist
+            else:
+                min_dist = 0
             for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-                if targetpt.dist >= lastQpts.dist:
+                if targetpt.dist >= min_dist:
                     targetpt.lastQpts = lastQpts
                     targetpt.QptsID = lastQpts.AtlasID
 
@@ -203,8 +214,11 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
             Q_dict[line[firstrowname]]=line
     for reach in network.browse_reaches_down_to_up():
         for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-            Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
-            targetpt.Qlidar = Qlidar/lastQpts.AtlasArea * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
+            try:
+                Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
+                targetpt.Qlidar = Qlidar * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
+            except AttributeError as e:
+                messages.addErrorMessage("Missing line or column in the csv file: " + str(targetpt.DEM) + " / " + str(targetpt.lastQpts.AtlasID))
 
     # Originaly (commented below): Join the final results to the original target shapefile
     # Final thought: Better to leave this to be done manually

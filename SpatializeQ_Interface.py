@@ -88,12 +88,6 @@ class SpatializeQ(object):
             datatype="Field",
             parameterType="Required",
             direction="Input")
-        param_Atlas_Drainage_field_Qpoints = arcpy.Parameter(
-            displayName="Atlas Drainage field in Qpoints ",
-            name="Atlas_Drainage_field_Qpoints",
-            datatype="Field",
-            parameterType="Required",
-            direction="Input")
         param_AtlasReach_field_Qpoints = arcpy.Parameter(
             displayName="AtlasReach field in Qpoints",
             name="AtlasReach_field_Qpoints",
@@ -147,10 +141,9 @@ class SpatializeQ(object):
         param_id_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_RID_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_dist_field_Qpoints.parameterDependencies = [param_Qpoints.name]
-        param_Atlas_Drainage_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_AtlasReach_field_Qpoints.parameterDependencies = [param_Qpoints.name]
 
-        params = [param_route_D8, param_RID_field_D8, param_D8pathpoints, param_relate_table, param_r_flowacc, param_routes, param_links, param_RID_field, param_Qpoints, param_id_field_Qpoints, param_RID_Qpoints, param_dist_field_Qpoints, param_Atlas_Drainage_field_Qpoints, param_AtlasReach_field_Qpoints, param_targetpoints, param_id_field_target, param_RID_field_target, param_Distance_field_target, param_DEM_field_target, param_Qcsv_file, param_output_points]
+        params = [param_route_D8, param_RID_field_D8, param_D8pathpoints, param_relate_table, param_r_flowacc, param_routes, param_links, param_RID_field, param_Qpoints, param_id_field_Qpoints, param_RID_Qpoints, param_dist_field_Qpoints, param_AtlasReach_field_Qpoints, param_targetpoints, param_id_field_target, param_RID_field_target, param_Distance_field_target, param_DEM_field_target, param_Qcsv_file, param_output_points]
 
         return params
 
@@ -177,19 +170,18 @@ class SpatializeQ(object):
         id_field_Qpoints = parameters[9].valueAsText
         RID_Qpoints= parameters[10].valueAsText
         dist_field_Qpoints = parameters[11].valueAsText
-        Atlas_Drainage_field_Qpoints = parameters[12].valueAsText
-        AtlasReach_field_Qpoints = parameters[13].valueAsText
-        targetpoints = parameters[14].valueAsText
-        id_field_target = parameters[15].valueAsText
-        RID_field_target = parameters[16].valueAsText
-        Distance_field_target = parameters[17].valueAsText
-        DEM_field_target = parameters[18].valueAsText
-        Qcsv_file = parameters[19].valueAsText
-        output_points = parameters[20].valueAsText
+        AtlasReach_field_Qpoints = parameters[12].valueAsText
+        targetpoints = parameters[13].valueAsText
+        id_field_target = parameters[14].valueAsText
+        RID_field_target = parameters[15].valueAsText
+        Distance_field_target = parameters[16].valueAsText
+        DEM_field_target = parameters[17].valueAsText
+        Qcsv_file = parameters[18].valueAsText
+        output_points = parameters[19].valueAsText
 
         execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field,
                             Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints,
-                            Atlas_Drainage_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target,
-                            RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points)
+                            AtlasReach_field_Qpoints, targetpoints, id_field_target,
+                            RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points, messages)
 
         return
