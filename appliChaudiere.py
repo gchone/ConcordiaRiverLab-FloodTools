@@ -107,13 +107,14 @@ if __name__ == "__main__":
     #                               "RID", pathpoints_atlas, fpoints_atlas, routesD8, "RID", routes_main,
     #                               "RID", basicnet_to_D8_relatetable, flowacc, Qpoints_match, messages)
 
-    Qpoints_match_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Qpoints_match_Atlas"
-    Qcsv_file = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\qlidaratlas2020c.csv"
-    Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Final_Qpoints"
-    # execute_SpatializeQ(routesD8, "RID", pathpoints, basicnet_to_D8_relatetable, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
-    #                         "Sup_mod_km", "IDTRONCON",
-    #                         bathy_datapts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
-    #                         Qcsv_file, Qpoints_spatialized)
+    Qpoints_match_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\Qpoints_match_Atlas"
+    Qcsv_file = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\qlidaratlas2020_qspec.csv"
+    #Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef\Discharge\Discharge.gdb\Final_Qpoints"
+    Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef\test.gdb\Final_Qpoints2"
+    execute_SpatializeQ(routesD8, "RID", pathpoints, basicnet_to_D8_relatetable, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
+                            "IDTRONCON",
+                            bathy_datapts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
+                            Qcsv_file, Qpoints_spatialized, messages)
 
     #### Width assessment ####
 
@@ -137,8 +138,8 @@ if __name__ == "__main__":
     #### Bathy assessment ####
     datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\datapts"
     bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef\bathy.gdb\testbathy5"
-    execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
-                         "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
+    #execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
+    #                     "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
 
     #### Transform results for Lisflood #####
     flowdirD4 = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef\New File Geodatabase.gdb\DEM10m_D4fd")
