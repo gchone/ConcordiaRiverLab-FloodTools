@@ -279,16 +279,11 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     # Create routes from start point to end point
     arcpy.AddField_management(lines, routeID_field, "LONG")
     arcpy.AddField_management(lines, "FromF", "FLOAT")
-    if arcpy.Describe(arcpy.env.scratchWorkspace).dataType=="Folder":
-        # if the scrach workspace is a folder, the copy of the river network is a shapefile (else, it's within a
-        # File geodatabase and already has a Length field)
-        arcpy.CalculateField_management(lines, "FromF", "0", "PYTHON")
-        #arcpy.AddGeometryAttributes_management(rivernetcopy, "LENGTH") # "LENGTH" is not an available option and I can't get why
-        arcpy.AddField_management(lines, "LENGTH", "DOUBLE")
-        arcpy.CalculateField_management(lines, "LENGTH", "!shape.length!", "PYTHON")
-        Lengthfield = "LENGTH"
-    else:
-        Lengthfield = "SHAPE_LENGTH"
+    arcpy.CalculateField_management(lines, "FromF", "0", "PYTHON")
+    arcpy.AddField_management(lines, "LENGTH", "DOUBLE")
+    arcpy.CalculateField_management(lines, "LENGTH", "!shape.length!", "PYTHON")
+    Lengthfield = "LENGTH"
+
     arcpy.CreateRoutes_lr(lines, routeID_field, route_shapefile, "TWO_FIELDS",
                              from_measure_field="FromF",
                              to_measure_field=Lengthfield)
