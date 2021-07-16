@@ -550,7 +550,8 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         splitted_to_unsplitted("network_lyr", RID_field, "width_main_lyr", widthid, width_RID_field, width_distance, width_field, network_main_only, RID_field_main, network_main_l_field, main_width_pts)
 
         ### 1b - Interpolate width data on datapoints
-        interp_main_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
+        interp_main_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        #interp_main_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\test.gdb\interp_main_width_pts"
         execute_InterpolatePoints(main_width_pts, widthid, RID_field_main, width_distance, [width_field], datapoints, id_field_datapts, rid_field_datapts, distance_field_datapts, network_main_only, network_main_only_links, RID_field_main, order_field, interp_main_width_pts, extrapolation_value="CONFLUENCE")
 
         ### 2a - Project width point of secondary channels on the main_only network
@@ -558,10 +559,11 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         arcpy.AddJoin_management("width_second_lyr", width_RID_field, network_shp, RID_field)
         arcpy.SelectLayerByAttribute_management("width_second_lyr", "NEW_SELECTION",
                                                 arcpy.Describe(network_shp).basename + "." + main_channel_field + " = 0")
-        secondary_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
+        secondary_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        #secondary_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\test.gdb\secondary_width_pts"
         # Points on secondary channels are projected on the closest main channel
         arcpy.LocateFeaturesAlongRoutes_lr("width_second_lyr", network_main_only, RID_field_main, 10000, secondary_width_pts,
-                                          RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
+                                         RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
 
         ### 2b - Interpolate width data for every secondary channel (with 0 upstream and downstream of the secondary channel)
         ### 3 - Sum all width measurements
@@ -580,7 +582,7 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         for rid in secondary_RIDs:
             i+=1
             messages.addMessage("Processing secondary channels (" + str(i) + "/" + str(len(secondary_RIDs)) + ")")
-            new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace="in_memory")
+            new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
             arcpy.SelectLayerByAttribute_management("secondary_width_lyr", "NEW_SELECTION",
                                                     secondary_channel_RID_field + " = " + str(rid[0]))
 
