@@ -580,7 +580,7 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         for rid in secondary_RIDs:
             i+=1
             messages.addMessage("Processing secondary channels (" + str(i) + "/" + str(len(secondary_RIDs)) + ")")
-            new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace="in_memory")
+            new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
             arcpy.SelectLayerByAttribute_management("secondary_width_lyr", "NEW_SELECTION",
                                                     secondary_channel_RID_field + " = " + str(rid[0]))
 
