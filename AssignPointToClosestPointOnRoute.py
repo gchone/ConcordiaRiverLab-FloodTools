@@ -24,7 +24,7 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         list_RIDs.append(point[0])
     list_RIDs = set(list_RIDs)
 
-    if stat == "MEAN":
+    if stat == "MEAN" or stat == "MAX":
         list_tables = []
         for RID in list_RIDs:
             arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = " + str(RID))
@@ -72,7 +72,10 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
             tmp_all = nparray[np.where(nparray[[idfield]] == id)]
             means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
             for field in list_fields_to_keep:
-                means[field][i] = np.mean(tmp_all[field])
+                if stat == "MEAN":
+                    means[field][i] = np.mean(tmp_all[field])
+                else: # stat == "MAX"
+                    means[field][i] = np.max(tmp_all[field])
             i+=1
 
         arcpy.da.NumPyArrayToTable(means, output_table)
