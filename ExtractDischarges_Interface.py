@@ -110,6 +110,7 @@ class ExtractDischarges(object):
         param_RID_field_Atlas.parameterDependencies = [param_routes_Atlas.name]
         param_RID_field_AtlasD8.parameterDependencies = [param_routes_AtlasD8.name]
         param_routeD8_RID.parameterDependencies = [param_routesD8.name]
+        param_route_main_RID.parameterDependencies = [param_routes_main.name]
 
         params = [param_routes_Atlas, param_links_Atlas, param_RID_field_Atlas, param_routes_AtlasD8, param_links_AtlasD8, param_RID_field_AtlasD8, param_pts_D8, param_fpoints_atlas, param_routesD8, param_routeD8_RID, param_routes_main, param_route_main_RID, param_relate_table, param_r_flowacc, param_outpoints]
 
