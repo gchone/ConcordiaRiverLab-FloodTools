@@ -87,7 +87,7 @@ class TreeFromFlowDir(object):
         route_shapefile = parameters[2].valueAsText
         routelinks_table = parameters[3].valueAsText
         routeID_field = parameters[4].valueAsText
-        str_output_points = parameters[5].valueAsTexts
+        str_output_points = parameters[5].valueAsText
         split_pts = parameters[6].valueAsText
         tolerance = parameters[7].valueAsText
 
