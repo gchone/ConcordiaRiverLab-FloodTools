@@ -138,6 +138,7 @@ class SpatializeQ(object):
             direction="Output")
 
         param_RID_field_D8.parameterDependencies = [param_route_D8.name]
+        param_param_RID_field.parameterDependencies = [param_routes]
         param_id_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_RID_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_dist_field_Qpoints.parameterDependencies = [param_Qpoints.name]
