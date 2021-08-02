@@ -180,8 +180,7 @@ def pointsdemesure(streamnetwork, idfield, csfield, distfield, typefield, spacin
 
     s1arr = np.concatenate(arrlist)
     s1arr[csfield] = np.arange(1, trows + 1, 1)
-    s1evnt = gc.CreateScratchName("table", data_type="ArcInfoTable",
-                                       workspace=arcpy.env.scratchWorkspace)
+    s1evnt = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
     NumPyArrayToTable(s1arr, s1evnt)
 
     eventtype = "{0} Point {1}".format(idfield, distfield)
