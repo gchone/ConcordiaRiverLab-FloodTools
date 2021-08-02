@@ -81,6 +81,6 @@ class CreateTreeFromShapefile(object):
         downstream_reach_field = parameters[4].valueAsText
         channeltype_field = parameters[5].valueAsText
 
-        execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field, channeltype_field)
+        execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table, routeID_field, downstream_reach_field, messages, channeltype_field)
 
         return
