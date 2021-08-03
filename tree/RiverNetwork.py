@@ -374,8 +374,8 @@ class Points_collection(_NumpyArrayHolder):
             i += 1
 
     def delete_point(self, datapoint):
-        self._numpyarray = self._numpyarray[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
         self._points = self._points[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
+        self._numpyarray = self._numpyarray[self._numpyarray[self.dict_attr_fields['id']] != datapoint.id]
 
 
 
