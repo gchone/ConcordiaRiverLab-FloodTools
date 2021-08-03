@@ -59,6 +59,8 @@ def CreateScratchName(prefix, data_type, workspace):
                     name = os.path.join(workspace, shortname+str(index))
             else: #arcpy.Describe(workspace).dataType == "Folder"
                 name = arcpy.CreateScratchName(prefix, data_type=data_type, workspace=workspace)
+        else: #data_type == "RasterDataset"
+            name = arcpy.CreateScratchName(prefix, data_type=data_type, workspace=workspace)
         AddToGarbageBin(name)
         return name
 
