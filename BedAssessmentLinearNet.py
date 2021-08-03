@@ -13,16 +13,27 @@ import arcpy
 import pickle
 from RasterIO import *
 from tree.RiverNetwork import *
-#from Solver2 import *
 from Solver1Dnormal import *
 
 
-def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages):
-    # Compute the bed assessment
-    # require three attributes in the points collection points_coll: "wslidar", "Q", "width"
-    # create a new attribute: "z"
+def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages):
 
+    downstream_s = 0.0001
 
+    rivernet = RiverNetwork()
+    rivernet.dict_attr_fields['id'] = route_RID_field
+    rivernet.dict_attr_fields['order'] = route_order_field
+    rivernet.load_data(route, routelinks)
+
+    points_coll = Points_collection(rivernet, "data")
+    points_coll.dict_attr_fields['id'] = points_IDfield
+    points_coll.dict_attr_fields['reach_id'] = points_RIDfield
+    points_coll.dict_attr_fields['dist'] = points_distfield
+    points_coll.dict_attr_fields['wslidar'] = points_WSfield
+    points_coll.dict_attr_fields['Q'] = points_Qfield
+    points_coll.dict_attr_fields['width'] = points_Wfield
+    points_coll.dict_attr_fields['DEM'] = points_DEMfield
+    points_coll.load_table(points)
 
     enditeration = False
     iteration = 0
@@ -37,7 +48,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
             else:
                 prev_cs = reach.get_downstream_reach().get_last_point(points_coll)
 
-            for cs in reach.browse_points(points_collection=points_coll):
+            for cs in reach.browse_points(points_coll):
                 cs.n = manning
                 if iteration == 1:
                     cs.z = cs.wslidar
@@ -57,7 +68,8 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
                 else:
 
                     cs_solver(cs, prev_cs)
-
+                    cs.solver = "regular"
+                    cs.type = 1
 
                 cs.prev_ws = cs.ws
                 cs.ws = cs.z + cs.y
@@ -78,7 +90,7 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
             else:
                 prev_cs = reach.get_downstream_reach().get_last_point(points_coll)
 
-            for cs in reach.browse_points(points_collection=points_coll):
+            for cs in reach.browse_points(points_coll):
                 if prev_cs != None:
                     if prev_cs.z_fill > cs.z:
                         if prev_cs.z == prev_cs.z_fill:
@@ -119,6 +131,16 @@ def execute_BedAssessment(rivernet, points_coll, manning, downstream_s, messages
                 for cscorrect in correction:
                     cscorrect.z = cscorrect.z - correcteddif
                 enditeration = False
+
+    points_coll.add_SavedVariable("solver", "str", 10)
+    points_coll.add_SavedVariable("y", "float")
+    points_coll.add_SavedVariable("R", "float")
+    points_coll.add_SavedVariable("v", "float")
+    points_coll.add_SavedVariable("z", "float")
+    points_coll.add_SavedVariable("h", "float")
+    points_coll.add_SavedVariable("s", "float")
+    points_coll.add_SavedVariable("Fr", "float")
+    points_coll.save_points(output_pts)
 
     return
 
