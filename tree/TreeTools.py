@@ -219,7 +219,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
         #arcpy.da.NumPyArrayToTable(pointsarray, pts_table)
 
         points_shp = gc.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        arcpy.MakeXYEventLayer_management(str_output_points, "X", "Y", "pts_layer", spatial_reference=r_flowdir)
+        arcpy.MakeXYEventLayer_management(str_output_points, "X", "Y", "pts_layer", spatial_reference=str_frompoints)
         arcpy.CopyFeatures_management("pts_layer", points_shp)
 
         #gc.CleanTempFile(pts_table)
@@ -255,7 +255,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
 
 
     # Creating lines
-    arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=r_flowdir)
+    arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=str_frompoints)
     lines = "in_memory\LINES"
     arcpy.AddField_management(lines, routeID_field, "LONG")
     arcpy.AddField_management(lines, "ORIG_FID", "LONG")
@@ -270,11 +270,12 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
             vertices.add(initialpoint[reachid])
         for point in points:
             vertices.add(arcpy.Point(float(point["X"]), float(point["Y"])))
-        line = arcpy.Polyline(vertices)
+        line = arcpy.Polyline(vertices, spatial_reference=str_frompoints)
         if reachid in original_fp_OID:
             linecursor.insertRow([line, reachid, original_fp_OID[reachid]])
         else:
             linecursor.insertRow([line, reachid, -999])
+
 
     # Create routes from start point to end point
     arcpy.AddField_management(lines, routeID_field, "LONG")
