@@ -15,6 +15,7 @@ from WSsmoothing_Interface import *
 from TreeFromFlowDir_Interface import *
 from CreateFromPointsAndSplits_Interface import *
 from LocateMostDownstreamPoints_Interface import *
+from FlowDirForWS_Interface import *
 
 class Toolbox(object):
     def __init__(self):
@@ -22,5 +23,5 @@ class Toolbox(object):
         self.label = "Tools for linear referencing"
         self.alias = ""
 
-        self.tools = [RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+        self.tools = [FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
 
