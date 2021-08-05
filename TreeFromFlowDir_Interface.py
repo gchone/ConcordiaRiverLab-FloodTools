@@ -91,6 +91,6 @@ class TreeFromFlowDir(object):
         split_pts = parameters[6].valueAsText
         tolerance = parameters[7].valueAsText
 
+        execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelinks_table, routeID_field, str_output_points, messages, split_pts, tolerance)
 
-        execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelinks_table, routeID_field, str_output_points, split_pts, tolerance)
         return
