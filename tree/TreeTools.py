@@ -242,7 +242,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
             to_add[RiverNetwork.reaches_linkfieldup] = split[0]
             links = numpy.append(links, to_add)
             # update initial line points
-            initialpoint[segmentid] = initialpoint[split[0]]
+            if segmentid in initialpoint.keys(): # it's not the case for the most downstream reach
+                initialpoint[segmentid] = initialpoint[split[0]]
             initialpoint[split[0]] = arcpy.Point(split[2], split[3])
 
         arcpy.Delete_management(str_output_points)
