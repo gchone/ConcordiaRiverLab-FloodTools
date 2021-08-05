@@ -222,6 +222,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
             #gc.CleanTempFile(pts_table)
             join_split = gc.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
             arcpy.SpatialJoin_analysis(split_pts, points_shp, join_split, match_option="CLOSEST", join_type="KEEP_COMMON", search_radius=tolerance)
+            arcpy.DeleteIdentical_management(join_split, "id") # If two split points are too close, the split point on the D8 path is the same
             gc.CleanTempFile(points_shp)
 
             join_split_cursor = arcpy.da.SearchCursor(join_split, ["RID", "dist", "X", "Y"])
