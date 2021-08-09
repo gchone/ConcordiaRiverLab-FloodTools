@@ -51,8 +51,12 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
             for cs in reach.browse_points(points_coll):
                 cs.n = manning
                 if iteration == 1:
+                    if prev_cs != None:
+                        # Fill
+                        cs.wslidar = max(prev_cs.wslidar, cs.wslidar)
                     cs.z = cs.wslidar
                     cs.ws = cs.wslidar
+
 
                 if prev_cs == None:
 

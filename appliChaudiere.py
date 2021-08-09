@@ -9,8 +9,8 @@ from WSsmoothing import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
 from ChannelCorrection import *
-from BedAssessmentDirectLinearNet import *
-#from BedAssessmentLinearNet import *
+#from BedAssessmentDirectLinearNet import *
+from BedAssessmentLinearNet import *
 
 from LargeScaleFloodMetaTools import *
 
