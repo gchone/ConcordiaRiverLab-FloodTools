@@ -33,6 +33,8 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
     for reach in network.browse_reaches_down_to_up():
         if reach.is_downstream_end():
             prev_cs = None
+        elif reach.get_downstream_reach() != prev_cs.reach:
+            prev_cs = reach.get_downstream_reach().get_last_point(collection)
         for cs in reach.browse_points(collection):
             if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 cs.z_fill = max(prev_cs.z_fill, cs.zerr)
@@ -71,6 +73,8 @@ def execute_WSsmoothing(network_shp, links_table, RID_field, datapoints, id_fiel
 
         if reach.is_downstream_end():
             prev_cs = None
+        elif reach.get_downstream_reach() != prev_cs.reach:
+            prev_cs = reach.get_downstream_reach().get_last_point(collection)
         for cs in reach.browse_points(collection):
             if prev_cs != None and cs.DEM_ID == prev_cs.DEM_ID:
                 if prev_cs.reach == cs.reach:
