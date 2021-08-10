@@ -35,6 +35,15 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
     points_coll.dict_attr_fields['DEM'] = points_DEMfield
     points_coll.load_table(points)
 
+    points_coll.add_SavedVariable("solver", "str", 10)
+    points_coll.add_SavedVariable("y", "float")
+    points_coll.add_SavedVariable("R", "float")
+    points_coll.add_SavedVariable("v", "float")
+    points_coll.add_SavedVariable("z", "float")
+    points_coll.add_SavedVariable("h", "float")
+    points_coll.add_SavedVariable("s", "float")
+    points_coll.add_SavedVariable("Fr", "float")
+
     enditeration = False
     iteration = 0
     while not enditeration:
@@ -136,14 +145,6 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
                     cscorrect.z = cscorrect.z - correcteddif
                 enditeration = False
 
-    points_coll.add_SavedVariable("solver", "str", 10)
-    points_coll.add_SavedVariable("y", "float")
-    points_coll.add_SavedVariable("R", "float")
-    points_coll.add_SavedVariable("v", "float")
-    points_coll.add_SavedVariable("z", "float")
-    points_coll.add_SavedVariable("h", "float")
-    points_coll.add_SavedVariable("s", "float")
-    points_coll.add_SavedVariable("Fr", "float")
     points_coll.save_points(output_pts)
 
     return
