@@ -283,7 +283,7 @@ def transectsauxconfluences(cspoints, typefield, riverbanks, transects):
     MakeFeatureLayer(cspoints, "cspts_lyr")
     SelectLayerByAttribute("cspts_lyr", "NEW_SELECTION", '"{0}" >= 2'.format(typefield))
 
-    thiepoly = gc.CreateScratchName("mtrco", data_type="FeatureClass", workspace="in_memory")
+    thiepoly = gc.CreateScratchName("mtrco", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
     CreateThiessenPolygons("cspts_lyr", thiepoly, "ALL")
 
     disspoly = gc.CreateScratchName("mtrco", data_type="FeatureClass", workspace="in_memory")
