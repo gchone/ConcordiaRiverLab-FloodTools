@@ -271,7 +271,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                 vertices.add(initialpoint[reachid])
             for point in points:
                 vertices.add(arcpy.Point(float(point["X"]), float(point["Y"])))
-            line = arcpy.Polyline(vertices, spatial_reference=str_frompoints)
+            line = arcpy.Polyline(vertices)
             if reachid in original_fp_OID:
                 linecursor.insertRow([line, reachid, original_fp_OID[reachid]])
             else:
