@@ -49,7 +49,7 @@ class WidthPostProc(object):
             parameterType="Required",
             direction="Input")
         param_network_main_l_field = arcpy.Parameter(
-            displayName="network_main_l_field",
+            displayName="Shape_Length field",
             name="network_main_l_field",
             datatype="Field",
             parameterType="Required",
@@ -73,7 +73,7 @@ class WidthPostProc(object):
             parameterType="Required",
             direction="Input")
         param_widthid = arcpy.Parameter(
-            displayName="Widthdata layer ID field",
+            displayName="CSid",
             name="widthid",
             datatype="Field",
             parameterType="Required",
@@ -87,8 +87,8 @@ class WidthPostProc(object):
         param_width_distance = arcpy.Parameter(
             displayName="Widthdata layer distance field",
             name="width_distance",
-            datatype="GPTableView",
-            parameterType="Field",
+            datatype="Field",
+            parameterType="Required",
             direction="Input")
         param_width_field = arcpy.Parameter(
             displayName="Widthdata layer width field",
@@ -109,7 +109,7 @@ class WidthPostProc(object):
             parameterType="Required",
             direction="Input")
         param_distance_field_datapts = arcpy.Parameter(
-            displayName="Distance field in datapoints",
+            displayName="MEAS field in datapoints",
             name="distance_field_datapts",
             datatype="Field",
             parameterType="Required",
