@@ -125,20 +125,22 @@ if __name__ == "__main__":
     #execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
 
     #### Bathy assessment ####
-    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\datapts_August21"
+    datapts = r"E:\InfoCrue\Chaudiere\TestPseudoRandomnessBed\bathy.gdb\datapts_randombed1"
     #bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts_August21"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts_recurs_A21lisf"
-    # execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
-    #                    "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
-
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestPseudoRandomnessBed\bathy.gdb\bathypts_bed2"
+    execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "QLidar",
+                       "Largeur_m", "bed2", "ORIG_FID", 0.03, bathyoutput, messages)
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestPseudoRandomnessBed\bathy.gdb\bathypts_bed3"
+    execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "QLidar",
+                          "Largeur_m", "bed3", "ORIG_FID", 0.03, bathyoutput, messages)
 
     #### Transform results for Lisflood #####
-    flowdirD4 = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\DEM10m_D4fd")
-    routesD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\routeD4"
-    linksD4 =r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\linksD4"
-    pathpointsD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\pathpointsD4"
-    basicnet_to_D4_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\relatetableD4"
-    #execute_FlowDirNetwork(routes_main, links_main, "RID", flowdirD4, routesD4, linksD4, pathpointsD4, basicnet_to_D4_relatetable, messages)
+    # flowdirD4 = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\DEM10m_D4fd")
+    # routesD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\routeD4"
+    # linksD4 =r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\linksD4"
+    # pathpointsD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\pathpointsD4"
+    # basicnet_to_D4_relatetable = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\relatetableD4"
+    # execute_FlowDirNetwork(routes_main, links_main, "RID", flowdirD4, routesD4, linksD4, pathpointsD4, basicnet_to_D4_relatetable, messages)
 
     # Export the bathymetry
     # arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
