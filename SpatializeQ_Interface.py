@@ -97,7 +97,7 @@ class SpatializeQ(object):
         param_targetpoints = arcpy.Parameter(
             displayName="Target points",
             name="targetpoints",
-            datatype="GPFeatureLayer",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_id_field_target = arcpy.Parameter(
@@ -143,6 +143,10 @@ class SpatializeQ(object):
         param_RID_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_dist_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_AtlasReach_field_Qpoints.parameterDependencies = [param_Qpoints.name]
+        param_id_field_target.parameterDependencies = [param_targetpoints.name]
+        param_RID_field_target.parameterDependencies = [param_targetpoints.name]
+        param_Distance_field_target.parameterDependencies = [param_targetpoints.name]
+        param_DEM_field_target.parameterDependencies = [param_targetpoints.name]
 
         params = [param_route_D8, param_RID_field_D8, param_D8pathpoints, param_relate_table, param_r_flowacc, param_routes, param_links, param_RID_field, param_Qpoints, param_id_field_Qpoints, param_RID_Qpoints, param_dist_field_Qpoints, param_AtlasReach_field_Qpoints, param_targetpoints, param_id_field_target, param_RID_field_target, param_Distance_field_target, param_DEM_field_target, param_Qcsv_file, param_output_points]
 
