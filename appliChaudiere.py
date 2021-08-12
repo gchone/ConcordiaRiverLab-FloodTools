@@ -9,8 +9,8 @@ from WSsmoothing import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
 from ChannelCorrection import *
-#from BedAssessmentDirectLinearNet import *
-from BedAssessmentLinearNet import *
+from BedAssessmentDirectLinearNet import *
+
 
 from LargeScaleFloodMetaTools import *
 
@@ -65,9 +65,9 @@ if __name__ == "__main__":
     channel = r"E:\InfoCrue\Chaudiere\TestLinearRef2\New File Geodatabase.gdb\poly_chenal"
     ends = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\Ends"
     linear = r"E:\InfoCrue\Chaudiere\TestLinearRef2\New File Geodatabase.gdb\linear_main_d"
-    DEMs_footprints = r"E:\InfoCrue\Chaudiere\TestLinearRef2\New File Geodatabase.gdb\Limites_merge_clean"
+    DEMs_footprints = r"E:\InfoCrue\Chaudiere\TestLinearRef2\New File Geodatabase.gdb\Limites_merge"
     DEMs_footprints_id = "ORIG_FID"
-    ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\DEM3m_forws"
+    ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\DEM3m_forws"
     #execute_ChannelCorrection(lidar3m, ends, channel, linear, DEMs_footprints, ws3m, messages)
 
     fpoints = r"E:\InfoCrue\Chaudiere\TestLinearRef2\New File Geodatabase.gdb\from_points"
@@ -75,14 +75,14 @@ if __name__ == "__main__":
     #execute_CreateFromPointsAndSplits(routes_main, links_main, "RID", fpoints, splits)
 
     flowdir_ws3m = arcpy.Raster(
-        r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\flowdir_ws3m")
-    routesD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\DEM3m_routeD8"
-    linksD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\DEM3m_linksD8"
-    pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\DEM3m_pathpointsD8"
+        r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\dem3m_forws_flowdir")
+    routesD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\DEM3m_routeD8"
+    linksD8_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\DEM3m_linksD8"
+    pathpoints_ws3m = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\DEM3m_pathpointsD8"
     #execute_TreeFromFlowDir(flowdir_ws3m, fpoints, routesD8_ws3m, linksD8_ws3m, "RID", pathpoints_ws3m, messages)
 
-    lidar3m_forws = arcpy.Raster(ws3m)
-    bathy_datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurfaceAugust21.gdb\smoothedpts"
+    lidar3m_forws = arcpy.Raster(r"E:\InfoCrue\Chaudiere\TestLinearRef2\WaterSurface.gdb\dem3m_forws")
+    bathy_datapts = bathy_datapts
 
     # execute_ExtractWaterSurface(routes_main, links_main, "RID", "Qorder", routesD8_ws3m, "RID", pathpoints_ws3m, "X", "Y",
     #                            lidar3m, lidar3m_forws, 5, DEMs_footprints, DEMs_footprints_id, bathy_datapts, messages)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     Qpoints_match_atlas = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Discharge.gdb\Qpoints_match_Atlas"
     Qcsv_file = r"E:\InfoCrue\Chaudiere\TestLinearRef2\qlidaratlas2020_qspec.csv"
-    Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Discharge.gdb\Final_Qpoints_August21"
+    Qpoints_spatialized = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Discharge.gdb\Final_Qpoints"
     # execute_SpatializeQ(routesD8, "RID", pathpoints, basicnet_to_D8_relatetable, flowacc, routes_main, links_main, "RID", Qpoints_match_atlas, "OBJECTID", "RID", "MEAS",
     #                         "IDTRONCON",
     #                         bathy_datapts, "ObjectID_1", "RID", "MEAS", "ORIG_FID",
@@ -121,15 +121,14 @@ if __name__ == "__main__":
     widthtransects = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Width.gdb\widthtransects"
     #execute_largeurpartransect(routes, "RID", channel, None, 1000, 5, widthtransects, widthpts, messages)
 
-    widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Width.gdb\Final_width_pts_August21"
+    widthoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\Width.gdb\Final_width_pts"
     #execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
 
     #### Bathy assessment ####
-    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\datapts_August21"
-    #bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts_August21"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts_recurs_A21lisf"
+    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\datapts"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts"
     # execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
-    #                    "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
+    #                     "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
 
 
     #### Transform results for Lisflood #####
@@ -141,18 +140,18 @@ if __name__ == "__main__":
     #execute_FlowDirNetwork(routes_main, links_main, "RID", flowdirD4, routesD4, linksD4, pathpointsD4, basicnet_to_D4_relatetable, messages)
 
     # Export the bathymetry
-    # arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
-    # arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
-    # bathy_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\bathy_recurslisf_onD4"
-    # execute_AssignPointToClosestPointOnRoute("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["z"], routesD4, "RID", pathpointsD4, "RID", "dist", bathy_onD4, "MAX")
-    # final_bathy_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\final_bathy_recurslisf_pts"
-    # execute_InterpolatePoints(bathy_onD4, "id", "RID", "dist", ["z"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_bathy_pts)
+    arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
+    arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
+    bathy_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\bathy_onD4"
+    #execute_AssignPointToClosestPointOnRoute("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["z"], routesD4, "RID", pathpointsD4, "RID", "dist", bathy_onD4, "MAX")
+    final_bathy_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\final_bathy_pts"
+    #execute_InterpolatePoints(bathy_onD4, "id", "RID", "dist", ["z"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_bathy_pts)
 
     # Export the width
-    #arcpy.MakeRouteEventLayer_lr(routes_main, "RID", widthoutput, "RID POINT MEAS", "width_lyr")
-    #arcpy.AddJoin_management("width_lyr", "RID", basicnet_to_D4_relatetable, "RID")
-    #width_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\width_onD4"
+    arcpy.MakeRouteEventLayer_lr(routes_main, "RID", widthoutput, "RID POINT MEAS", "width_lyr")
+    arcpy.AddJoin_management("width_lyr", "RID", basicnet_to_D4_relatetable, "RID")
+    width_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\width_onD4"
     #execute_AssignPointToClosestPointOnRoute("width_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["Largeur_m"], routesD4, "RID", pathpointsD4, "RID", "dist", width_onD4, "MEAN")
-    #final_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\final_width_pts"
+    final_width_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\final_width_pts"
     #execute_InterpolatePoints(width_onD4, "id", "RID", "dist", ["Largeur_m"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_width_pts)
 

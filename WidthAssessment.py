@@ -456,8 +456,7 @@ def supprimercroisements(transects, nx):
     return
 
 
-def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing,
-                               transects, cspoints, messages):
+def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing, transects, cspoints, messages):
     # **************************************************************************
     # DÉFINITION :
     # Corps d'exécution (main) de l'outil de calcul de la largeur des cours d'eau.
