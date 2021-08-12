@@ -83,7 +83,7 @@ class SpatializeQ(object):
             parameterType="Required",
             direction="Input")
         param_dist_field_Qpoints = arcpy.Parameter(
-            displayName="Distance field in Qpoints ",
+            displayName="MEAS field in Qpoints ",
             name="dist_field_Qpoints",
             datatype="Field",
             parameterType="Required",
@@ -113,7 +113,7 @@ class SpatializeQ(object):
             parameterType="Required",
             direction="Input")
         param_Distance_field_target = arcpy.Parameter(
-            displayName="Distance field in target points feature class",
+            displayName="MEAS field in target points feature class",
             name="Distance_field_target",
             datatype="Field",
             parameterType="Required",
