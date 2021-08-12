@@ -99,7 +99,7 @@ class WidthPostProc(object):
         param_datapoints = arcpy.Parameter(
             displayName="Datapoints layer",
             name="datapoints",
-            datatype="GPFeatureLayer",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_id_field_datapts = arcpy.Parameter(
