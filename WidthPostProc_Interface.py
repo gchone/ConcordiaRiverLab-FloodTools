@@ -124,7 +124,7 @@ class WidthPostProc(object):
             displayName="Output table",
             name="output_table",
             datatype="GPTableView",
-            parameterType="Field",
+            parameterType="Required",
             direction="Output")
 
         param_RID_field.parameterDependencies = [param_network_shp.name]
