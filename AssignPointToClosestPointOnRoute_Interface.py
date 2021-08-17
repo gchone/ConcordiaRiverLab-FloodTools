@@ -88,7 +88,7 @@ class AssignPointToClosestPointOnRoute(object):
         param_points_onroute_RIDfield.parameterDependencies = [param_points_onroute.name]
         param_points_onroute_distfield.parameterDependencies = [param_points_onroute.name]
         param_stat.filter.type = "ValueList"
-        param_stat.filter.list = ["MEAN", "CLOSEST"]
+        param_stat.filter.list = ["MEAN", "CLOSEST", "MAX"]
         param_stat.value = "MEAN"
         params = [param_points, param_points_RIDfield, param_list_fields_to_keep, param_stat, param_routes, param_routesIDfield, param_points_onroute, param_points_onroute_RIDfield, param_points_onroute_distfield, param_output_table]
 
