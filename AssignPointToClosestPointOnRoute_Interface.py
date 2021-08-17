@@ -108,7 +108,7 @@ class AssignPointToClosestPointOnRoute(object):
         points = parameters[0].valueAsText
         points_RIDfield = parameters[1].valueAsText
         list_fields_to_keep = (parameters[2].valueAsText).split(';')
-        new_list = [str(item) for item in list_fields_to_keep]
+        new_list = [str(item.split('.')[-1]) for item in list_fields_to_keep] #keep only the field name in case it's composed with table_name.field_name
         stat = parameters[3].valueAsText
         routes = parameters[4].valueAsText
         routes_IDfield = parameters[5].valueAsText
