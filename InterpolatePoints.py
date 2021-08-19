@@ -121,7 +121,7 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
                 interp = np.interp(targetdata[targetcollection.dict_attr_fields['dist']], sorteddata[datacollection.dict_attr_fields['dist']], sorteddata[field], left=interp_left_right_param, right=interp_left_right_param)
                 newres[field] = interp
             else:
-                newres[field] = float(extrapolation_value)
+                newres[field] = float(extrapolation_value) # case of a reach without any data point
 
         # Create a new array or update it
         if newarray is None:
