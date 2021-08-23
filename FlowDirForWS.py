@@ -38,10 +38,14 @@ def execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_works
                     arcpy.PolygonToRaster_conversion(domain_fullbuf, "GRIDCODE", walls, cellsize=dem)
 
                     # Find in-out points
-                    domain_halfbuf = gc.CreateScratchName("domainb2", data_type="FeatureClass", workspace="in_memory")
-                    arcpy.Buffer_analysis(domain, domain_halfbuf, 1.5)
+                    #domain_halfbuf = gc.CreateScratchName("domainb2", data_type="FeatureClass", workspace="in_memory")
+                    #arcpy.Buffer_analysis(domain, domain_halfbuf, 1.5)
+                    #inoutpts = gc.CreateScratchName("inoutpts", data_type="FeatureClass", workspace="in_memory")
+                    #arcpy.Intersect_analysis([routes_main, domain_halfbuf], inoutpts, output_type="POINT")
+                    #inoutptss = gc.CreateScratchName("inoutptss", data_type="FeatureClass", workspace="in_memory")
+                    #arcpy.MultipartToSinglepart_management(inoutpts, inoutptss)
                     inoutpts = gc.CreateScratchName("inoutpts", data_type="FeatureClass", workspace="in_memory")
-                    arcpy.Intersect_analysis([routes_main, domain_halfbuf], inoutpts, output_type="POINT")
+                    arcpy.Intersect_analysis([routes_main, domain], inoutpts, output_type="POINT")
                     inoutptss = gc.CreateScratchName("inoutptss", data_type="FeatureClass", workspace="in_memory")
                     arcpy.MultipartToSinglepart_management(inoutpts, inoutptss)
 
@@ -51,14 +55,15 @@ def execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_works
                     arcpy.LocateFeaturesAlongRoutes_lr(inoutptss, routes_main, "RID", 0.1, out_table=inoutpts_loc, out_event_properties="RID POINT MEAS")
                     #arcpy.AddField_management(inoutpts_loc, "ptsid", "SHORT")
                     #arcpy.CalculateField_management(inoutpts_loc, "ptsid", "!" + arcpy.Describe(inoutpts_loc).OIDFieldName + "!", "PYTHON")
-                    #  Add a small distance (0.1m) to the linear referencing
+                    #  Subtract a small distance (0.1m) to the linear referencing
                     arcpy.CalculateField_management(inoutpts_loc, "MEAS",
-                                                    "!MEAS!+0.1", "PYTHON")
+                                                    "!MEAS!-0.1", "PYTHON")
                     #  Turn back the result into points
                     arcpy.MakeRouteEventLayer_lr(routes_main, "RID", inoutpts_loc,
                                                  "RID POINT MEAS", "inout_pts_lyr")
                     #  Select only the points in the polygons there were created from
-                    arcpy.SelectLayerByLocation_management("inout_pts_lyr", "WITHIN", domain_halfbuf)
+                    arcpy.SelectLayerByLocation_management("inout_pts_lyr", "WITHIN", domain)
+                    arcpy.SelectLayerByAttribute_management("inout_pts_lyr", "SWITCH_SELECTION")
                     out_pts = gc.CreateScratchName("out_pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
                     arcpy.CopyFeatures_management("inout_pts_lyr", out_pts)
 

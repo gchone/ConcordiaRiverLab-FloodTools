@@ -41,6 +41,8 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
     # this dict is used to stored the original Frompoint OID for upstream reaches
     original_fp_OID = {}
 
+    loop_error = False
+
     try:
         # Starting at each From point
         frompointcursor = arcpy.da.SearchCursor(str_frompoints, ["SHAPE@", "OID@"])
@@ -140,62 +142,76 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                 if intheraster:
                     totaldist += currentdistance
 
-                    # Check if the new points coordinates (in row, column) are already in the points numpy array
-                    checkrow = pointsarray["row"] == currentrow
-                    checkcol = pointsarray["col"] == currentcol
-                    checkpoint = np.extract(np.logical_and(checkrow, checkcol), pointsarray)
-
-                    if len(checkpoint) > 0:
-
-                        confluencepoint = checkpoint[0]
-                        # A confluence with a previously treated flow path is met
-                        # The reach that is met is split in two
-                        # A new RID is assigned to the upstream part of this reach
-                        matchingrid = pointsarray["RID"] == confluencepoint["RID"]
-                        matchingdist = pointsarray["dist"] > confluencepoint["dist"]
-
-                        len_of_upstream_meet_reach = len(pointsarray[np.logical_and(matchingrid, matchingdist)])
-
-                        if len_of_upstream_meet_reach > 0:
-                            pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
-                            pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - confluencepoint["dist"]
-                            # The link table need to be updated too (new RID for the upstream part of the met reach)
-                            links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
-                        else:
-                            # special case: the flow meet another reach from it's start point
-                            messages.addWarningMessage("Reach " + str(segmentid) + " encountered another From point")
-
-                        # Adding the pointslist to the pointsarray
-                        #   but first, the distance value must be reverse (it was computed backward. It must be from downstream to upstream), and the points must be tuples
+                    # Check if the new point coordinates (in row, column) are already in the pointslist
+                    coordlist = [(item[6], item[7]) for item in pointslist]
+                    if (currentrow, currentcol) in coordlist:
+                        intheraster = False
+                        messages.addErrorMessage("Infinite loop found at "+str(flowdir.ColtoX(currentcol))+";"+str(flowdir.RowtoY(currentrow)))
                         pointslisttuple = []
                         for point in pointslist:
-                            pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4], point[5], point[6], point[7]))
+                            pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4],
+                                                    point[5], point[6], point[7]))
 
                         pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
+                        loop_error = True
+                    else:
 
-                        # Adding the confluence info in the link table
-                        if len_of_upstream_meet_reach > 0:
-                            to_add = numpy.empty(2, dtype=links.dtype)
-                            to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
-                            to_add[RiverNetwork.reaches_linkfieldup][0] = segmentid
-                            to_add[RiverNetwork.reaches_linkfieldup][1] = segmentid + 1
-                        else:
-                            to_add = numpy.empty(1, dtype=links.dtype)
-                            to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
-                            to_add[RiverNetwork.reaches_linkfieldup] = segmentid
-                        links = numpy.append(links, to_add)
+                        # Check if the new points coordinates (in row, column) are already in the points numpy array
+                        checkrow = pointsarray["row"] == currentrow
+                        checkcol = pointsarray["col"] == currentcol
+                        checkpoint = np.extract(np.logical_and(checkrow, checkcol), pointsarray)
 
-                        # Storing the downstream point of the upstream reach
-                        initialpoint[segmentid] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
-                        initialpoint[segmentid + 1] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
+                        if len(checkpoint) > 0:
 
-                        # Updating the segment id - Frompoint OID dict
-                        original_fp_OID[segmentid] = frompoint[1]
-                        if confluencepoint["RID"] in original_fp_OID:
-                            original_fp_OID[segmentid + 1] = original_fp_OID.pop(confluencepoint["RID"])
+                            confluencepoint = checkpoint[0]
+                            # A confluence with a previously treated flow path is met
+                            # The reach that is met is split in two
+                            # A new RID is assigned to the upstream part of this reach
+                            matchingrid = pointsarray["RID"] == confluencepoint["RID"]
+                            matchingdist = pointsarray["dist"] > confluencepoint["dist"]
 
-                        segmentid += 1
-                        intheraster = False
+                            len_of_upstream_meet_reach = len(pointsarray[np.logical_and(matchingrid, matchingdist)])
+
+                            if len_of_upstream_meet_reach > 0:
+                                pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid + 1
+                                pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - confluencepoint["dist"]
+                                # The link table need to be updated too (new RID for the upstream part of the met reach)
+                                links[RiverNetwork.reaches_linkfielddown][links[RiverNetwork.reaches_linkfielddown] == confluencepoint["RID"]] = segmentid + 1
+                            else:
+                                # special case: the flow meet another reach from it's start point
+                                messages.addWarningMessage("Reach " + str(segmentid) + " encountered another From point")
+
+                            # Adding the pointslist to the pointsarray
+                            #   but first, the distance value must be reverse (it was computed backward. It must be from downstream to upstream), and the points must be tuples
+                            pointslisttuple = []
+                            for point in pointslist:
+                                pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4], point[5], point[6], point[7]))
+
+                            pointsarray = np.append(pointsarray, np.array(pointslisttuple, dtype=pointstype))
+
+                            # Adding the confluence info in the link table
+                            if len_of_upstream_meet_reach > 0:
+                                to_add = numpy.empty(2, dtype=links.dtype)
+                                to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
+                                to_add[RiverNetwork.reaches_linkfieldup][0] = segmentid
+                                to_add[RiverNetwork.reaches_linkfieldup][1] = segmentid + 1
+                            else:
+                                to_add = numpy.empty(1, dtype=links.dtype)
+                                to_add[RiverNetwork.reaches_linkfielddown] = confluencepoint["RID"]
+                                to_add[RiverNetwork.reaches_linkfieldup] = segmentid
+                            links = numpy.append(links, to_add)
+
+                            # Storing the downstream point of the upstream reach
+                            initialpoint[segmentid] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
+                            initialpoint[segmentid + 1] = arcpy.Point(float(confluencepoint["X"]), float(confluencepoint["Y"]))
+
+                            # Updating the segment id - Frompoint OID dict
+                            original_fp_OID[segmentid] = frompoint[1]
+                            if confluencepoint["RID"] in original_fp_OID:
+                                original_fp_OID[segmentid + 1] = original_fp_OID.pop(confluencepoint["RID"])
+
+                            segmentid += 1
+                            intheraster = False
                 else:
                     # Adding the pointslist to the pointsarray
                     #   but first, the distance value must be reverse (it was computed backward. It must be from downstream to upstream), and the points must be tuples
@@ -209,87 +225,89 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
         points_table = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace="in_memory")
         arcpy.da.NumPyArrayToTable(pointsarray, points_table)
 
-        #Splitting lines if necessary
-        if split_pts is not None:
-            # a temp file of the points is necessary, to do a spatial join
-            #pts_table = gc.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
-            #arcpy.da.NumPyArrayToTable(pointsarray, pts_table)
+        if not loop_error:
+            #Splitting lines if necessary
+            if split_pts is not None:
+                # a temp file of the points is necessary, to do a spatial join
+                #pts_table = gc.CreateScratchName("pts_table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+                #arcpy.da.NumPyArrayToTable(pointsarray, pts_table)
 
-            points_shp = gc.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-            arcpy.MakeXYEventLayer_management(points_table, "X", "Y", "pts_layer", spatial_reference=str_frompoints)
-            arcpy.CopyFeatures_management("pts_layer", points_shp)
+                points_shp = gc.CreateScratchName("pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+                arcpy.MakeXYEventLayer_management(points_table, "X", "Y", "pts_layer", spatial_reference=str_frompoints)
+                arcpy.CopyFeatures_management("pts_layer", points_shp)
 
-            #gc.CleanTempFile(pts_table)
-            join_split = gc.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
-            arcpy.SpatialJoin_analysis(split_pts, points_shp, join_split, match_option="CLOSEST", join_type="KEEP_COMMON", search_radius=tolerance)
-            arcpy.DeleteIdentical_management(join_split, "id") # If two split points are too close, the split point on the D8 path is the same
-            gc.CleanTempFile(points_shp)
+                #gc.CleanTempFile(pts_table)
+                join_split = gc.CreateScratchName("pts_join", data_type="FeatureClass", workspace="in_memory")
+                arcpy.SpatialJoin_analysis(split_pts, points_shp, join_split, match_option="CLOSEST", join_type="KEEP_COMMON", search_radius=tolerance)
+                arcpy.DeleteIdentical_management(join_split, "id") # If two split points are too close, the split point on the D8 path is the same
+                gc.CleanTempFile(points_shp)
 
-            join_split_cursor = arcpy.da.SearchCursor(join_split, ["RID", "dist", "X", "Y"])
-            for split in join_split_cursor:
-                # for every split pts, update the RID downstream for the points
-                segmentid +=1
-                matchingrid = pointsarray["RID"] == split[0]
-                matchingdist = pointsarray["dist"] <= split[1]
-                pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid
-                pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - split[1]
-                # update the links
-                links[RiverNetwork.reaches_linkfieldup][links[RiverNetwork.reaches_linkfieldup] == split[0]] = segmentid
-                to_add = numpy.empty(1, dtype=links.dtype)
-                to_add[RiverNetwork.reaches_linkfielddown] = segmentid
-                to_add[RiverNetwork.reaches_linkfieldup] = split[0]
-                links = numpy.append(links, to_add)
-                # update initial line points
-                if split[0] in initialpoint.keys(): # it's not the case for the most downstream reach
-                    initialpoint[segmentid] = initialpoint[split[0]]
-                initialpoint[split[0]] = arcpy.Point(split[2], split[3])
+                join_split_cursor = arcpy.da.SearchCursor(join_split, ["RID", "dist", "X", "Y"])
+                for split in join_split_cursor:
+                    # for every split pts, update the RID downstream for the points
+                    segmentid +=1
+                    matchingrid = pointsarray["RID"] == split[0]
+                    matchingdist = pointsarray["dist"] <= split[1]
+                    pointsarray["RID"][np.logical_and(matchingrid, matchingdist)] = segmentid
+                    pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] = pointsarray["dist"][np.logical_and(matchingrid, matchingdist)] - split[1]
+                    # update the links
+                    links[RiverNetwork.reaches_linkfieldup][links[RiverNetwork.reaches_linkfieldup] == split[0]] = segmentid
+                    to_add = numpy.empty(1, dtype=links.dtype)
+                    to_add[RiverNetwork.reaches_linkfielddown] = segmentid
+                    to_add[RiverNetwork.reaches_linkfieldup] = split[0]
+                    links = numpy.append(links, to_add)
+                    # update initial line points
+                    if split[0] in initialpoint.keys(): # it's not the case for the most downstream reach
+                        initialpoint[segmentid] = initialpoint[split[0]]
+                    initialpoint[split[0]] = arcpy.Point(split[2], split[3])
 
         # Saving the points
         if arcpy.Exists(str_output_points) and arcpy.env.overwriteOutput == True:
             arcpy.Delete_management(str_output_points)
         arcpy.da.NumPyArrayToTable(pointsarray, str_output_points)
 
-        # Saving the links
-        if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
-            arcpy.Delete_management(routelinks_table)
-        arcpy.da.NumPyArrayToTable(links, routelinks_table)
+        if not loop_error:
+            # Saving the links
+            if arcpy.Exists(routelinks_table) and arcpy.env.overwriteOutput == True:
+                arcpy.Delete_management(routelinks_table)
+            arcpy.da.NumPyArrayToTable(links, routelinks_table)
 
 
-        # Creating lines
-        arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=str_frompoints)
-        lines = "in_memory\LINES"
-        arcpy.AddField_management(lines, routeID_field, "LONG")
-        arcpy.AddField_management(lines, "ORIG_FID", "LONG")
-        linecursor = arcpy.da.InsertCursor(lines, ["SHAPE@", routeID_field, "ORIG_FID"])
-        reachidlist = set(pointsarray["RID"])
-        for reachid in reachidlist:
-            # New line
-            vertices = arcpy.Array()
-            points = np.sort(pointsarray[pointsarray["RID"] == reachid], order="dist")
-            # Add the downstream point if it exists
-            if reachid in initialpoint.keys():
-                vertices.add(initialpoint[reachid])
-            for point in points:
-                vertices.add(arcpy.Point(float(point["X"]), float(point["Y"])))
-            line = arcpy.Polyline(vertices)
-            if reachid in original_fp_OID:
-                linecursor.insertRow([line, reachid, original_fp_OID[reachid]])
-            else:
-                linecursor.insertRow([line, reachid, -999])
+            # Creating lines
+            arcpy.CreateFeatureclass_management("in_memory", "LINES", "POLYLINE", spatial_reference=str_frompoints)
+            lines = "in_memory\LINES"
+            arcpy.AddField_management(lines, routeID_field, "LONG")
+            arcpy.AddField_management(lines, "ORIG_FID", "LONG")
+            linecursor = arcpy.da.InsertCursor(lines, ["SHAPE@", routeID_field, "ORIG_FID"])
+            reachidlist = set(pointsarray["RID"])
+            for reachid in reachidlist:
+                # New line
+                vertices = arcpy.Array()
+                points = np.sort(pointsarray[pointsarray["RID"] == reachid], order="dist")
+                # Add the downstream point if it exists
+                if reachid in initialpoint.keys():
+                    vertices.add(initialpoint[reachid])
+                for point in points:
+                    vertices.add(arcpy.Point(float(point["X"]), float(point["Y"])))
+                line = arcpy.Polyline(vertices)
+                if reachid in original_fp_OID:
+                    linecursor.insertRow([line, reachid, original_fp_OID[reachid]])
+                else:
+                    linecursor.insertRow([line, reachid, -999])
 
 
-        # Create routes from start point to end point
-        arcpy.AddField_management(lines, routeID_field, "LONG")
-        arcpy.AddField_management(lines, "FromF", "FLOAT")
-        arcpy.CalculateField_management(lines, "FromF", "0", "PYTHON")
-        arcpy.AddField_management(lines, "LENGTH", "DOUBLE")
-        arcpy.CalculateField_management(lines, "LENGTH", "!shape.length!", "PYTHON")
-        Lengthfield = "LENGTH"
+            # Create routes from start point to end point
+            arcpy.AddField_management(lines, routeID_field, "LONG")
+            arcpy.AddField_management(lines, "FromF", "FLOAT")
+            arcpy.CalculateField_management(lines, "FromF", "0", "PYTHON")
+            arcpy.AddField_management(lines, "LENGTH", "DOUBLE")
+            arcpy.CalculateField_management(lines, "LENGTH", "!shape.length!", "PYTHON")
+            Lengthfield = "LENGTH"
 
-        arcpy.CreateRoutes_lr(lines, routeID_field, route_shapefile, "TWO_FIELDS",
-                                 from_measure_field="FromF",
-                                 to_measure_field=Lengthfield)
-        arcpy.JoinField_management(route_shapefile, routeID_field, lines, routeID_field, "ORIG_FID")
+            arcpy.CreateRoutes_lr(lines, routeID_field, route_shapefile, "TWO_FIELDS",
+                                     from_measure_field="FromF",
+                                     to_measure_field=Lengthfield)
+            arcpy.JoinField_management(route_shapefile, routeID_field, lines, routeID_field, "ORIG_FID")
 
     finally:
         gc.CleanAllTempFiles()
