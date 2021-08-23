@@ -510,11 +510,11 @@ def execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxw
         gc.AddToGarbageBin(rawtrans)
 
         # Création des transects en pointe situés aux confluences
-        conftrans = gc.CreateScratchName("exlt", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        transectsauxconfluences(cspoints, typefield, riverbanks, conftrans)
+        #conftrans = gc.CreateScratchName("exlt", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        #transectsauxconfluences(cspoints, typefield, riverbanks, conftrans)
 
-
-        Merge([rawtrans, conftrans], transects)
+        #Merge([rawtrans, conftrans], transects)
+        transects = rawtrans
 
         widthfield = "Largeur_m"  # HARDCODED
         largeurdestransects(streamnetwork, transects, widthfield)
