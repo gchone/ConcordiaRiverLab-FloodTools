@@ -126,11 +126,11 @@ if __name__ == "__main__":
     #execute_WidthPostProc(routes, "RID", "Main", routes_main, "RID", "Shape_Length", "Qorder", links_main, widthpts, "CSid", "RID", "Distance_m", "Largeur_m", Qpoints_spatialized, "OBJECTID_1", "MEAS", "RID", widthoutput, messages)
 
     #### Bathy assessment ####
-    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\datapts"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\bathypts_highs_nokine"
-    verif_output = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\verif_simplepts_nokine"
-    execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
-                        "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
+    datapts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathynodem.gdb\datapts_August21"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathynodem.gdb\bathypts_nodem"
+    #verif_output = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\verif_simplepts_nokine"
+    #execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
+    #                    "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages)
 
     # execute_Simple1Dhydraulic(routes_main, "RID", "Qorder", links_main, bathyoutput, "OBJECTID_1", "RID", "MEAS", "Qlidar",
     #                      "Largeur_m", "z", "ORIG_FID", 0.03, 0.0001, verif_output, messages)
@@ -146,9 +146,9 @@ if __name__ == "__main__":
     # Export the bathymetry
     arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
     arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
-    bathy_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\bathyhighsnokine_onD4"
+    bathy_onD4 = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathynodem.gdb\bathy10cm_onD4"
     execute_AssignPointToClosestPointOnRoute("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["z"], routesD4, "RID", pathpointsD4, "RID", "dist", bathy_onD4, "MAX")
-    final_bathy_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\LisfloodInputs.gdb\final_bathyhighsnokine_pts"
+    final_bathy_pts = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathynodem.gdb\final_bathy10cm_pts"
     execute_InterpolatePoints(bathy_onD4, "id", "RID", "dist", ["z"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_bathy_pts)
 
     # Export the width
