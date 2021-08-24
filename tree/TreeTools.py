@@ -146,7 +146,7 @@ def execute_TreeFromFlowDir(r_flowdir, str_frompoints, route_shapefile, routelin
                     coordlist = [(item[6], item[7]) for item in pointslist]
                     if (currentrow, currentcol) in coordlist:
                         intheraster = False
-                        messages.addErrorMessage("Infinite loop found at "+str(flowdir.ColtoX(currentcol))+";"+str(flowdir.RowtoY(currentrow)))
+                        messages.addWarningMessage("Infinite loop found at "+str(flowdir.ColtoX(currentcol))+";"+str(flowdir.RowtoY(currentrow)))
                         pointslisttuple = []
                         for point in pointslist:
                             pointslisttuple.append((point[0], point[1], totaldist - point[2], point[3], point[4],
