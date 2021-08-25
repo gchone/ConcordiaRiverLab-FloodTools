@@ -570,27 +570,44 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
                 arcpy.Describe(widthdata).basename + "." + width_RID_field) + 1]
         secondary_width_pts_np = arcpy.da.TableToNumPyArray(secondary_width_pts, ["MEAS", width_field, secondary_channel_RID_field])
         secondary_RIDs = np.unique(secondary_width_pts_np[[secondary_channel_RID_field]])
-        arcpy.MakeTableView_management(secondary_width_pts, "secondary_width_lyr")
 
         interp_main_width_pts_np = arcpy.da.TableToNumPyArray(interp_main_width_pts,
                                                             [id_field_datapts, "MEAS", RID_field_main, width_field])
         interp_main_width_pts_np = np.sort(interp_main_width_pts_np, order=id_field_datapts) # ordering to ensure match latter
 
+        network = RiverNetwork()
+        network.dict_attr_fields['id'] = RID_field_main
+        network.dict_attr_fields['order'] = order_field
+        network.load_data(network_main_only, network_main_only_links)
+
+        datacollection = Points_collection(network, "data")
+        datacollection.dict_attr_fields['id'] = widthid
+        datacollection.dict_attr_fields['reach_id'] = RID_field_main
+        datacollection.dict_attr_fields['dist'] = "MEAS"
+        datacollection.dict_attr_fields[width_field] = width_field
+        datacollection.dict_attr_fields[secondary_channel_RID_field] = secondary_channel_RID_field
+        datacollection.load_table(secondary_width_pts)
+
+        targetcollection = Points_collection(network, "target")
+        targetcollection.dict_attr_fields['id'] = id_field_datapts
+        targetcollection.dict_attr_fields['reach_id'] = rid_field_datapts
+        targetcollection.dict_attr_fields['dist'] = distance_field_datapts
+        targetcollection.load_table(datapoints)
+
+
+
         i=0
         for rid in secondary_RIDs:
             i+=1
             messages.addMessage("Processing secondary channels (" + str(i) + "/" + str(len(secondary_RIDs)) + ")")
-            new_interp = gc.CreateScratchName("interp", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
-            arcpy.SelectLayerByAttribute_management("secondary_width_lyr", "NEW_SELECTION",
-                                                    secondary_channel_RID_field + " = " + str(rid[0]))
+            subdatasample = datacollection._numpyarray[secondary_channel_RID_field] == rid[0]
 
-            execute_InterpolatePoints("secondary_width_lyr", widthid, RID_field_main, "MEAS", [width_field], datapoints,
-                                      id_field_datapts, rid_field_datapts, distance_field_datapts, network_main_only,
-                                      network_main_only_links, RID_field_main, order_field, new_interp, extrapolation_value=0)
-            tmp_np = arcpy.da.TableToNumPyArray(new_interp, [id_field_datapts, width_field])
+            tmp_np = InterpolatePoints_with_objects(network, datacollection, [width_field], targetcollection, 0,
+                                            subdatasample=subdatasample)
+
             tmp_np = np.sort(tmp_np, order=id_field_datapts)
             interp_main_width_pts_np[width_field] = interp_main_width_pts_np[width_field]+tmp_np[width_field]
-            gc.CleanTempFile(new_interp)
+
 
         if arcpy.env.overwriteOutput and arcpy.Exists(output_table):
             arcpy.Delete_management(output_table)

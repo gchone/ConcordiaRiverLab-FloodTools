@@ -31,29 +31,38 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
     targetcollection.dict_attr_fields['dist'] = Distance_field_target
     targetcollection.load_table(targetpoints)
 
+    newarray = InterpolatePoints_with_objects(network, datacollection, data_fields, targetcollection, extrapolation_value)
+
+    arcpy.da.NumPyArrayToTable(newarray, ouput_table)
+
+
+def InterpolatePoints_with_objects(network, datacollection, data_fields, targetcollection, extrapolation_value, subdatasample = None):
+
     # Gather metadata for the new array
     newdtype = []
-    idfield = None
 
     dict_attr_output_fields = targetcollection.dict_attr_fields.copy()
 
     for attr, field in dict_attr_output_fields.items():
-        newdtype.append((str(field), targetcollection._numpyarray.dtype.fields[targetcollection.dict_attr_fields[attr]][0]))
+        newdtype.append(
+            (str(field), targetcollection._numpyarray.dtype.fields[targetcollection.dict_attr_fields[attr]][0]))
     for field in data_fields:
         newdtype.append(
             (str(field), datacollection._numpyarray.dtype.fields[datacollection.dict_attr_fields[attr]][0]))
-
-
     newarray = None
 
     for reach in network.browse_reaches_down_to_up():
+        if subdatasample is not None:
+            datatointerp = datacollection._numpyarray[subdatasample]
+        else:
+            datatointerp = datacollection._numpyarray
         targetdata = np.sort(
             targetcollection._numpyarray[
                 targetcollection._numpyarray[targetcollection.dict_attr_fields['reach_id']] == reach.id],
             order=targetcollection.dict_attr_fields['dist'])
         sorteddata = np.sort(
-            datacollection._numpyarray[
-                datacollection._numpyarray[datacollection.dict_attr_fields['reach_id']] == reach.id],
+            datatointerp[
+                datatointerp[datacollection.dict_attr_fields['reach_id']] == reach.id],
             order=datacollection.dict_attr_fields['dist'])
 
         # browsing down until we find a reach with at least one point
@@ -129,5 +138,4 @@ def execute_InterpolatePoints(points_table, id_field_pts, RID_field_pts, Distanc
         else:
             newarray = np.concatenate((newarray, newres))
 
-    arcpy.da.NumPyArrayToTable(newarray, ouput_table)
-
+        return newarray
