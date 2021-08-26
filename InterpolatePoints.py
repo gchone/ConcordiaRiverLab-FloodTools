@@ -75,8 +75,8 @@ def InterpolatePoints_with_objects(network, datacollection, data_fields, targetc
             same_river_down_reach_order -= 1
             if extrapolation_value != "CONFLUENCE" or down_reach.order == same_river_down_reach_order:
                 downpoints =np.sort(
-                    datacollection._numpyarray[
-                        datacollection._numpyarray[datacollection.dict_attr_fields['reach_id']] == down_reach.id],
+                    datatointerp[
+                        datatointerp[datacollection.dict_attr_fields['reach_id']] == down_reach.id],
                     order=datacollection.dict_attr_fields['dist'])
                 if len(downpoints) > 0:
                     down_point = downpoints[-1]
@@ -103,8 +103,8 @@ def InterpolatePoints_with_objects(network, datacollection, data_fields, targetc
                     up_reach = tmp_up_reach
 
             uppoints = np.sort(
-                datacollection._numpyarray[
-                    datacollection._numpyarray[datacollection.dict_attr_fields['reach_id']] == up_reach.id],
+                datatointerp[
+                    datatointerp[datacollection.dict_attr_fields['reach_id']] == up_reach.id],
                 order=datacollection.dict_attr_fields['dist'])
 
             if len(uppoints) > 0:
@@ -138,4 +138,4 @@ def InterpolatePoints_with_objects(network, datacollection, data_fields, targetc
         else:
             newarray = np.concatenate((newarray, newres))
 
-        return newarray
+    return newarray
