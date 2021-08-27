@@ -41,10 +41,18 @@ def cs_solver(cs_up, cs_down, min_slope):
         localdist = cs_down.reach.length - cs_down.dist + cs_up.dist
 
 
-    if (cs_up.wslidar - cs_down.wslidar)/localdist <= min_slope:
-        h_ref = cs_up.h + localdist*(min_slope - (cs_up.wslidar - cs_down.wslidar)/localdist)
+    if cs_up.anchored:
+        localminslope = min(cs_up.s, min_slope)
+        if (cs_up.wslidar - cs_down.wslidar) / localdist <= min_slope:
+            cs_tosolve.anchored = True
+    else:
+        localminslope = min_slope
+
+    if (cs_up.wslidar - cs_down.wslidar)/localdist <= localminslope:
+        h_ref = cs_up.h + localdist * (localminslope - (cs_up.wslidar - cs_down.wslidar) / localdist)
     else:
         h_ref = cs_up.h
+
     # if (cs_up.wslidar - cs_down.wslidar)/localdist <= cs_down.s_min:
     #     h_ref = cs_up.h + localdist*(cs_down.s_min - (cs_up.wslidar - cs_down.wslidar)/localdist)
     # else:

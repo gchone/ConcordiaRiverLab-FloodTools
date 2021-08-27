@@ -109,7 +109,7 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
 
         for cs in reach.browse_points(points_coll, orientation="UP_TO_DOWN"):
             cs.n = manning
-
+            cs.anchored = False
             if anchored_z_field is not None and cs.anchor != -9999: # Imposed bed elevation
                 cs.solver = "anchor"
                 cs.z = cs.anchor
@@ -124,6 +124,7 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
                 cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
                 cs.v = cs.Q / (cs.width * cs.y)
                 cs.s = (cs.n ** 2 * cs.v ** 2) / (cs.R ** (4. / 3.))
+                cs.anchored = True
                 cs.h = cs.wslidar + cs.v ** 2 / (2 * g)
                 cs.Fr = cs.v / (g * cs.y) ** 0.5
             else:
@@ -197,7 +198,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
         newcs.n = cs.n
         newcs.s_min = 0
         newcs.DEM = prev_cs.DEM
-
+        newcs.anchored = False
         __recursive_inverse1Dhydro(newcs, prev_cs, min_slope)
         newcs.solver = "added"
         newcs.type = 3
