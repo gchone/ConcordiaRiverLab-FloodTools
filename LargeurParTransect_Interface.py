@@ -75,7 +75,8 @@ class LargeurParTransect(object):
         param_maxwidth.value = 200
         param_spacing.value = 8
 
-        params = [param_streamnetwork, param_idfield, param_riverbed, param_ineffarea, param_maxwidth, param_spacing, param_transects, param_cspoints]
+        params = [param_streamnetwork, param_idfield, param_riverbed, param_ineffarea, param_maxwidth,
+                  param_spacing, param_transects, param_cspoints]
 
         return params
 
@@ -106,6 +107,7 @@ class LargeurParTransect(object):
         transects = parameters[6].valueAsText
         cspoints = parameters[7].valueAsText
 
-        execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing, transects, cspoints, messages)
+        execute_largeurpartransect(streamnetwork, idfield, riverbed, ineffarea, maxwidth, spacing,
+                                   transects, cspoints, messages)
 
         return
