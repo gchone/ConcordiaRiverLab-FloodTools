@@ -11,7 +11,7 @@ from InterpolatePoints import *
 from ChannelCorrection import *
 from BedAssessmentDirectLinearNet import *
 from Simple1Dhydraulic import *
-
+from AnchorBathy import *
 
 from LargeScaleFloodMetaTools import *
 
@@ -127,10 +127,14 @@ if __name__ == "__main__":
 
     #### Bathy assessment ####
     datapts = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\datapts"
-    bathyoutput = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\bathypts_anchored2"
+    bathyoutput = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\bathypts_10cm_joinMedian"
     #verif_output = r"E:\InfoCrue\Chaudiere\TestLinearRef2\bathy.gdb\verif_simplepts_nokine"
     #execute_BedAssessment(routes_main, "RID", "Qorder", links_main, datapts, "OBJECTID_1", "RID", "MEAS", "Qlidar",
     #                   "Largeur_m", "zsmooth", "ORIG_FID", 0.03, bathyoutput, messages, "median")
+    bathyoutput_post = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\test_postanchor2"
+    execute_AnchorBathy(routes_main, "RID", "Qorder", links_main, bathyoutput, "OBJECTID_1",  "RID",
+                        "MEAS",
+                        "zsmooth", "Fr", "z", "median", bathyoutput_post, messages)
 
     # execute_Simple1Dhydraulic(routes_main, "RID", "Qorder", links_main, bathyoutput, "OBJECTID_1", "RID", "MEAS", "Qlidar",
     #                      "Largeur_m", "z", "ORIG_FID", 0.03, 0.0001, verif_output, messages)
@@ -144,12 +148,12 @@ if __name__ == "__main__":
     # execute_FlowDirNetwork(routes_main, links_main, "RID", flowdirD4, routesD4, linksD4, pathpointsD4, basicnet_to_D4_relatetable, messages)
 
     # Export the bathymetry
-    arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
-    arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
-    bathy_onD4 = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\bathy10cm_onD4"
-    execute_AssignPointToClosestPointOnRoute("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["z"], routesD4, "RID", pathpointsD4, "RID", "dist", bathy_onD4, "MAX")
-    final_bathy_pts = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\final_bathy10cm_pts"
-    execute_InterpolatePoints(bathy_onD4, "id", "RID", "dist", ["z"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_bathy_pts)
+    # arcpy.MakeRouteEventLayer_lr(routes_main, "RID", bathyoutput, "RID POINT MEAS", "bathy_lyr")
+    # arcpy.AddJoin_management("bathy_lyr", "RID", basicnet_to_D4_relatetable, "RID")
+    # bathy_onD4 = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\bathy10cm_onD4"
+    # execute_AssignPointToClosestPointOnRoute("bathy_lyr", arcpy.Describe(basicnet_to_D4_relatetable).basename+".RID_1", ["z"], routesD4, "RID", pathpointsD4, "RID", "dist", bathy_onD4, "MAX")
+    # final_bathy_pts = r"E:\InfoCrue\Chaudiere\AnchoredBathy\bathy.gdb\final_bathy10cm_pts"
+    # execute_InterpolatePoints(bathy_onD4, "id", "RID", "dist", ["z"], pathpointsD4, "id", "RID", "dist", routesD4, linksD4, "RID", "Qorder", final_bathy_pts)
 
     # Export the width
     # arcpy.MakeRouteEventLayer_lr(routes_main, "RID", widthoutput, "RID POINT MEAS", "width_lyr")
