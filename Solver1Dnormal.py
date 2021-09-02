@@ -7,7 +7,9 @@ g = 9.81
 
 import warnings
 # fsolve can produce warnings. This line turns them into an Exception
-warnings.simplefilter("error", RuntimeWarning)
+#warnings.simplefilter("error", RuntimeWarning)
+
+warnings.simplefilter("ignore", RuntimeWarning)
 
 from scipy.optimize import fsolve
 
@@ -57,8 +59,13 @@ def cs_solver(cs_up, cs_down):
 
     # premier estimé : y = y_crit
     cs_tosolve.ycrit = (cs_tosolve.Q / (cs_tosolve.width * g ** 0.5)) ** (2. / 3.)
-    cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
-
+    #cs_tosolve.y = fsolve(equations, cs_tosolve.ycrit)[0]
+    res, dict, ier, msg = fsolve(equations, cs_tosolve.ycrit, full_output=True)
+    ## if ier != 1, an error occured.
+    if ier != 1:
+        cs_tosolve.y = 99
+    else:
+        cs_tosolve.y = res[0]  # actual result of the solver
 
     cs_tosolve.R = (cs_tosolve.width * cs_tosolve.y) / (cs_tosolve.width + 2 * cs_tosolve.y)
     cs_tosolve.v = cs_tosolve.Q / (cs_tosolve.width * cs_tosolve.y)
