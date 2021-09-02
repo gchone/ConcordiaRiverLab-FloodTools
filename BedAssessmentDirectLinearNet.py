@@ -17,7 +17,7 @@ from tree.TreeTools import *
 from SolverDirect import *
 
 
-def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages, anchored_z_field=None):
+def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages):
 
     rivernet = RiverNetwork()
     rivernet.dict_attr_fields['id'] = route_RID_field
@@ -32,8 +32,6 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
     points_coll.dict_attr_fields['Q'] = points_Qfield
     points_coll.dict_attr_fields['width'] = points_Wfield
     points_coll.dict_attr_fields['DEM'] = points_DEMfield
-    if anchored_z_field is not None:
-        points_coll.dict_attr_fields['anchor'] = anchored_z_field
     points_coll.load_table(points)
 
 
@@ -109,40 +107,22 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
 
         for cs in reach.browse_points(points_coll, orientation="UP_TO_DOWN"):
             cs.n = manning
-            cs.anchored = False
-            if anchored_z_field is not None and cs.anchor != -9999: # Imposed bed elevation
-                cs.solver = "anchor"
-                cs.z = cs.anchor
-                cs.y = cs.wslidar - cs.z
-                if cs.y <= 0:
-                    messages.addWarningMessage(
-                        "Imposed bed elevation above water surface at reach " + str(cs.reach.id) + ", distance " + str(
-                            cs.dist))
-                    cs.y = (cs.Q / (cs.width * g ** 0.5)) ** (2. / 3.) # critical depth used as a place holder
-                    cs.z = cs.wslidar - cs.y
 
-                cs.R = (cs.width * cs.y) / (cs.width + 2 * cs.y)
-                cs.v = cs.Q / (cs.width * cs.y)
-                cs.s = (cs.n ** 2 * cs.v ** 2) / (cs.R ** (4. / 3.))
-                cs.anchored = True
-                cs.h = cs.wslidar + cs.v ** 2 / (2 * g)
-                cs.Fr = cs.v / (g * cs.y) ** 0.5
+            if prev_cs == None:
+                manning_solver(cs)
+                cs.solver = "manning up"
+                cs.type = 0
+
             else:
-                if prev_cs == None:
+                if prev_cs.DEM != cs.DEM:
+                    cs.s = prev_cs.s
                     manning_solver(cs)
-                    cs.solver = "manning up"
+                    cs.solver = "manning"
                     cs.type = 0
-
                 else:
-                    if prev_cs.DEM != cs.DEM:
-                        cs.s = prev_cs.s
-                        manning_solver(cs)
-                        cs.solver = "manning"
-                        cs.type = 0
-                    else:
-                        cs.solver = "regular"
-                        cs.type = 1
-                        __recursive_inverse1Dhydro(cs, prev_cs, min_slope)
+                    cs.solver = "regular"
+                    cs.type = 1
+                    __recursive_inverse1Dhydro(cs, prev_cs, min_slope)
 
             prev_cs = cs
 
@@ -196,9 +176,8 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
         a = (cs.wslidar - prev_cs.wslidar) / (cs.dist - prev_cs.dist)
         newcs.wslidar = a* newcs.dist + cs.wslidar - a* cs.dist
         newcs.n = cs.n
-        newcs.s_min = 0
+        #newcs.s_min = 0
         newcs.DEM = prev_cs.DEM
-        newcs.anchored = False
         __recursive_inverse1Dhydro(newcs, prev_cs, min_slope)
         newcs.solver = "added"
         newcs.type = 3
