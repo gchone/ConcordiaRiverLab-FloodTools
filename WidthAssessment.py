@@ -664,7 +664,6 @@ def splitted_to_unsplitted(splitted_net, splitted_RID_field, pts_lyr, pts_ID_fie
     # Find a RID match using a spatial join
 
     match_RID_table = gc.CreateScratchName("match", data_type="ArcInfoTable", workspace="in_memory")
-    match_RID_table = r"E:\InfoCrue\Blanche_linearreftools_test\WidthPostProc\WidthPostProc.gdb\match_RID_table"
     fms = arcpy.FieldMappings()
     # dans un premier temps j'ajoute le champ d'identification des iunités spatiales
     fmID = arcpy.FieldMap()
@@ -684,20 +683,18 @@ def splitted_to_unsplitted(splitted_net, splitted_RID_field, pts_lyr, pts_ID_fie
     # Then correct the distances, in points, using the distance of the "START" point of the splitted reach
     #  Find the start points
     start_pts = gc.CreateScratchName("pts", data_type="FeatureClass", workspace="in_memory")
-    start_pts = r"E:\InfoCrue\Blanche_linearreftools_test\WidthPostProc\WidthPostProc.gdb\start_pts"
     arcpy.FeatureVerticesToPoints_management(splitted_net, start_pts, "START")
     #  Join to have the unsplitted RID
     arcpy.MakeFeatureLayer_management(start_pts, "start_lyr")
     arcpy.AddJoin_management("start_lyr", splitted_RID_field, match_RID_table, "RID_A")
     #  Project start points on the right unsplitted reach
     splits_along = gc.CreateScratchName("split", data_type="ArcInfoTable", workspace="in_memory")
-    splits_along = r"E:\InfoCrue\Blanche_linearreftools_test\WidthPostProc\WidthPostProc.gdb\splits_along"
     execute_LocatePointsAlongRoutes("start_lyr", arcpy.Describe(match_RID_table).basename + ".RID_B", unsplitted_net, unsplitted_RID_field, splits_along, 1)
     #  Join the result to the data points
     arcpy.AddJoin_management(pts_lyr, pts_RID_field, splits_along, "RID_A")
     #  Join the river network to get the max possible length (needed to fix issues where the measured distance is slightly over the reach length
     arcpy.AddJoin_management(pts_lyr, arcpy.Describe(splits_along).basename+".RID_B", unsplitted_net, unsplitted_RID_field)
-    arcpy.CopyFeatures_management(pts_lyr, "E:\InfoCrue\Blanche_linearreftools_test\WidthPostProc\WidthPostProc.gdb\spts_lyr")
+
     #  Correct distances
     result_np = arcpy.da.TableToNumPyArray(pts_lyr, [arcpy.Describe(pts_lyr).basename+"."+pts_ID_field, arcpy.Describe(pts_lyr).basename+"."+width_field,
                                                      arcpy.Describe(pts_lyr).basename+"."+pts_dist_field, arcpy.Describe(splits_along).basename+".RID_B",
