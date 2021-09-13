@@ -96,6 +96,12 @@ class BedAssessment(object):
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
+        param_min_slope = arcpy.Parameter(
+            displayName="Minimum energy slope in flat areas",
+            name="min_slope",
+            datatype="GPDouble",
+            parameterType="Required",
+            direction="Input")
         param_output_pts = arcpy.Parameter(
             displayName="Output table",
             name="output_pts",
@@ -112,9 +118,10 @@ class BedAssessment(object):
         param_points_Wfield.parameterDependencies = [param_points.name]
         param_points_WSfield.parameterDependencies = [param_points.name]
         param_points_DEMfield.parameterDependencies = [param_points.name]
+        param_manning.value = 0.03
+        param_min_slope.value = 0.00001
 
-
-        params = [param_route, param_route_RID_field, param_route_order_field, param_routelinks, param_points, param_points_IDfield, param_points_RIDfield, param_points_distfield, param_points_Qfield, param_points_Wfield, param_points_WSfield, param_points_DEMfield, param_manning, param_output_pts]
+        params = [param_route, param_route_RID_field, param_route_order_field, param_routelinks, param_points, param_points_IDfield, param_points_RIDfield, param_points_distfield, param_points_Qfield, param_points_Wfield, param_points_WSfield, param_points_DEMfield, param_manning, param_min_slope, param_output_pts]
 
         return params
 
@@ -141,8 +148,9 @@ class BedAssessment(object):
         points_WSfield = parameters[10].valueAsText
         points_DEMfield = parameters[11].valueAsText
         manning = float(parameters[12].valueAsText)
-        output_pts = parameters[13].valueAsText
+        min_slope = float(parameters[13].valueAsText)
+        output_pts = parameters[14].valueAsText
 
-        execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages)
+        execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, min_slope, output_pts, messages)
 
         return

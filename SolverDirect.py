@@ -42,6 +42,7 @@ def cs_solver(cs_up, cs_down, min_slope):
 
 
     if (cs_up.wslidar - cs_down.wslidar)/localdist <= min_slope:
+        cs_tosolve.solver = "min_slope"
         h_ref = cs_up.h + localdist * (min_slope - (cs_up.wslidar - cs_down.wslidar) / localdist)
     else:
         h_ref = cs_up.h

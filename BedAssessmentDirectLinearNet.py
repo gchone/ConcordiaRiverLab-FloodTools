@@ -17,7 +17,7 @@ from tree.TreeTools import *
 from SolverDirect import *
 
 
-def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, output_pts, messages):
+def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks, points, points_IDfield, points_RIDfield, points_distfield, points_Qfield, points_Wfield, points_WSfield, points_DEMfield, manning, min_slope, output_pts, messages):
 
     rivernet = RiverNetwork()
     rivernet.dict_attr_fields['id'] = route_RID_field
@@ -38,7 +38,6 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
     # Following code was changed:
     # Instead of imposing a minimum slope that varies with the length of the backwater ares (defined as no-slope area),
     #   a constant minimum slope is imposed everywhere
-    min_slope = 0.0001
 
     for reach in rivernet.browse_reaches_down_to_up():
         lastpoint = reach.get_last_point(points_coll)
@@ -178,8 +177,9 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
         newcs.n = cs.n
         #newcs.s_min = 0
         newcs.DEM = prev_cs.DEM
+        newcs.solver = "regular"
         __recursive_inverse1Dhydro(newcs, prev_cs, min_slope)
-        newcs.solver = "added"
+        #newcs.solver = "added"
         newcs.type = 3
         __recursive_inverse1Dhydro(cs, newcs, min_slope)
 
