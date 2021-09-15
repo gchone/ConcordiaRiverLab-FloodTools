@@ -27,9 +27,9 @@ class ChannelCorrection(object):
             parameterType="Required",
             direction="Input")
         param_boundary = arcpy.Parameter(
-            displayName="Transects perpendiculaires à l'écoulement aux extrémités amont et aval des cours d'eau",
+            displayName="Transects perpendiculaires à l'écoulement aux extrémités amont et aval des cours d'eau (en raster)",
             name="boundary",
-            datatype="GPFeatureLayer",
+            datatype="GPRasterLayer",
             parameterType="Required",
             direction="Input")
         param_riverline = arcpy.Parameter(
@@ -78,7 +78,7 @@ class ChannelCorrection(object):
     def execute(self, parameters, messages):
         # Récupération des paramètres
         mnt = arcpy.Raster(parameters[0].valueAsText)
-        boundary = parameters[1].valueAsText
+        boundary = arcpy.Raster(parameters[1].valueAsText)
         riverbed = parameters[2].valueAsText
         riverline = parameters[3].valueAsText
         footprints = parameters[4].valueAsText

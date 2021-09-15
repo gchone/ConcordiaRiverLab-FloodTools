@@ -25,17 +25,7 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
     arcpy.env.outputCoordinateSystem = demras.spatialReference
     env.snapRaster = demras
 
-
-
-    ends = CreateScratchName("loob", data_type="FeatureClass", workspace="in_memory")
-    CopyFeatures(boundary, ends)
-
-    AddField(ends, "dummy", "LONG", field_alias="dummy", field_is_nullable="NULLABLE")
-    CalculateField(ends, "dummy", "1", "PYTHON")
-
-    endsras = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
-    PolylineToRaster(ends, "dummy", endsras, "MAXIMUM_LENGTH", cellsize=demras)
-    statpts = FocalStatistics(endsras, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+    statpts = FocalStatistics(boundary, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
 
     env.extent = demras
 
@@ -75,7 +65,6 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
 
     Delete(rasterbed)
     Delete(bedwalls)
-    Delete(endsras)
     Delete(rasterline)
     Delete(statpts)
     Delete(chanelev)
