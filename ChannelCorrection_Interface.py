@@ -57,7 +57,7 @@ class ChannelCorrection(object):
             parameterType="Required",
             direction="Output")
 
-        param_boundary.filter.list = ["Polyline"]
+
         param_riverbed.filter.list = ["Polygon"]
         param_footprints.filter.list = ["Polygon"]
         param_riverline.filter.list = ["Polyline"]
