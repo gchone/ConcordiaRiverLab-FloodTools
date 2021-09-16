@@ -83,12 +83,6 @@ class ExtractWaterSurface(object):
             datatype="GPRasterLayer",
             parameterType="Required",
             direction="Input")
-        param_interval = arcpy.Parameter(
-            displayName="Interval in meters",
-            name="interval",
-            datatype="GPDouble",
-            parameterType="Required",
-            direction="Input")
         param_DEMs_footprints = arcpy.Parameter(
             displayName="DEMs footprint feature class",
             name="DEMs_footprints",
@@ -98,6 +92,30 @@ class ExtractWaterSurface(object):
         param_DEMs_field = arcpy.Parameter(
             displayName="DEMs field in DEMs footprint feature class",
             name="DEMs_field",
+            datatype="Field",
+            parameterType="Required",
+            direction="Input")
+        param_targets = arcpy.Parameter(
+            displayName="Target points to extract water surface",
+            name="targets",
+            datatype="GPTableView",
+            parameterType="Required",
+            direction="Input")
+        param_targets_id_field = arcpy.Parameter(
+            displayName="ID field in the target points table",
+            name="targets_id_field",
+            datatype="Field",
+            parameterType="Required",
+            direction="Input")
+        param_targets_rid_field = arcpy.Parameter(
+            displayName="Route ID field in the target points table",
+            name="targets_rid_field",
+            datatype="Field",
+            parameterType="Required",
+            direction="Input")
+        param_targets_distfield = arcpy.Parameter(
+            displayName="Distance field in the target points on network layer",
+            name="targets_distfield",
             datatype="Field",
             parameterType="Required",
             direction="Input")
@@ -114,8 +132,11 @@ class ExtractWaterSurface(object):
         param_X_field_pts.parameterDependencies = [param_pts_table.name]
         param_Y_field_pts.parameterDependencies = [param_pts_table.name]
         param_DEMs_field.parameterDependencies = [param_DEMs_footprints.name]
+        param_targets_id_field.parameterDependencies = [param_targets.name]
+        param_targets_rid_field.parameterDependencies = [param_targets.name]
+        param_targets_distfield.parameterDependencies = [param_targets.name]
 
-        params = [param_routes, param_links, param_RID_field, param_order_field, param_routes_3m, param_RID_field_3m, param_pts_table, param_X_field_pts, param_Y_field_pts, param_lidar3m_cor, param_lidar3m_forws, param_interval, param_DEMs_footprints, param_DEMs_field, param_output_table]
+        params = [param_routes, param_links, param_RID_field, param_order_field, param_routes_3m, param_RID_field_3m, param_pts_table, param_X_field_pts, param_Y_field_pts, param_lidar3m_cor, param_lidar3m_forws, param_DEMs_footprints, param_DEMs_field, param_targets, param_targets_id_field, param_targets_rid_field, param_targets_distfield, param_output_table]
 
 
         return params
@@ -142,13 +163,16 @@ class ExtractWaterSurface(object):
         Y_field_pts = parameters[8].valueAsText
         lidar3m_cor = arcpy.Raster(parameters[9].valueAsText)
         lidar3m_forws = arcpy.Raster(parameters[10].valueAsText)
-        interval = float(parameters[11].valueAsText)
-        DEMs_footprints = parameters[12].valueAsText
-        DEMs_field = parameters[13].valueAsText
-        ouput_table = parameters[14].valueAsText
+        DEMs_footprints = parameters[11].valueAsText
+        DEMs_field = parameters[12].valueAsText
+        targetpoints = parameters[13].valueAsText
+        id_field_target = parameters[14].valueAsText
+        RID_field_target = parameters[15].valueAsText
+        Distance_field_target = parameters[16].valueAsText
+        ouput_table = parameters[17].valueAsText
 
 
         execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table, X_field_pts,
-                                    Y_field_pts, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints,
-                                    DEMs_field, ouput_table, messages)
+                                    Y_field_pts, lidar3m_cor, lidar3m_forws, DEMs_footprints,
+                                    DEMs_field, targetpoints, id_field_target, RID_field_target, Distance_field_target, ouput_table, messages)
         return

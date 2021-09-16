@@ -42,7 +42,7 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
     execute_OrderTreeByFlowAcc(routes, links, RID_field, QpointsMain, "id", "RID", "MEAS", "flowacc", outputfield)
 
-def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table,X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, interval, DEMs_footprints, DEMs_field, ouput_table, messages):
+def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table,X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, DEMs_footprints, DEMs_field, pts_bathy, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, ouput_table, messages):
 
     relatetable = gc.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
     execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)
@@ -53,23 +53,20 @@ def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m
 
     arcpy.AddJoin_management("pts_layer", RID_field_3m, relatetable, RID3m_field_in_relatetable)
 
-    pts_bathy = gc.CreateScratchName("pts_bathy", data_type="ArcInfoTable", workspace="in_memory")
-    execute_PlacePointsAlongReaches(routes, links, RID_field, interval, pts_bathy)
-
     pts_bathy_withws = gc.CreateScratchName("pts_withws", data_type="ArcInfoTable", workspace="in_memory")
 
     lidar3m_cor_basename = str(arcpy.Describe(lidar3m_cor).basename)
     lidar3m_forws_basename = str(arcpy.Describe(lidar3m_forws).basename)
-    execute_AssignPointToClosestPointOnRoute("pts_layer", arcpy.Describe(relatetable).basename + "." + RID_field, [lidar3m_cor_basename, lidar3m_forws_basename], routes, RID_field, pts_bathy, RID_field, "MEAS", pts_bathy_withws)
+    execute_AssignPointToClosestPointOnRoute("pts_layer", arcpy.Describe(relatetable).basename + "." + RID_field, [lidar3m_cor_basename, lidar3m_forws_basename], routes, RID_field, pts_bathy, pts_bathy_RID_field, pts_bathy_dist_field, pts_bathy_withws)
 
     pts_interpolated = gc.CreateScratchName("pts_interp", data_type="ArcInfoTable", workspace="in_memory")
-    execute_InterpolatePoints(pts_bathy_withws, "ObjectID_1", RID_field, "MEAS", [lidar3m_cor_basename, lidar3m_forws_basename], pts_bathy, "ObjectID_1", RID_field, "MEAS", routes, links, RID_field, order_field, pts_interpolated)
+    execute_InterpolatePoints(pts_bathy_withws, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, [lidar3m_cor_basename, lidar3m_forws_basename], pts_bathy, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, routes, links, RID_field, order_field, pts_interpolated)
 
-    arcpy.MakeRouteEventLayer_lr(routes, RID_field, pts_interpolated, RID_field + " POINT MEAS", "interpolated_lyr")
+    arcpy.MakeRouteEventLayer_lr(routes, RID_field, pts_interpolated, pts_bathy_RID_field + " POINT "+pts_bathy_dist_field, "interpolated_lyr")
     interpolated_withDEM = gc.CreateScratchName("interpDEM", data_type="FeatureClass", workspace="in_memory")
     arcpy.SpatialJoin_analysis("interpolated_lyr", DEMs_footprints, interpolated_withDEM)
 
-    execute_WSsmoothing(routes, links, RID_field, interpolated_withDEM, "ObjectID_1", RID_field, "MEAS", lidar3m_cor_basename, lidar3m_forws_basename, DEMs_field, ouput_table)
+    execute_WSsmoothing(routes, links, RID_field, interpolated_withDEM, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, lidar3m_cor_basename, lidar3m_forws_basename, DEMs_field, ouput_table)
 
 def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, fpoints_atlas, routesD8, routeD8_RID, routes_main, route_main_RID, relate_table, r_flowacc, outpoints, messages):
 

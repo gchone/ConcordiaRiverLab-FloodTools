@@ -35,8 +35,9 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
 
     endsras = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
     PolylineToRaster(ends, "dummy", endsras, "MAXIMUM_LENGTH", cellsize=demras)
-    statpts = FocalStatistics(endsras, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
-
+    statpts = CreateScratchName("statpts", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    tmp_statpts = FocalStatistics(endsras, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+    tmp_statpts.save(statpts) #For some reason, further calculations do not work if the file is in memory only
     env.extent = demras
 
     rasterbed = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
@@ -44,11 +45,14 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
     rasterline = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
     PolylineToRaster(rivernet, arcpy.Describe(rivernet).OIDFieldName, rasterline, cellsize=demras)
 
-    streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
+    streambed = CreateScratchName("streambed", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    tmp_streambed = Con(IsNull(rasterline), Con(IsNull(rasterbed) == 0, 1), 1)
+    tmp_streambed.save(streambed)
 
-    bedwalls = FocalStatistics(streambed, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
-
-    env.extent = bedwalls
+    bedwalls = CreateScratchName("bedwalls", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    tmp_bedwalls = FocalStatistics(streambed, NbrRectangle(3, 3, "CELL"), "MAXIMUM", "DATA")
+    tmp_bedwalls.save(bedwalls)
+    env.extent = tmp_bedwalls
 
 
     limits = CreateScratchName("limits", data_type="FeatureClass", workspace="in_memory")
@@ -68,8 +72,9 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
     env.extent = demras
 
     filled = Fill(switchelev_file)
-    breach1 = arcpy.sa.Con(arcpy.sa.IsNull(streambed), demras, chanmax - filled)
-
+    breach1 = CreateScratchName("loras", data_type="RasterDataset", workspace=env.scratchWorkspace)
+    tmp_breach1 = arcpy.sa.Con(arcpy.sa.IsNull(streambed), demras, chanmax - filled)
+    tmp_breach1.save(breach1)
     breachedtemp = arcpy.sa.Con(arcpy.sa.IsNull(rasterlimit), breach1, demras)
     breachedtemp.save(breachedmnt)
 
@@ -81,6 +86,7 @@ def execute_ChannelCorrection(demras, boundary, riverbed, rivernet, DEMs_limits,
     Delete(chanelev)
     Delete(switchelev_file)
     Delete(switchelev)
+    Delete(breach1)
     Delete(streambed)
     Delete(rasterlimit)
 
