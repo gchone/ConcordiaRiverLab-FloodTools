@@ -449,7 +449,8 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
             linkcursor.insertRow(link_row)
 
         # Flip the wrongly orientated lines
-        arcpy.FlipLine_edit("netlyr")
+        if arcpy.Describe("netlyr").FIDSet != "": # There is a selection
+            arcpy.FlipLine_edit("netlyr")
 
         # Create routes from start point to end point
         arcpy.AddField_management(rivernetcopy, "FromF", "FLOAT")
