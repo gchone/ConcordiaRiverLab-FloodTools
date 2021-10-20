@@ -24,7 +24,7 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         list_RIDs.append(point[0])
     list_RIDs = set(list_RIDs)
 
-    if stat == "MEAN" or stat == "MAX":
+    if stat == "MEAN" or stat == "MAX" or stat == "2-WAY CLOSEST":
         list_tables = []
         for RID in list_RIDs:
             arcpy.SelectLayerByAttribute_management("points_lyr", "NEW_SELECTION", points_RIDfield + " = " + str(RID))
@@ -53,6 +53,7 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         fields_to_keep = total_fields_list[len(data_fields_names)+5:]
         for field in list_fields_to_keep:
             fields_to_keep.append(arcpy.Describe(points).basename + "." + field)
+        fields_to_keep.append(os.path.basename(table) + ".NEAR_DIST")
 
         nparray = arcpy.da.FeatureClassToNumPyArray("points_lyr", fields_to_keep)
 
@@ -60,6 +61,7 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         wanted_fields_name = onroute_fields_names[1:-1]
         for field in list_fields_to_keep:
             wanted_fields_name.append(field)
+        wanted_fields_name.append("NEAR_DIST")
         nparray.dtype.names = wanted_fields_name
 
 
@@ -68,14 +70,19 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
         means_ids = np.unique(nparray[[idfield]])
         means = np.empty(means_ids.shape[0], dtype=nparray.dtype)
         i = 0
+
         for id in means_ids:
             tmp_all = nparray[np.where(nparray[[idfield]] == id)]
-            means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
-            for field in list_fields_to_keep:
-                if stat == "MEAN":
-                    means[field][i] = np.mean(tmp_all[field])
-                else: # stat == "MAX"
-                    means[field][i] = np.max(tmp_all[field])
+            if stat == "2-WAY CLOSEST":
+                means[i] = tmp_all[np.argmin(tmp_all["NEAR_DIST"])]
+            else:
+                means[i] = nparray[np.where(nparray[[idfield]] == id)][0]
+                for field in list_fields_to_keep:
+                    if stat == "MEAN":
+                        means[field][i] = np.mean(tmp_all[field])
+                    else: # stat == "MAX":
+                        means[field][i] = np.max(tmp_all[field])
+
             i+=1
 
         arcpy.da.NumPyArrayToTable(means, output_table)
