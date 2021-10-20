@@ -42,11 +42,11 @@ def execute_OrderReaches(routes, links, RID_field, r_flowacc, routeD8, linksD8, 
 
     execute_OrderTreeByFlowAcc(routes, links, RID_field, QpointsMain, "id", "RID", "MEAS", "flowacc", outputfield)
 
-def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, pts_table,X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, DEMs_footprints, DEMs_field, pts_bathy, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, ouput_table, messages):
+def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m, RID_field_3m, relatetable, pts_table, X_field_pts, Y_field_pts, lidar3m_cor, lidar3m_forws, DEMs_footprints, DEMs_field, pts_bathy, pts_bathy_ID_field, pts_bathy_RID_field, pts_bathy_dist_field, ouput_table, messages):
     # 2021-10-19 Assignation of elevation on points on routes (AssignPointToClosestPointOnRoute) done by "2-WAY CLOSEST" instead of "MEAN"
 
-    relatetable = gc.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
-    execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)
+    #relatetable = gc.CreateScratchName("relatetable", data_type="ArcInfoTable", workspace="in_memory")
+    #execute_RelateNetworks(routes, RID_field, routes_3m, RID_field_3m, relatetable, messages)
     RID3m_field_in_relatetable = [f.name for f in arcpy.Describe(relatetable).fields][-2]
 
     arcpy.MakeXYEventLayer_management (pts_table, X_field_pts, Y_field_pts, "pts_layer", routes_3m)
