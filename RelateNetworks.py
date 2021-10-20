@@ -73,5 +73,8 @@ def execute_RelateNetworks(shapefile_A, RID_A, shapefile_B, RID_B, out_table, me
 
         arcpy.da.NumPyArrayToTable(filtered_RIDB, out_table)
 
-
-
+        #Check if the matches are always one-to-one
+        uniques_RID1 = np.unique(filtered_RIDB[[RID_A]])
+        uniques_RID2 = np.unique(filtered_RIDB[[RID_B]])
+        if len(uniques_RID1)!=filtered_RIDB.shape[0] or len(uniques_RID2)!=filtered_RIDB.shape[0]:
+            messages.addWarningMessage("Incorrect network match")
