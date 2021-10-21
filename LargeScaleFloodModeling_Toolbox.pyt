@@ -19,6 +19,7 @@ from FlowDirForWS_Interface import *
 from InterpolatePoints_Interface import *
 from DownstreamSlope_Interface import *
 from BedAssessmentOld_Interface import *
+from TopologicalD8RelateNetworks_Interface import *
 
 class Toolbox(object):
     def __init__(self):
@@ -26,5 +27,5 @@ class Toolbox(object):
         self.label = "Tools for linear referencing"
         self.alias = ""
 
-        self.tools = [BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+        self.tools = [TopologicalRelateNetworks, BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
 
