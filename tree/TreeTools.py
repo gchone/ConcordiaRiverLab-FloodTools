@@ -498,7 +498,9 @@ def execute_CreateFromPointsAndSplits(network_shp, links_table, RID_field, point
             insertsplits.insertRow([reach.shape.getPart(0)[-1]])
     del insertsplits
 
-def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, matching_table):
+def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, matching_table, messages, final_selection="BEST_FIT"):
+    # final_selection = "BEST_FIT": in case of topological differences, the result is the most often found match (with ties resolved by closeness).
+    # final_selection = "ENDS": in case of topological differences, the result is the path corresponding to the upstream segment match.
 
     # refD8_net needs an ORIG_FID attribute: the FID of the Frompoint file use
     refD8_net = RiverNetwork()
@@ -512,20 +514,17 @@ def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B,
     second_net.load_data(routes_B, links_B)
 
 
-
-    dict_match = {}
     frompoints_OID = arcpy.Describe(frompoints).OIDFieldName
     search = arcpy.da.SearchCursor(frompoints, [frompoints_OID, second_net.dict_attr_fields["id"]])
     dict_fpid_secondid = {}
     for row in search:
         dict_fpid_secondid[row[0]] = row[1]
 
-    #fp_nparray = arcpy.da.FeatureClassToNumPyArray(frompoints, [frompoints_OID, second_net.dict_attr_fields["id"]])
-
     # initiate dict_match
     dict_match = {}
     for reach in refD8_net.browse_reaches_down_to_up():
         dict_match[reach.id] = []
+    topologicaldif_warning = False
 
     for reach in refD8_net.get_upstream_ends():
 
@@ -544,16 +543,30 @@ def execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B,
             for i in range(0, len(list_reaches_refD8)):
                 dict_match[list_reaches_refD8[i]].append(list_reaches_second[i])
         else:
-            # Every combination of potential matching paths are added to the dict_match
-            diflen = len(list_reaches_refD8) - len(list_reaches_second)
-            if diflen > 0:
-                for shift in range(0, diflen+1):
+            topologicaldif_warning = True
+            if final_selection == "BEST_FIT":
+                # Every combination of potential matching paths are added to the dict_match
+                diflen = len(list_reaches_refD8) - len(list_reaches_second)
+                if diflen > 0:
+                    for shift in range(0, diflen+1):
+                        for i in range(0, len(list_reaches_second)):
+                            dict_match[list_reaches_refD8[i+shift]].append(list_reaches_second[i])
+                else:
+                    for shift in range(0, abs(diflen) + 1):
+                        for i in range(0, len(list_reaches_refD8)):
+                            dict_match[list_reaches_refD8[i]].append(list_reaches_second[i+shift])
+            else: #final_selection = "ENDS"
+                # Only the combinations with a match upstream are added
+                diflen = len(list_reaches_refD8) - len(list_reaches_second)
+                if diflen > 0:
                     for i in range(0, len(list_reaches_second)):
-                        dict_match[list_reaches_refD8[i+shift]].append(list_reaches_second[i])
-            else:
-                for shift in range(0, abs(diflen) + 1):
+                        dict_match[list_reaches_refD8[i]].append(list_reaches_second[i])
+                else:
                     for i in range(0, len(list_reaches_refD8)):
-                        dict_match[list_reaches_refD8[i]].append(list_reaches_second[i+shift])
+                        dict_match[list_reaches_refD8[i]].append(list_reaches_second[i])
+
+    if topologicaldif_warning:
+        messages.addWarningMessage("Topological difference between networks detected. Check results.")
 
     # Geometric comparison: looking for the closest reach based on centroid
     d8centroid = gc.CreateScratchName("pts_D8", data_type="FeatureClass", workspace="in_memory")

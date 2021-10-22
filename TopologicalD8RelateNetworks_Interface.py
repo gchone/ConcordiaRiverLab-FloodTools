@@ -86,6 +86,6 @@ class TopologicalRelateNetworks(object):
         frompoints = parameters[6].valueAsText
         out_table = parameters[7].valueAsText
 
-        execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, out_table)
+        execute_CheckNetFitFromUpStream(routes_A, links_A, RID_A, routes_B, links_B, RID_B, frompoints, out_table, messages, "ENDS")
 
         return

@@ -76,7 +76,7 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
 
     matchatlas = gc.CreateScratchName("matchatlas", data_type="ArcInfoTable", workspace="in_memory")
     execute_CheckNetFitFromUpStream(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, routes_Atlas, links_Atlas, RID_field_Atlas,
-                                    fpoints_atlas, matchatlas)
+                                    fpoints_atlas, matchatlas, messages, "ENDS")
 
     QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
     execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
