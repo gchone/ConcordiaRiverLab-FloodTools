@@ -11,7 +11,7 @@ import arcpy
 import os
 import ArcpyGarbageCollector as gc
 
-def execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_workspace, messages):
+def execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_workspace, exit_dist, messages):
 
     arcpy.MakeFeatureLayer_management(DEMs_footprints, "footprints_lyr")
     with arcpy.EnvManager(snapRaster=DEM3m_forws):
@@ -37,45 +37,22 @@ def execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_works
 
                     arcpy.PolygonToRaster_conversion(domain_fullbuf, "GRIDCODE", walls, cellsize=dem)
 
-                    # Find in-out points
-                    #domain_halfbuf = gc.CreateScratchName("domainb2", data_type="FeatureClass", workspace="in_memory")
-                    #arcpy.Buffer_analysis(domain, domain_halfbuf, 1.5)
-                    #inoutpts = gc.CreateScratchName("inoutpts", data_type="FeatureClass", workspace="in_memory")
-                    #arcpy.Intersect_analysis([routes_main, domain_halfbuf], inoutpts, output_type="POINT")
-                    #inoutptss = gc.CreateScratchName("inoutptss", data_type="FeatureClass", workspace="in_memory")
-                    #arcpy.MultipartToSinglepart_management(inoutpts, inoutptss)
-                    inoutpts = gc.CreateScratchName("inoutpts", data_type="FeatureClass", workspace="in_memory")
-                    arcpy.Intersect_analysis([routes_main, domain], inoutpts, output_type="POINT")
-                    inoutptss = gc.CreateScratchName("inoutptss", data_type="FeatureClass", workspace="in_memory")
-                    arcpy.MultipartToSinglepart_management(inoutpts, inoutptss)
+                    # Find out points
+                    inline = gc.CreateScratchName("inline", data_type="FeatureClass", workspace="in_memory")
+                    arcpy.Intersect_analysis([routes_main, "footprints_lyr"], inline, output_type="LINE")
+                    outpts = gc.CreateScratchName("outpts", data_type="FeatureClass", workspace="in_memory")
+                    arcpy.FeatureVerticesToPoints_management(inline, outpts, "START")
 
-                    # Keep only out points
-                    #  Linear reference the points
-                    inoutpts_loc = gc.CreateScratchName("inoutptss", data_type="ArcInfoTable", workspace="in_memory")
-                    arcpy.LocateFeaturesAlongRoutes_lr(inoutptss, routes_main, "RID", 0.1, out_table=inoutpts_loc, out_event_properties="RID POINT MEAS")
-                    #arcpy.AddField_management(inoutpts_loc, "ptsid", "SHORT")
-                    #arcpy.CalculateField_management(inoutpts_loc, "ptsid", "!" + arcpy.Describe(inoutpts_loc).OIDFieldName + "!", "PYTHON")
-                    #  Subtract a small distance (0.1m) to the linear referencing
-                    arcpy.CalculateField_management(inoutpts_loc, "MEAS",
-                                                    "!MEAS!-0.1", "PYTHON")
-                    #  Turn back the result into points
-                    arcpy.MakeRouteEventLayer_lr(routes_main, "RID", inoutpts_loc,
-                                                 "RID POINT MEAS", "inout_pts_lyr")
-                    #  Select only the points in the polygons there were created from
-                    arcpy.SelectLayerByLocation_management("inout_pts_lyr", "WITHIN", domain)
-                    arcpy.SelectLayerByAttribute_management("inout_pts_lyr", "SWITCH_SELECTION")
-                    out_pts = gc.CreateScratchName("out_pts", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-                    arcpy.CopyFeatures_management("inout_pts_lyr", out_pts)
-
-                    # Convert the out point into a raster
+                    # Buffer and Convert the out point into a raster
+                    outpts_buf = gc.CreateScratchName("outpts_buf", data_type="FeatureClass", workspace="in_memory")
+                    arcpy.Buffer_analysis(outpts, outpts_buf, exit_dist)
                     out_rpts = gc.CreateScratchName("out_rpts", data_type="RasterDataset", workspace=arcpy.env.scratchWorkspace)
                     with arcpy.EnvManager(extent=walls):
-                        arcpy.PointToRaster_conversion(out_pts, arcpy.Describe(out_pts).OIDFieldName, out_rpts, cellsize=dem)
+                        arcpy.PolygonToRaster_conversion(outpts_buf, arcpy.Describe(outpts_buf).OIDFieldName, out_rpts, cellsize=dem)
 
                     # Create the walled DEM
                     with arcpy.EnvManager(extent=walls):
-                        walled = arcpy.sa.Con(arcpy.sa.IsNull(out_rpts),
-                            arcpy.sa.Con(arcpy.sa.IsNull(dem), walls, dem))
+                        walled = arcpy.sa.Con(arcpy.sa.IsNull(dem), arcpy.sa.Con(arcpy.sa.IsNull(out_rpts), walls), dem)
 
                     # Fill and Flow Dir
                     fill = arcpy.sa.Fill(walled)

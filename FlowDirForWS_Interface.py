@@ -62,6 +62,6 @@ class FlowDirForWS(object):
         DEMs_footprints = parameters[2].valueAsText
         output_workspace = parameters[3].valueAsText
 
-        execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_workspace, messages)
+        execute_FlowDirForWS(routes_main, DEM3m_forws, DEMs_footprints, output_workspace, 25, messages)
 
         return
