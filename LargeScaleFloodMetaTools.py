@@ -74,51 +74,56 @@ def execute_ExtractWaterSurface(routes, links, RID_field, order_field, routes_3m
 
 def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, fpoints_atlas, routesD8, routeD8_RID, routes_main, route_main_RID, relate_table, r_flowacc, outpoints, messages):
 
-    matchatlas = gc.CreateScratchName("matchatlas", data_type="ArcInfoTable", workspace="in_memory")
-    execute_CheckNetFitFromUpStream(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, routes_Atlas, links_Atlas, RID_field_Atlas,
-                                    fpoints_atlas, matchatlas, messages, "ENDS")
+    try:
+        matchatlas = gc.CreateScratchName("matchatlas", data_type="ArcInfoTable", workspace="in_memory")
+        execute_CheckNetFitFromUpStream(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, routes_Atlas, links_Atlas, RID_field_Atlas,
+                                        fpoints_atlas, matchatlas, messages, "ENDS")
 
-    QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
-    execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
+        QpointsD8 = gc.CreateScratchName("QptsD8", data_type="FeatureClass", workspace="in_memory")
+        execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
-    Qpoints_subD8 = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
-    arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON")
+        Qpoints_subD8 = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON")
 
-    arcpy.sa.ExtractMultiValuesToPoints(Qpoints_subD8, [[r_flowacc, "flowacc"]])
+        arcpy.sa.ExtractMultiValuesToPoints(Qpoints_subD8, [[r_flowacc, "flowacc"]])
 
-    arcpy.MakeFeatureLayer_management(Qpoints_subD8, "qpts_lyr")
-    arcpy.AddJoin_management("qpts_lyr", "id", pts_D8, "id")
-    arcpy.AddJoin_management("qpts_lyr", arcpy.Describe(pts_D8).basename + "." + RID_field_AtlasD8, matchatlas,
-                             RID_field_AtlasD8)
+        arcpy.MakeFeatureLayer_management(Qpoints_subD8, "qpts_lyr")
+        arcpy.AddJoin_management("qpts_lyr", "id", pts_D8, "id")
+        arcpy.AddJoin_management("qpts_lyr", arcpy.Describe(pts_D8).basename + "." + RID_field_AtlasD8, matchatlas,
+                                 RID_field_AtlasD8)
 
-    D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
-    arcpy.AddJoin_management("qpts_lyr", routeD8_RID, relate_table,
-                             D8_RID_field_in_relatetable)
+        D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
+        arcpy.AddJoin_management("qpts_lyr", routeD8_RID, relate_table,
+                                 D8_RID_field_in_relatetable)
 
-    # Numpy array conversion to keep only the relevant fields (Main route RID and RID from the Atlas)
-    fields_to_keep = [arcpy.Describe(relate_table).basename + "." + route_main_RID]
-    fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".MATCH_ID")
-    fields_to_keep.append(arcpy.Describe("qpts_lyr").basename + ".flowacc")
-    fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".TYPO")
-    fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".CLOSEST")
-    fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".SCORE")
-    fields_to_keep.append("SHAPE@XY")
-    nparray = arcpy.da.FeatureClassToNumPyArray("qpts_lyr", fields_to_keep)
+        # Numpy array conversion to keep only the relevant fields (Main route RID and RID from the Atlas)
+        fields_to_keep = [arcpy.Describe(relate_table).basename + "." + route_main_RID]
+        fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".MATCH_ID")
+        fields_to_keep.append(arcpy.Describe("qpts_lyr").basename + ".flowacc")
+        fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".TYPO")
+        fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".CLOSEST")
+        fields_to_keep.append(arcpy.Describe(matchatlas).basename + ".SCORE")
+        fields_to_keep.append("SHAPE@XY")
+        nparray = arcpy.da.FeatureClassToNumPyArray("qpts_lyr", fields_to_keep)
 
-    nparray.dtype.names = [route_main_RID, "MATCH_ID", "Flowacc", "TYPO", "CLOSEST", "SCORE", "XY"]
+        nparray.dtype.names = [route_main_RID, "MATCH_ID", "Flowacc", "TYPO", "CLOSEST", "SCORE", "XY"]
 
-    Qpoints_subD8_bis = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
-    arcpy.da.NumPyArrayToFeatureClass(nparray, Qpoints_subD8_bis, "XY", arcpy.Describe(routesD8).spatialReference)
+        Qpoints_subD8_bis = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace="in_memory")
+        arcpy.da.NumPyArrayToFeatureClass(nparray, Qpoints_subD8_bis, "XY", arcpy.Describe(routesD8).spatialReference)
 
-    res_table = gc.CreateScratchName("QptsTable", data_type="ArcInfoTable", workspace="in_memory")
-    execute_LocatePointsAlongRoutes(Qpoints_subD8_bis, route_main_RID, routes_main, route_main_RID, res_table, 10000)
+        res_table = gc.CreateScratchName("QptsTable", data_type="ArcInfoTable", workspace="in_memory")
+        execute_LocatePointsAlongRoutes(Qpoints_subD8_bis, route_main_RID, routes_main, route_main_RID, res_table, 10000)
 
-    arcpy.AddField_management(res_table, "Drainage", "DOUBLE")
-    arcpy.CalculateField_management(res_table, "Drainage", str(r_flowacc.meanCellWidth)+"*"+str(r_flowacc.meanCellHeight) + "*!Flowacc!/1000000.", "PYTHON")
+        arcpy.AddField_management(res_table, "Drainage", "DOUBLE")
+        arcpy.CalculateField_management(res_table, "Drainage", str(r_flowacc.meanCellWidth)+"*"+str(r_flowacc.meanCellHeight) + "*!Flowacc!/1000000.", "PYTHON")
 
-    arcpy.MakeRouteEventLayer_lr(routes_main, route_main_RID, res_table, route_main_RID + " POINT MEAS", "res_lyr")
+        arcpy.MakeRouteEventLayer_lr(routes_main, route_main_RID, res_table, route_main_RID + " POINT MEAS", "res_lyr")
 
-    arcpy.CopyFeatures_management("res_lyr", outpoints)
+        arcpy.CopyFeatures_management("res_lyr", outpoints)
+
+    finally:
+        gc.CleanAllTempFiles()
+
 
 def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, AtlasReach_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points, messages):
 
