@@ -83,8 +83,8 @@ def execute_ExtractDischarges(routes_Atlas, links_Atlas, RID_field_Atlas, routes
         execute_LocateMostDownstreamPoints(routes_AtlasD8, links_AtlasD8, RID_field_AtlasD8, pts_D8, "id", "RID", "dist", "X", "Y", QpointsD8)
 
         Qpoints_subD8 = gc.CreateScratchName("QptsSub", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
-        arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON")
-
+        # points should be on the lines, but sometimes there's is a more or less 1cm shift. So a tolerance (10cm) was added
+        arcpy.SpatialJoin_analysis(QpointsD8, routesD8, Qpoints_subD8, join_type="KEEP_COMMON", search_radius=0.1)
         arcpy.sa.ExtractMultiValuesToPoints(Qpoints_subD8, [[r_flowacc, "flowacc"]])
 
         arcpy.MakeFeatureLayer_management(Qpoints_subD8, "qpts_lyr")
