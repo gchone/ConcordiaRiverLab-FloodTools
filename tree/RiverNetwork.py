@@ -125,12 +125,13 @@ class RiverNetwork(_NumpyArrayHolder):
                 yield item
 
 
-    def browse_reaches_up_to_down(self, stopper=BrowsingStopper(), prioritize_reach_attribute = None):
+    def browse_reaches_up_to_down(self, stopper=BrowsingStopper(), prioritize_reach_attribute = None, reverse=False):
         # Générateur. Trouve et retourne la liste de segments dans la matrice Numpy
         # La matrice numpy est interrogée pour fournir les tronçons dans l'ordre souhaitée.
         list_upstream_ends = list(self.get_upstream_ends())
         if prioritize_reach_attribute is not None:
-            list_upstream_ends.sort(key=lambda r: getattr(r, prioritize_reach_attribute))
+            list_upstream_ends.sort(key=lambda r: getattr(r, prioritize_reach_attribute),
+                                    reverse=reverse)
         for upstream_end in list_upstream_ends:
             stopper.break_generator = False
             for item in self._recursive_browse_reaches(upstream_end, "UP_TO_DOWN", None, None, None, None):
@@ -337,6 +338,31 @@ class Reach(_NumpyArrayFedObject):
 
         return datapoint
 
+    def is_upstream(self, reach):
+        found = False
+        for upreaches in self.get_uptream_reaches():
+            found = found or upreaches.__recurs_is_upstream(reach, found)
+        return found
+
+    def __recurs_is_upstream(self, reach, found):
+        found = found or self.id==reach.id
+        for upreaches in self.get_uptream_reaches():
+            found = found or upreaches.__recurs_is_upstream(reach, found)
+        return found
+
+    def is_downstream(self, reach):
+        found = False
+        downreach = self.get_downstream_reach()
+        if downreach is not None:
+            found = found or downreach.__recurs_is_downstream(reach, found)
+        return found
+
+    def __recurs_is_downstream(self, reach, found):
+        found = found or self.id == reach.id
+        downreach = self.get_downstream_reach()
+        if downreach is not None:
+            found = found or downreach.__recurs_is_downstream(reach, found)
+        return found
 
 
 
