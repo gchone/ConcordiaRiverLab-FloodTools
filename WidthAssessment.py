@@ -14,7 +14,7 @@ from arcpy.analysis import Intersect, Buffer, Statistics, Erase, Near, SpatialJo
 from arcpy.da import NumPyArrayToTable, TableToNumPyArray, FeatureClassToNumPyArray
 from DataManagementDEH import addfieldtoarray, deleteuselessfields, getfieldproperty
 
-# from tree.RiverNetwork import *
+from tree.FullRiverNetwork import *
 import ArcpyGarbageCollector as gc
 from InterpolatePoints import *
 # import numpy.lib.recfunctions as rfn
@@ -580,10 +580,6 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         splitted_to_unsplitted("network_lyr", RID_field, "width_main_lyr", widthid, width_RID_field, width_distance, width_field, network_main_only, RID_field_main, network_main_l_field, main_width_pts)
 
         ### 1b - Interpolate width data on datapoints
-        #interp_main_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
-
-
-        #execute_InterpolatePoints(main_width_pts, widthid, RID_field_main, width_distance, [width_field], datapoints, id_field_datapts, rid_field_datapts, distance_field_datapts, network_main_only, network_main_only_links, RID_field_main, order_field, interp_main_width_pts, extrapolation_value="CONFLUENCE")
 
         network = RiverNetwork()
         network.dict_attr_fields['id'] = RID_field_main
@@ -594,8 +590,9 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         width_pts_collection.dict_attr_fields['id'] = widthid
         width_pts_collection.dict_attr_fields['reach_id'] = RID_field_main
         width_pts_collection.dict_attr_fields['dist'] = width_distance
-        width_pts_collection.dict_attr_fields[width_field] = width_field
+        width_pts_collection.dict_attr_fields['width'] = width_field
         width_pts_collection.load_table(main_width_pts)
+
 
         targetcollection = Points_collection(network, "target")
         targetcollection.dict_attr_fields['id'] = id_field_datapts
@@ -610,37 +607,197 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
         arcpy.AddJoin_management("width_second_lyr", width_RID_field, network_shp, RID_field)
         arcpy.SelectLayerByAttribute_management("width_second_lyr", "NEW_SELECTION",
                                                 arcpy.Describe(network_shp).basename + "." + main_channel_field + " = 0")
+
+
         secondary_width_pts = gc.CreateScratchName("pts", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
 
         # Points on secondary channels are projected on the closest main channel
         arcpy.LocateFeaturesAlongRoutes_lr("width_second_lyr", network_main_only, RID_field_main, 10000, secondary_width_pts,
                                          RID_field_main + " POINT MEAS", distance_field="NO_DISTANCE")
 
+
+
         ### 2b - Interpolate width data for every secondary channel (with 0 upstream and downstream of the secondary channel)
         ### 3 - Sum all width measurements
         secondary_channel_RID_field = [f.name for f in arcpy.ListFields(secondary_width_pts)][
             [f.name for f in arcpy.ListFields("width_main_lyr")].index(
                 arcpy.Describe(widthdata).basename + "." + width_RID_field) + 1]
-        secondary_width_pts_np = arcpy.da.TableToNumPyArray(secondary_width_pts, ["MEAS", width_field, secondary_channel_RID_field])
+        secondary_width_pts_np = arcpy.da.TableToNumPyArray(secondary_width_pts, [widthid, RID_field_main, "MEAS", width_field, secondary_channel_RID_field])
         secondary_RIDs = np.unique(secondary_width_pts_np[[secondary_channel_RID_field]])
 
-        #interp_main_width_pts_np = arcpy.da.TableToNumPyArray(interp_main_width_pts,
-        #                                                    [id_field_datapts, "MEAS", RID_field_main, width_field])
+
         interp_main_width_pts_np = np.sort(interp_main_width_pts_np, order=id_field_datapts) # ordering to ensure match latter
 
         datacollection = Points_collection(network, "data")
         datacollection.dict_attr_fields['id'] = widthid
         datacollection.dict_attr_fields['reach_id'] = RID_field_main
         datacollection.dict_attr_fields['dist'] = "MEAS"
-        datacollection.dict_attr_fields[width_field] = width_field
+        datacollection.dict_attr_fields['width'] = width_field
         datacollection.dict_attr_fields[secondary_channel_RID_field] = secondary_channel_RID_field
         datacollection.load_table(secondary_width_pts)
+
+        fullnetwork = FullRiverNetwork()
+        fullnetwork.dict_attr_fields['id'] = RID_field_main
+
+        fullnetwork.load_data(network_shp)
+        width_pts_collection2 = Points_collection(fullnetwork, "data")
+        width_pts_collection2.dict_attr_fields['id'] = widthid
+        width_pts_collection2.dict_attr_fields['reach_id'] = RID_field_main
+        width_pts_collection2.dict_attr_fields['dist'] = width_distance
+        width_pts_collection2.dict_attr_fields['width'] = width_field
+        width_pts_collection2.load_table(widthdata)
+
+
 
         i=0
         for rid in secondary_RIDs:
             i+=1
             messages.addMessage("Processing secondary channels (" + str(i) + "/" + str(len(secondary_RIDs)) + ")")
-            subdatasample = datacollection._numpyarray[secondary_channel_RID_field] == rid[0]
+            print(rid[0])
+            # take secondary channel points
+            subdatasample = datacollection._numpyarray[datacollection._numpyarray[secondary_channel_RID_field] == rid[0]]
+            # make sure they are ordered
+            subdatasample = np.sort(subdatasample, order=datacollection.dict_attr_fields['dist'])
+
+            # look for reach inversion (secondary channel with points, once projected on the main channel, inverted)
+            # Look for the distance between the first and the last point
+            projecteddownpt = secondary_width_pts_np[secondary_width_pts_np[widthid] == fullnetwork.get_reach(rid[0]).get_first_point(width_pts_collection2).id]
+            projecteduppt = secondary_width_pts_np[secondary_width_pts_np[widthid] == fullnetwork.get_reach(rid[0]).get_last_point(width_pts_collection2).id]
+            currentreach = network.get_reach(projecteduppt[RID_field_main])
+            while ((not currentreach.is_downstream_end()) and currentreach.id != projecteddownpt[RID_field_main]):
+                currentreach = reach.get_downstream_reach()
+            inverted = (currentreach.id != projecteddownpt[RID_field_main] or projecteddownpt[datacollection.dict_attr_fields['dist']] > projecteduppt[datacollection.dict_attr_fields['dist']])
+
+            if inverted:
+                tmpswitch = projecteddownpt
+                projecteddownpt = projecteduppt
+                projecteduppt = tmpswitch
+
+            # add the furthest point between the first points on the upstream reaches.
+            # list these points in the full network
+            if not inverted:
+                extremity_pts = fullnetwork.get_reach(rid[0]).get_upstreamnextpts(width_pts_collection2)
+            else:
+                extremity_pts = fullnetwork.get_reach(rid[0]).get_downstreamnextpts(width_pts_collection2)
+            # find the equivalent in the projected point on the main network...
+            upprojectedpts = secondary_width_pts_np[np.in1d(secondary_width_pts_np[widthid], np.array([p.id for p in extremity_pts]))]
+            upprojectedpts = upprojectedpts[[widthid, RID_field_main, "MEAS", width_field]]
+            # ... or on the main network width points (downprojectedpts2)
+
+
+            # Look for the distance to the most upstream
+            maxdist = 0
+            furthestpt = None
+
+            for pt in upprojectedpts:
+                reach = network.get_reach(pt[RID_field_main])
+                reachdist = 0
+                while(reach.id != projecteduppt[RID_field_main]):
+                    if reach.is_downstream_end():
+                        raise IndexError
+                    reach = reach.get_downstream_reach()
+                    reachdist += reach.length
+                distance = pt[datacollection.dict_attr_fields['dist']] - projecteduppt[datacollection.dict_attr_fields['dist']] + reachdist
+                if distance>maxdist:
+                    distfield = datacollection.dict_attr_fields['dist']
+                    maxdist = distance
+                    furthestpt = pt
+
+            upprojectedpts2 = width_pts_collection._numpyarray[
+                np.in1d(width_pts_collection._numpyarray[widthid], np.array([p.id for p in extremity_pts]))]
+
+
+            for pt in upprojectedpts2:
+                reach = network.get_reach(pt[RID_field_main])
+                reachdist = 0
+                while(reach.id != projecteduppt[RID_field_main]):
+                    if reach.is_downstream_end():
+                        raise IndexError
+                    reach = reach.get_downstream_reach()
+                    reachdist += reach.length
+                distance = pt[width_pts_collection.dict_attr_fields['dist']] - projecteduppt[datacollection.dict_attr_fields['dist']] + reachdist
+                if distance>maxdist:
+                    distfield = width_pts_collection.dict_attr_fields['dist']
+                    maxdist = distance
+                    furthestpt = pt
+
+            # in some specific cases, the points passed the confluence are not further than the last point on the
+            # secondary channel. This should not happen often.
+            if furthestpt is not None:
+                # add the point to datacollection as
+                newpt = network.get_reach(furthestpt[RID_field_main]).add_point(furthestpt[distfield], datacollection)
+                # assign 0 to the width of the furthest point for interpolation
+                newpt.width = 0
+                # add the point to the subdatasample
+                furthestpt_np = network.points_collection[datacollection.name]._numpyarray[network.points_collection[datacollection.name]._numpyarray[widthid] == newpt.id]
+                subdatasample = np.concatenate((subdatasample, furthestpt_np))
+
+            # refaire pour l'autre extremité
+
+            # add the furthest point between the last points on the downstream reaches.
+            # list these points in the full network
+            if not inverted:
+                extremity_pts = fullnetwork.get_reach(rid[0]).get_downstreamnextpts(width_pts_collection2)
+            else:
+                extremity_pts = fullnetwork.get_reach(rid[0]).get_upstreamnextpts(width_pts_collection2)
+
+            # find the equivalent in the projected point on the main network...
+            downprojectedpts = secondary_width_pts_np[
+                np.in1d(secondary_width_pts_np[widthid], np.array([p.id for p in extremity_pts]))]
+            downprojectedpts = downprojectedpts[[widthid, RID_field_main, "MEAS", width_field]]
+            # ... or on the main network width points (downprojectedpts2)
+
+            # Look for the distance to the most downstream
+            maxdist = 0
+            furthestpt = None
+            for pt in downprojectedpts:
+                reach = network.get_reach(projecteddownpt[RID_field_main])
+                reachdist = 0
+                while (reach.id != pt[RID_field_main]):
+                    if reach.is_downstream_end():
+                        raise IndexError
+                    reach = reach.get_downstream_reach()
+                    reachdist += reach.length
+                distance = projecteddownpt[
+                    datacollection.dict_attr_fields['dist']] - pt[datacollection.dict_attr_fields['dist']] + reachdist
+                if distance > maxdist:
+                    distfield = datacollection.dict_attr_fields['dist']
+                    maxdist = distance
+                    furthestpt = pt
+
+
+
+            downprojectedpts2 = width_pts_collection._numpyarray[
+                np.in1d(width_pts_collection._numpyarray[widthid], np.array([p.id for p in extremity_pts]))]
+
+            for pt in downprojectedpts2:
+                reach = network.get_reach(projecteddownpt[RID_field_main])
+                reachdist = 0
+
+                while (reach.id != pt[RID_field_main]):
+                    if reach.is_downstream_end():
+                        raise IndexError
+                    reach = reach.get_downstream_reach()
+                    reachdist += reach.length
+                distance = projecteddownpt[
+                    datacollection.dict_attr_fields['dist']] - pt[width_pts_collection.dict_attr_fields['dist']] + reachdist
+                if distance > maxdist:
+                    distfield = width_pts_collection.dict_attr_fields['dist']
+                    maxdist = distance
+                    furthestpt = pt
+
+            # in some specific cases, the points passed the confluence are not further than the last point on the
+            # secondary channel. This should not happen often.
+            if furthestpt is not None:
+                # add the point to datacollection as
+                newpt = network.get_reach(furthestpt[RID_field_main]).add_point(furthestpt[distfield], datacollection)
+                # assign 0 to the width of the furthest point for interpolation
+                newpt.width = 0
+                # add the point to the subdatasample
+                furthestpt_np = network.points_collection[datacollection.name]._numpyarray[
+                    network.points_collection[datacollection.name]._numpyarray[widthid] == newpt.id]
+                subdatasample = np.concatenate((subdatasample, furthestpt_np))
+
 
             tmp_np = InterpolatePoints_with_objects(network, datacollection, [width_field], targetcollection, 0,
                                             subdatasample=subdatasample)
@@ -650,6 +807,7 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
 
         if arcpy.env.overwriteOutput and arcpy.Exists(output_table):
             arcpy.Delete_management(output_table)
+
         arcpy.da.NumPyArrayToTable(interp_main_width_pts_np, output_table)
 
 

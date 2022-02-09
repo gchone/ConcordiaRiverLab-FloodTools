@@ -103,29 +103,29 @@ def execute_BedAssessment(route, route_RID_field, route_order_field, routelinks,
         # no else: if it's not an upstream reach the prev_cs is already good
         if reach in done_reaches:
             stopper.break_generator = True
+        else:
+            for cs in reach.browse_points(points_coll, orientation="UP_TO_DOWN"):
+                cs.n = manning
 
-        for cs in reach.browse_points(points_coll, orientation="UP_TO_DOWN"):
-            cs.n = manning
-
-            if prev_cs == None:
-                manning_solver(cs)
-                cs.solver = "manning up"
-                cs.type = 0
-
-            else:
-                if prev_cs.DEM != cs.DEM:
-                    cs.s = prev_cs.s
+                if prev_cs == None:
                     manning_solver(cs)
-                    cs.solver = "manning"
+                    cs.solver = "manning up"
                     cs.type = 0
+
                 else:
-                    cs.solver = "regular"
-                    cs.type = 1
-                    __recursive_inverse1Dhydro(cs, prev_cs, min_slope)
+                    if prev_cs.DEM != cs.DEM:
+                        cs.s = prev_cs.s
+                        manning_solver(cs)
+                        cs.solver = "manning"
+                        cs.type = 0
+                    else:
+                        cs.solver = "regular"
+                        cs.type = 1
+                        __recursive_inverse1Dhydro(cs, prev_cs, min_slope)
 
-            prev_cs = cs
+                prev_cs = cs
 
-        done_reaches.append(reach)
+            done_reaches.append(reach)
 
     points_coll.add_SavedVariable("solver", "str", 10)
     points_coll.add_SavedVariable("y", "float")
@@ -156,6 +156,7 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
 
     # Adding a cross-section if the Froude number varies too much
     if (cs.Fr - prev_cs.Fr) / prev_cs.Fr > 0.5 and localdist > 0.1: # Minimum 10cm between cs
+
         if cs.reach == prev_cs.reach:
             newcs = cs.reach.add_point((cs.dist + prev_cs.dist) / 2., cs.points_collection)
         else:
@@ -163,17 +164,19 @@ def __recursive_inverse1Dhydro(cs, prev_cs, min_slope):
             if localdist / 2. < prev_cs.dist:
                 # point is in the upstream reach (prev_cs reach)
                 newcs = prev_cs.reach.add_point(localdist / 2., cs.points_collection)
+
             else:
                 newcs = cs.reach.add_point(cs.dist + localdist / 2., cs.points_collection)
 
+        newlocaldist = localdist / 2.
         # Linear interpolation of width, discharge and water surface.
         # Although more accurate spatialization could be done, this is deemed accurate enough
-        a = (cs.width - prev_cs.width) / (cs.dist - prev_cs.dist)
-        newcs.width = a * newcs.dist + cs.width - a * cs.dist
-        a = (cs.Q - prev_cs.Q) / (cs.dist - prev_cs.dist)
-        newcs.Q = a * newcs.dist + cs.Q - a * cs.dist
-        a = (cs.wslidar - prev_cs.wslidar) / (cs.dist - prev_cs.dist)
-        newcs.wslidar = a* newcs.dist + cs.wslidar - a* cs.dist
+        a = (cs.width - prev_cs.width) / (0-localdist)
+        newcs.width = a * newlocaldist + cs.width
+        a = (cs.Q - prev_cs.Q) / (0-localdist)
+        newcs.Q = a * newlocaldist + cs.Q
+        a = (cs.wslidar - prev_cs.wslidar) / (0-localdist)
+        newcs.wslidar = a* newlocaldist + cs.wslidar
         newcs.n = cs.n
         #newcs.s_min = 0
         newcs.DEM = prev_cs.DEM

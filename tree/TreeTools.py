@@ -475,6 +475,125 @@ def execute_CreateTreeFromShapefile(rivernet, route_shapefile, routelinks_table,
     finally:
         gc.CleanAllTempFiles()
 
+
+def createFullTreeTableFromShapefile(route_shapefile, routeID_field, IDlink1name, IDlink2name, IDlink_orientationname):
+    """
+    Return the full network numpy array table. It's similar to execute_CreateTreeFromShapefile, but it doesn't save the
+    results on file. The resulting network is not oriented (there's links, but without indication of what is upstream or
+    downstream
+    """
+
+
+
+    def __recursivebuildtree(RID, np_junctions, routeID_field, list_down_up_links):
+
+        #reaches_done.append(RID)
+
+        # Find the END junction for the current reach
+        condition1 = np_junctions["ENDTYPE"] == "End"
+        condition2 = np_junctions[routeID_field] == RID
+        current_upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
+
+        # Find other junctions at the same place
+        condition1 = np_junctions["FEAT_SEQ"] == current_upstream_junction["FEAT_SEQ"]
+        condition2 = np_junctions[routeID_field] != current_upstream_junction[routeID_field]
+
+        other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
+
+        for junction in other_upstream_junctions:
+
+            # Add a row in the links table
+            if junction["ENDTYPE"] == "Start":
+                if not (((junction[routeID_field], RID, "START-TO-END") in list_down_up_links) or ((RID, junction[routeID_field], "END-TO-START") in list_down_up_links)):
+                    list_down_up_links.append((RID, junction[routeID_field], "END-TO-START"))
+                    # Apply recursively
+                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
+            else:
+                if not (((junction[routeID_field], RID, "END-TO-END") in list_down_up_links) or ((RID, junction[routeID_field], "END-TO-END") in list_down_up_links)):
+                    list_down_up_links.append((RID, junction[routeID_field], "END-TO-END"))
+                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
+
+
+
+
+        # Find the START junction for the current reach
+        condition1 = np_junctions["ENDTYPE"] == "Start"
+        condition2 = np_junctions[routeID_field] == RID
+        current_upstream_junction = np.extract(np.logical_and(condition1, condition2), np_junctions)[0]
+
+        # Find other junctions at the same place
+        condition1 = np_junctions["FEAT_SEQ"] == current_upstream_junction["FEAT_SEQ"]
+        condition2 = np_junctions[routeID_field] != current_upstream_junction[routeID_field]
+
+        other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
+
+        for junction in other_upstream_junctions:
+
+            # Add a row in the links table
+            if junction["ENDTYPE"] == "Start":
+                if not (((junction[routeID_field], RID, "START-TO-START") in list_down_up_links) or ((RID, junction[routeID_field], "START-TO-START") in list_down_up_links)):
+                    list_down_up_links.append((RID, junction[routeID_field], "START-TO-START"))
+                    # Apply recursively
+                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
+            else:
+                if not (((junction[routeID_field], RID, "END-TO-START") in list_down_up_links) or ((RID, junction[routeID_field], "START-TO-END") in list_down_up_links)):
+                    list_down_up_links.append((RID, junction[routeID_field], "START-TO-END"))
+                    # Apply recursively
+                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
+
+
+
+
+    try:
+
+
+
+        # Create Junction points: two points created by reach, at both end of the line
+        # (done separately with "END" and "START", rather than with "BOTH_ENDS", to keep track of what point is at which extremity)
+        with arcpy.EnvManager(outputMFlag="Disabled"):
+            with arcpy.EnvManager(outputZFlag="Disabled"):
+                # Do not included Z and M values in the points, as it will mess with the grouping by Shape step (it should only be based on X and Y position)
+                junctions_end = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+                arcpy.FeatureVerticesToPoints_management(route_shapefile, junctions_end, "END")
+                junctions_start = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+                arcpy.FeatureVerticesToPoints_management(route_shapefile, junctions_start, "START")
+        arcpy.AddField_management(junctions_end, "ENDTYPE", "TEXT", field_length=10)
+        arcpy.AddField_management(junctions_start, "ENDTYPE", "TEXT", field_length=10)
+        arcpy.CalculateField_management(junctions_end, "ENDTYPE", "'End'", "PYTHON")
+        arcpy.CalculateField_management(junctions_start, "ENDTYPE", "'Start'", "PYTHON")
+        junctions = gc.CreateScratchName("net", data_type="FeatureClass", workspace=arcpy.env.scratchWorkspace)
+        arcpy.Merge_management([junctions_end, junctions_start], junctions)
+        junctionid_name = arcpy.Describe(junctions).OIDFieldName
+
+        # Add a id ("FEAT_SEQ") to the junction grouping junctions at the same place (same place = same id))
+        junctions_table = gc.CreateScratchName("table", data_type="ArcInfoTable", workspace=arcpy.env.scratchWorkspace)
+        arcpy.FindIdentical_management(junctions, junctions_table, ["Shape"])
+        arcpy.JoinField_management(junctions, junctionid_name, junctions_table, "IN_FID")
+        # Add also the rivernet data into the junctions files (make the query to treat the main channel in priority easier after)
+        arcpy.JoinField_management(junctions, routeID_field, route_shapefile, routeID_field)
+
+
+        np_net = arcpy.da.FeatureClassToNumPyArray(route_shapefile, [routeID_field])
+        np_junctions = arcpy.da.FeatureClassToNumPyArray(junctions,
+                                                         [junctionid_name, routeID_field, "FEAT_SEQ", "ENDTYPE"])
+
+        list_down_up_links = []
+        # list to keep track of what's done (used to avoid going in loops if there's any)
+        #reaches_done = []
+
+        # Instead of starting at the downstream reach, we can start at a random one and flag the ones we have processed
+        # This is included in a loop just in case there are several unlinked networks.
+
+        for reach in np_net:
+            __recursivebuildtree(reach[routeID_field], np_junctions, routeID_field, list_down_up_links)
+
+
+        dt = [(IDlink1name, "i8"), (IDlink2name, "i8"), (IDlink_orientationname, "U15")]
+        return np.array(list_down_up_links, dtype=dt)
+
+    finally:
+        gc.CleanAllTempFiles()
+
 def execute_CreateFromPointsAndSplits(network_shp, links_table, RID_field, points, splits):
 
     network = RiverNetwork()

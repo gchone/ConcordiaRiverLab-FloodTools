@@ -2,7 +2,7 @@
 
 
 import arcpy
-import numpy
+
 import numpy as np
 import os
 import numpy.lib.recfunctions as rfn
@@ -194,9 +194,7 @@ class RiverNetwork(_NumpyArrayHolder):
         collection.dict_attr_fields["reach_id"]=self.dict_attr_fields["id"]
         collection.load_table(table)
 
-    def spatializeWidth(self, width_coll, target_coll):
-        # the width collection must have a attribute "width"
-        pass
+
 
 
 
@@ -325,16 +323,16 @@ class Reach(_NumpyArrayFedObject):
     def add_point(self, distance, collection):
 
         #Find the max currently used id in the collection, and add 1
-        newid = numpy.max(collection._numpyarray[collection.dict_attr_fields['id']]) + 1
+        newid = np.max(collection._numpyarray[collection.dict_attr_fields['id']]) + 1
         #Add a row in the two numpy arrays
-        to_add = numpy.empty(1, dtype=collection._numpyarray.dtype)
+        to_add = np.empty(1, dtype=collection._numpyarray.dtype)
         to_add[collection.dict_attr_fields['id']] = newid
         to_add[collection.dict_attr_fields['dist']] = distance
         to_add[collection.dict_attr_fields['reach_id']] = self.id
-        collection._numpyarray = numpy.append(collection._numpyarray, to_add)
+        collection._numpyarray = np.append(collection._numpyarray, to_add)
         datapoint = DataPoint(collection, self, to_add)
         to_add = np.array([(newid, datapoint)], dtype=collection._points.dtype)
-        collection._points = numpy.append(collection._points, to_add)
+        collection._points = np.append(collection._points, to_add)
 
         return datapoint
 
@@ -395,7 +393,11 @@ class Points_collection(_NumpyArrayHolder):
         for row in self._numpyarray:
             self._points[i]['id'] = row[self.dict_attr_fields['id']]
             reachid = row[self.dict_attr_fields['reach_id']]
-            reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
+            try:
+                reach = self.rivernetwork._reaches[self.rivernetwork._reaches['id'] == reachid]['object'][0]
+            except IndexError as e:
+                print(reachid)
+                raise e
             self._points[i]['object'] = DataPoint(self, reach, row)
             i += 1
 

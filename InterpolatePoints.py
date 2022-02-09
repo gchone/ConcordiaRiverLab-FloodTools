@@ -53,7 +53,7 @@ def InterpolatePoints_with_objects(network, datacollection, data_fields, targetc
 
     for reach in network.browse_reaches_down_to_up():
         if subdatasample is not None:
-            datatointerp = datacollection._numpyarray[subdatasample]
+            datatointerp = subdatasample
         else:
             datatointerp = datacollection._numpyarray
         targetdata = np.sort(
