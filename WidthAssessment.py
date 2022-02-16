@@ -665,7 +665,7 @@ def execute_WidthPostProc(network_shp, RID_field, main_channel_field, network_ma
             projecteduppt = secondary_width_pts_np[secondary_width_pts_np[widthid] == fullnetwork.get_reach(rid[0]).get_last_point(width_pts_collection2).id]
             currentreach = network.get_reach(projecteduppt[RID_field_main])
             while ((not currentreach.is_downstream_end()) and currentreach.id != projecteddownpt[RID_field_main]):
-                currentreach = reach.get_downstream_reach()
+                currentreach = currentreach.get_downstream_reach()
             inverted = (currentreach.id != projecteddownpt[RID_field_main] or projecteddownpt[datacollection.dict_attr_fields['dist']] > projecteduppt[datacollection.dict_attr_fields['dist']])
 
             if inverted:
