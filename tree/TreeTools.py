@@ -485,9 +485,10 @@ def createFullTreeTableFromShapefile(route_shapefile, routeID_field, IDlink1name
 
 
 
-    def __recursivebuildtree(RID, np_junctions, routeID_field, list_down_up_links):
+    def __recursivebuildtree(RID, np_junctions, routeID_field, list_down_up_links, reaches_done):
 
-        #reaches_done.append(RID)
+        reaches_done.append(RID)
+
 
         # Find the END junction for the current reach
         condition1 = np_junctions["ENDTYPE"] == "End"
@@ -501,18 +502,21 @@ def createFullTreeTableFromShapefile(route_shapefile, routeID_field, IDlink1name
         other_upstream_junctions = np.extract(np.logical_and(condition1, condition2), np_junctions)
 
         for junction in other_upstream_junctions:
+            # reaches_done is the list of reaches with all junctions, upstream and downstream, checked.
+            # we must also look into list_down_up_links, as some links could be already added before the next reach is in reaches_done
 
             # Add a row in the links table
             if junction["ENDTYPE"] == "Start":
                 if not (((junction[routeID_field], RID, "START-TO-END") in list_down_up_links) or ((RID, junction[routeID_field], "END-TO-START") in list_down_up_links)):
                     list_down_up_links.append((RID, junction[routeID_field], "END-TO-START"))
-                    # Apply recursively
-                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
             else:
                 if not (((junction[routeID_field], RID, "END-TO-END") in list_down_up_links) or ((RID, junction[routeID_field], "END-TO-END") in list_down_up_links)):
                     list_down_up_links.append((RID, junction[routeID_field], "END-TO-END"))
-                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
 
+            if junction[routeID_field] not in reaches_done:
+                # Apply recursively
+                __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links,
+                                     reaches_done)
 
 
 
@@ -533,16 +537,13 @@ def createFullTreeTableFromShapefile(route_shapefile, routeID_field, IDlink1name
             if junction["ENDTYPE"] == "Start":
                 if not (((junction[routeID_field], RID, "START-TO-START") in list_down_up_links) or ((RID, junction[routeID_field], "START-TO-START") in list_down_up_links)):
                     list_down_up_links.append((RID, junction[routeID_field], "START-TO-START"))
-                    # Apply recursively
-                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
             else:
                 if not (((junction[routeID_field], RID, "END-TO-START") in list_down_up_links) or ((RID, junction[routeID_field], "START-TO-END") in list_down_up_links)):
                     list_down_up_links.append((RID, junction[routeID_field], "START-TO-END"))
-                    # Apply recursively
-                    __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links)
 
-
-
+            if junction[routeID_field] not in reaches_done:
+                __recursivebuildtree(junction[routeID_field], np_junctions, routeID_field, list_down_up_links,
+                                     reaches_done)
 
     try:
 
@@ -578,14 +579,16 @@ def createFullTreeTableFromShapefile(route_shapefile, routeID_field, IDlink1name
                                                          [junctionid_name, routeID_field, "FEAT_SEQ", "ENDTYPE"])
 
         list_down_up_links = []
-        # list to keep track of what's done (used to avoid going in loops if there's any)
-        #reaches_done = []
+        # lists to keep track of what's done (used to avoid going in loops if there's any)
+        reaches_done = []
+
 
         # Instead of starting at the downstream reach, we can start at a random one and flag the ones we have processed
         # This is included in a loop just in case there are several unlinked networks.
 
         for reach in np_net:
-            __recursivebuildtree(reach[routeID_field], np_junctions, routeID_field, list_down_up_links)
+            if reach[routeID_field] not in reaches_done:
+                __recursivebuildtree(reach[routeID_field], np_junctions, routeID_field, list_down_up_links, reaches_done)
 
 
         dt = [(IDlink1name, "i8"), (IDlink2name, "i8"), (IDlink_orientationname, "U15")]
