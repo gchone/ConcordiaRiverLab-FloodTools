@@ -8,6 +8,7 @@ from LocatePointsAlongRoutes import *
 from AssignPointToClosestPointOnRoute import *
 from InterpolatePoints import *
 from WSsmoothing import *
+import ArcpyGarbageCollector as gc
 from numpy.lib import recfunctions as rfn
 import csv
 
