@@ -247,3 +247,123 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
     #     arcpy.Delete_management(output_points)
     # arcpy.da.NumPyArrayToTable(finalarray, output_points)
 
+def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points, messages):
+
+    # Extract Flow Acc along D8
+    arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
+    D8pts = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... I don't know why
+    arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
+    arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
+    arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
+    D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
+    arcpy.AddJoin_management("D8pts_lyr2", RID_field_D8, relate_table,
+                             D8_RID_field_in_relatetable)
+
+    # Join target points with the closest D8 point with the same RID
+    targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
+
+    network = RiverNetwork()
+    network.dict_attr_fields['id'] = RID_field
+    network.load_data(routes, links)
+
+    Qcollection = Points_collection(network, "Qpts")
+    Qcollection.dict_attr_fields['id'] = id_field_Qpoints
+    Qcollection.dict_attr_fields['reach_id'] = RID_Qpoints
+    Qcollection.dict_attr_fields['dist'] = dist_field_Qpoints
+    Qcollection.load_table(Qpoints)
+
+    targetcollection = Points_collection(network, "target")
+    targetcollection.dict_attr_fields['id'] = id_field_target
+    targetcollection.dict_attr_fields['reach_id'] = RID_field_target
+    targetcollection.dict_attr_fields['dist'] = Distance_field_target
+    targetcollection.dict_attr_fields['DEM'] = DEM_field_target
+    targetcollection.dict_attr_fields['flowacc'] = "flowacc"
+    targetcollection.load_table(targets_withFlowAcc)
+
+    # First browse: assign the closest downstream Q point at each target point
+    for reach in network.browse_reaches_down_to_up():
+        # Look for the closest downstream point in targetcollection
+        down_point = None
+        down_reach = reach
+        while down_point is None and not down_reach.is_downstream_end():
+            down_reach = down_reach.get_downstream_reach()
+            down_point = down_reach.get_last_point(targetcollection)
+        if reach.is_downstream_end():
+            lastQpts = None
+        else:
+            # discharge point associated with the closest downstream point in targetcollection
+            lastQpts = down_point.lastQpts
+        # Is there a discharge point on the current reach?
+        for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
+            if lastQpts is not None:
+                if lastQpts.reach.id == reach.id:
+                    min_dist = lastQpts.dist
+                else:
+                    min_dist = 0
+                for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                    if targetpts.dist >= min_dist and targetpts.dist < Qpts.dist:
+                        targetpts.lastQpts = lastQpts
+                        targetpts.QptsID = lastQpts.AtlasID
+            lastQpts = Qpts
+        if lastQpts is not None:
+            # Assign the lastQpts to target points until the end of the reach
+            if lastQpts.reach.id == reach.id:
+                min_dist = lastQpts.dist
+            else:
+                min_dist = 0
+            for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                if targetpt.dist >= min_dist:
+                    targetpt.lastQpts = lastQpts
+                    targetpt.QptsID = lastQpts.AtlasID
+
+    # First browse bis: assign the closest upstream Q point
+    for reach in network.browse_reaches_up_to_down():
+        if reach.is_upstream_end():
+            lastQpts = None
+        for Qpts in reach.browse_points(Qcollection, orientation="UP_TO_DOWN"):
+            if lastQpts is not None:
+                for targetpt in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
+                    if not hasattr(targetpt, "lastQpts"):
+                        targetpt.lastQpts = lastQpts
+                        targetpt.QptsID = lastQpts.AtlasID
+            lastQpts = Qpts
+
+    # Second browse: Extract the right Q LiDAR discharge and do the drainage area correction
+    #  but first, the csv file is loaded into a dictionary
+    #Qdata_array = genfromtxt(Qcsv_file, delimiter=',')
+    Q_dict = {}
+    with open(Qcsv_file, 'r') as csvfile:
+        csvreader = csv.DictReader(csvfile)
+        firstrowname = csvreader.fieldnames[0]
+        for line in csvreader:
+            Q_dict[line[firstrowname]]=line
+    for reach in network.browse_reaches_down_to_up():
+        for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+            try:
+                Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
+                targetpt.Qlidar = Qlidar * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
+            except AttributeError as e:
+                messages.addErrorMessage("Missing line or column in the csv file: " + str(targetpt.DEM) + " / " + str(targetpt.lastQpts.AtlasID))
+
+    # Originaly (commented below): Join the final results to the original target shapefile
+    # Final thought: Better to leave this to be done manually
+    targetcollection.add_SavedVariable("QptsID", "str", 20)
+    targetcollection.add_SavedVariable("Qlidar", "float")
+
+    #targets_withQ = gc.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
+    targetcollection.save_points(output_points)
+
+    # # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.
+    # # Resolved by using numpyarray
+    # originalfields = [f.name for f in arcpy.Describe(targetpoints).fields]
+    # original_nparray = arcpy.da.TableToNumPyArray(targetpoints, originalfields)
+    # original_nparray = numpy.sort(original_nparray, order=id_field_target)
+    # result_nparray = arcpy.da.TableToNumPyArray(targets_withQ, [id_field_target, "QptsID", "Qlidar"])
+    # result_nparray = numpy.sort(result_nparray, order=id_field_target)
+    # finalarray = rfn.merge_arrays([original_nparray, result_nparray[["QptsID", "Qlidar"]]], flatten=True)
+    # if arcpy.env.overwriteOutput and arcpy.Exists(output_points):
+    #     arcpy.Delete_management(output_points)
+    # arcpy.da.NumPyArrayToTable(finalarray, output_points)
+
