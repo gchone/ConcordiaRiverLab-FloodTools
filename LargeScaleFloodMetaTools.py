@@ -410,7 +410,11 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
                         Qdownkey: targetpt.downQpts.discharges[Qdownkey] * (localarea / targetpt.downQpts.drainage_area) ** beta_coef for Qdownkey in targetpt.downQpts.discharges}
 
             # Export the discharge corresponding to the local day (local DEM) (it needs to be an attribute)
-            targetpt.computedQLiDAR = targetpt.weightedQ[targetpt.DEM]
+            if hasattr(targetpt, "weightedQ"):
+                targetpt.computedQLiDAR = targetpt.weightedQ[targetpt.DEM]
+            else:
+                targetpt.computedQLiDAR = -999
+
 
         ### Third block : Convert the final upstream point into an Q input ###
         lastuppt = reach.get_last_point(targetcollection)
