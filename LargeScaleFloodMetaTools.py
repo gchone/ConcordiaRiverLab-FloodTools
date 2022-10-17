@@ -182,10 +182,10 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
                     min_dist = lastQpts.dist
                 else:
                     min_dist = 0
-                for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-                    if targetpts.dist >= min_dist and targetpts.dist < Qpts.dist:
-                        targetpts.lastQpts = lastQpts
-                        targetpts.QptsID = lastQpts.AtlasID
+                for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                    if targetpt.dist >= min_dist and targetpt.dist < Qpts.dist:
+                        targetpt.lastQpts = lastQpts
+                        targetpt.QptsID = lastQpts.AtlasID
             lastQpts = Qpts
         if lastQpts is not None:
             # Assign the lastQpts to target points until the end of the reach
@@ -247,7 +247,15 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
     #     arcpy.Delete_management(output_points)
     # arcpy.da.NumPyArrayToTable(finalarray, output_points)
 
-def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, RID_Qpoints, dist_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, output_points, messages):
+def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, name_field_Qpoints, drainage_area_field_Qpoints, RID_Qpoints, dist_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, beta_coef, output_points, messages):
+
+    class Ref_point:
+        def __init__(self, name, discharges, drainage_area, reach, dist):
+            self.name = name
+            self.discharges = discharges
+            self.drainage_area = drainage_area
+            self.reach = reach
+            self.dist = dist
 
     # Extract Flow Acc along D8
     arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
@@ -255,13 +263,14 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
     # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... I don't know why
     arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
     arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
+
     arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
     D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
     arcpy.AddJoin_management("D8pts_lyr2", RID_field_D8, relate_table,
                              D8_RID_field_in_relatetable)
 
     # Join target points with the closest D8 point with the same RID
-    targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+    targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace=r"in_memory")
     execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
 
     network = RiverNetwork()
@@ -272,6 +281,8 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
     Qcollection.dict_attr_fields['id'] = id_field_Qpoints
     Qcollection.dict_attr_fields['reach_id'] = RID_Qpoints
     Qcollection.dict_attr_fields['dist'] = dist_field_Qpoints
+    Qcollection.dict_attr_fields['name'] = name_field_Qpoints
+    Qcollection.dict_attr_fields['drainage_area'] = drainage_area_field_Qpoints
     Qcollection.load_table(Qpoints)
 
     targetcollection = Points_collection(network, "target")
@@ -282,19 +293,68 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
     targetcollection.dict_attr_fields['flowacc'] = "flowacc"
     targetcollection.load_table(targets_withFlowAcc)
 
-    # First browse: assign the closest downstream Q point at each target point
+    # Read the csv file, transpose it
+    Q_dict = {} # dictionnary (key = name of gauging stations) with each entry being a dictionnary of discharges (key = code_dem)
+    with open(Qcsv_file, 'r') as csvfile:
+        csvreader = csv.DictReader(csvfile)
+        for station in csvreader.fieldnames[1:]:
+            Q_dict[station] = {}
+        firstrowname = csvreader.fieldnames[0]
+        for line in csvreader:
+            for station in csvreader.fieldnames[1:]:
+                Q_dict[station][line[firstrowname]] = float(line[station])
+    # For each gauging station point, assign its dictionnary of discharges
     for reach in network.browse_reaches_down_to_up():
-        # Look for the closest downstream point in targetcollection
-        down_point = None
-        down_reach = reach
-        while down_point is None and not down_reach.is_downstream_end():
-            down_reach = down_reach.get_downstream_reach()
-            down_point = down_reach.get_last_point(targetcollection)
-        if reach.is_downstream_end():
+        for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
+            try:
+                Qpts.discharges = Q_dict[Qpts.name]
+            except KeyError as e:
+                messages.addErrorMessage("Missing gauging station in the csv file: " + str(Qpts.name))
+
+
+    # First browse: assign the upstream Q point(s) (in a list)
+    for reach in network.browse_reaches_down_to_up():
+        for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+            targetpt.upQpts = [] # just to initiate the lists
+    for reach in network.browse_reaches_up_to_down():
+        if reach.is_upstream_end():
             lastQpts = None
-        else:
-            # discharge point associated with the closest downstream point in targetcollection
-            lastQpts = down_point.lastQpts
+        for Qpts in reach.browse_points(Qcollection, orientation="UP_TO_DOWN"):
+            if lastQpts is not None:
+                if lastQpts.reach.id == reach.id:
+                    max_dist = lastQpts.dist
+                else:
+                    max_dist = None
+                for targetpt in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
+                    if (max_dist is None or targetpt.dist <= max_dist) and targetpt.dist > Qpts.dist:
+                        if lastQpts.name not in [pt.name for pt in targetpt.upQpts]:
+                            targetpt.upQpts.append(lastQpts)
+            lastQpts = Ref_point(Qpts.name, Qpts.discharges, Qpts.drainage_area, Qpts.reach, Qpts.dist)
+
+        if lastQpts is not None:
+            # Assign the lastQpts to target points until the end of the reach
+            if lastQpts.reach.id == reach.id:
+                max_dist = lastQpts.dist
+            else:
+                max_dist = None
+            for targetpt in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
+                if max_dist is None or targetpt.dist <= max_dist:
+                    if lastQpts.name not in [pt.name for pt in targetpt.upQpts]:
+                        targetpt.upQpts.append(lastQpts)
+
+
+    # Second browse: assign the closest downstream Q point at each target point
+    # In the same browse, compute the discharges, by linear interpolation between each upstream/downstream pairs
+    # If there are several upstream points, weight the results according to the upstream points drainage area
+    # The final upstream point of a reach act as an input Q point for the upstream reaches
+    for reach in network.browse_reaches_down_to_up():
+
+        ### First block : find the closest downstream Q point ###
+
+        lastQpts = None
+        if not reach.is_downstream_end():
+            lastQpts = reach.get_downstream_reach().upstream_calculated_Q
+
         # Is there a discharge point on the current reach?
         for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
             if lastQpts is not None:
@@ -302,11 +362,11 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
                     min_dist = lastQpts.dist
                 else:
                     min_dist = 0
-                for targetpts in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-                    if targetpts.dist >= min_dist and targetpts.dist < Qpts.dist:
-                        targetpts.lastQpts = lastQpts
-                        targetpts.QptsID = lastQpts.AtlasID
-            lastQpts = Qpts
+                for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                    if targetpt.dist >= min_dist:
+                        targetpt.downQpts = lastQpts
+            lastQpts = Ref_point(Qpts.name, Qpts.discharges, Qpts.drainage_area, Qpts.reach, Qpts.dist)
+
         if lastQpts is not None:
             # Assign the lastQpts to target points until the end of the reach
             if lastQpts.reach.id == reach.id:
@@ -315,55 +375,52 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
                 min_dist = 0
             for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
                 if targetpt.dist >= min_dist:
-                    targetpt.lastQpts = lastQpts
-                    targetpt.QptsID = lastQpts.AtlasID
+                    targetpt.downQpts = lastQpts
 
-    # First browse bis: assign the closest upstream Q point
-    for reach in network.browse_reaches_up_to_down():
-        if reach.is_upstream_end():
-            lastQpts = None
-        for Qpts in reach.browse_points(Qcollection, orientation="UP_TO_DOWN"):
-            if lastQpts is not None:
-                for targetpt in reach.browse_points(targetcollection, orientation="UP_TO_DOWN"):
-                    if not hasattr(targetpt, "lastQpts"):
-                        targetpt.lastQpts = lastQpts
-                        targetpt.QptsID = lastQpts.AtlasID
-            lastQpts = Qpts
 
-    # Second browse: Extract the right Q LiDAR discharge and do the drainage area correction
-    #  but first, the csv file is loaded into a dictionary
-    #Qdata_array = genfromtxt(Qcsv_file, delimiter=',')
-    Q_dict = {}
-    with open(Qcsv_file, 'r') as csvfile:
-        csvreader = csv.DictReader(csvfile)
-        firstrowname = csvreader.fieldnames[0]
-        for line in csvreader:
-            Q_dict[line[firstrowname]]=line
-    for reach in network.browse_reaches_down_to_up():
+        ### Second block : compute the discharges ###
+
         for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
-            try:
-                Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
-                targetpt.Qlidar = Qlidar * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
-            except AttributeError as e:
-                messages.addErrorMessage("Missing line or column in the csv file: " + str(targetpt.DEM) + " / " + str(targetpt.lastQpts.AtlasID))
 
-    # Originaly (commented below): Join the final results to the original target shapefile
-    # Final thought: Better to leave this to be done manually
-    targetcollection.add_SavedVariable("QptsID", "str", 20)
-    targetcollection.add_SavedVariable("Qlidar", "float")
+            localarea = targetpt.flowacc*r_flowacc.meanCellWidth*r_flowacc.meanCellHeight/1000000.
+            if not hasattr(targetpt, "downQpts"): # there is no downstream point
+                # A simple proportionnality of A**beta is done for each upstream point
+                for uppt in targetpt.upQpts:
+                    uppt.interpolatedQ = {Qupkey:uppt.discharges[Qupkey]*(localarea/uppt.drainage_area)**beta_coef for Qupkey in uppt.discharges}
+            else:
+                # Linear interpolation of A**beta
+                for uppt in targetpt.upQpts:
+                    Q_from_down = {Qdownkey:(localarea ** beta_coef - uppt.drainage_area ** beta_coef) / (
+                                targetpt.downQpts.drainage_area ** beta_coef - uppt.drainage_area ** beta_coef)*targetpt.downQpts.discharges[Qdownkey] for Qdownkey in targetpt.downQpts.discharges}
+                    Q_from_up = {Qupkey:(targetpt.downQpts.drainage_area ** beta_coef - localarea ** beta_coef) / (
+                                targetpt.downQpts.drainage_area ** beta_coef - uppt.drainage_area ** beta_coef)*uppt.discharges[Qupkey] for Qupkey in uppt.discharges}
 
-    #targets_withQ = gc.CreateScratchName("ttable", data_type="ArcInfoTable", workspace="in_memory")
+                    uppt.interpolatedQ = {Qdownkey:Q_from_down[Qdownkey] + Q_from_up[Qdownkey] for Qdownkey in targetpt.downQpts.discharges}
+
+            # weight the results according to the upstream points drainage area
+            if len(targetpt.upQpts)>0:
+                targetpt.weightedQ = {Qupkey:0 for Qupkey in targetpt.upQpts[0].discharges}
+                totalweight = sum([uppt.drainage_area for uppt in targetpt.upQpts])
+                for uppt in targetpt.upQpts:
+                    targetpt.weightedQ = {Qupkey:targetpt.weightedQ[Qupkey] + uppt.interpolatedQ[Qupkey]*uppt.drainage_area/totalweight for Qupkey in uppt.discharges}
+            else: # there is no upstream points
+                if hasattr(targetpt, "downQpts"): # there is a downstream point
+                    # A simple proportionnality of A**beta is done from the downstream point
+                    targetpt.weightedQ = {
+                        Qdownkey: targetpt.downQpts.discharges[Qdownkey] * (localarea / targetpt.downQpts.drainage_area) ** beta_coef for Qdownkey in targetpt.downQpts.discharges}
+
+            # Export the discharge corresponding to the local day (local DEM) (it needs to be an attribute)
+            targetpt.computedQLiDAR = targetpt.weightedQ[targetpt.DEM]
+
+        ### Third block : Convert the final upstream point into an Q input ###
+        lastuppt = reach.get_last_point(targetcollection)
+        reach.upstream_calculated_Q = Ref_point("uppt_reach"+str(reach.id), lastuppt.weightedQ,
+                                                lastuppt.flowacc*r_flowacc.meanCellWidth*r_flowacc.meanCellHeight/1000000.,
+                                                reach, lastuppt.dist)
+
+
+    targetcollection.add_SavedVariable("computedQLiDAR", "float")
     targetcollection.save_points(output_points)
 
-    # # There was an issue with the Join. ArcGIS refused to mach the ID of the two tables. I don't get why.
-    # # Resolved by using numpyarray
-    # originalfields = [f.name for f in arcpy.Describe(targetpoints).fields]
-    # original_nparray = arcpy.da.TableToNumPyArray(targetpoints, originalfields)
-    # original_nparray = numpy.sort(original_nparray, order=id_field_target)
-    # result_nparray = arcpy.da.TableToNumPyArray(targets_withQ, [id_field_target, "QptsID", "Qlidar"])
-    # result_nparray = numpy.sort(result_nparray, order=id_field_target)
-    # finalarray = rfn.merge_arrays([original_nparray, result_nparray[["QptsID", "Qlidar"]]], flatten=True)
-    # if arcpy.env.overwriteOutput and arcpy.Exists(output_points):
-    #     arcpy.Delete_management(output_points)
-    # arcpy.da.NumPyArrayToTable(finalarray, output_points)
+
 
