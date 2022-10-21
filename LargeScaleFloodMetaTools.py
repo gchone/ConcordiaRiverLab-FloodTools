@@ -224,7 +224,7 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
             try:
                 Qlidar = float(Q_dict[str(targetpt.lastQpts.AtlasID)][str(targetpt.DEM)])
                 targetpt.Qlidar = Qlidar * r_flowacc.meanCellWidth * r_flowacc.meanCellHeight *  targetpt.flowacc/1000000.
-            except AttributeError as e:
+            except KeyError as e:
                 messages.addErrorMessage("Missing line or column in the csv file: " + str(targetpt.DEM) + " / " + str(targetpt.lastQpts.AtlasID))
 
     # Originaly (commented below): Join the final results to the original target shapefile
