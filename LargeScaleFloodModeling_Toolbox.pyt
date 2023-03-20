@@ -2,7 +2,7 @@
 
 import arcpy
 
-
+from LASfileTimeExtractor import *
 from RelateNetworks_Interface import *
 from LocatePointsAlongRoutes_Interface import *
 from LargeurParTransect_Interface import *
@@ -27,5 +27,5 @@ class Toolbox(object):
         self.label = "Tools for linear referencing"
         self.alias = ""
 
-        self.tools = [TopologicalRelateNetworks, BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+        self.tools = [LASfileTimeExtractor, TopologicalRelateNetworks, BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, WSsmoothing, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
 
