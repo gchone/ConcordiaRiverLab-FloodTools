@@ -66,7 +66,7 @@ class LASfileTimeExtractor(object):
 
         str_binlastoolsfolder = parameters[0].valueAsText
         str_lasfolder = parameters[1].valueAsText
-        UTC = parameters[2].valueAsText
+        UTC = float(parameters[2].valueAsText)
         output_folder = parameters[3].valueAsText
         merge_folder = parameters[4].valueAsText
 

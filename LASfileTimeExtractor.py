@@ -2,8 +2,8 @@ import subprocess
 import os
 import datetime
 import time
-import csv
-from tqdm import tqdm
+#import csv
+#from tqdm import tqdm
 
 
 
@@ -23,9 +23,9 @@ def execute_extract_bydays(str_binlastoolsfolder, str_lasfolder, UTC, output_fol
     files = []
     # r=root, d=directories, f = files
     for r, d, f in os.walk(str_lasfolder):
-        for file in tqdm(f):
-            if file[-4:] == '.laz' and file[:-4] not in donefiles:
-                p = subprocess.Popen([str_binlastoolsfolder + "\\lasinfo.exe", file], cwd=str_lasfolder, stdout=subprocess.PIPE,  stderr=subprocess.PIPE)
+        for file in f:
+            if (file[-4:] == '.laz' or file[-4:] == '.las') and file[:-4] not in donefiles:
+                p = subprocess.Popen([str_binlastoolsfolder + "\\lasinfo.exe", file], cwd=str_lasfolder, stdout=subprocess.PIPE,  stderr=subprocess.PIPE, shell=True)
                 out, err = p.communicate()
                 for elem in str(err).split(r"\r\n"):
                     if(elem.find("gps_time")) > -1:
@@ -50,7 +50,7 @@ def execute_extract_bydays(str_binlastoolsfolder, str_lasfolder, UTC, output_fol
 
                     p = subprocess.Popen([str_binlastoolsfolder + "\\las2las.exe", "-i", file, "-o", os.path.join(output_folder, str(day), file[:-4]+".las"),
                                           "-keep_class", "2",
-                                          "-keep_gps_time", str(gps_time1), str(gps_time2)], cwd=str_lasfolder, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                          "-keep_gps_time", str(gps_time1), str(gps_time2)], cwd=str_lasfolder, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                     out, err = p.communicate()  # make the script wait for the las2las to be done
 
                     day = day + datetime.timedelta(days=1)
@@ -64,7 +64,7 @@ def execute_extract_bydays(str_binlastoolsfolder, str_lasfolder, UTC, output_fol
     for r, d, f in os.walk(output_folder):
         for file in f:
             p = subprocess.Popen([str_binlastoolsfolder + "\\lasinfo.exe", file], cwd=r,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             out, err = p.communicate()
             for elem in str(err).split(r"\r\n"):
                 if (elem.find("number of point records")) > -1:
@@ -82,11 +82,11 @@ def execute_extract_bydays(str_binlastoolsfolder, str_lasfolder, UTC, output_fol
         for dir in d:
             p = subprocess.Popen([str_binlastoolsfolder + "\\lasmerge.exe", "-i", os.path.join(r, dir,"*.las"), "-o",
                                   os.path.join(merge_folder, "lidar"+dir+ ".las")], cwd=output_folder,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             out, err = p.communicate() # make the script wait for the lasmerge to be done
 
     messages.addMessage("Computing footprints")
 
     p = subprocess.Popen([str_binlastoolsfolder + "\\lasboundary.exe", "-i", os.path.join(merge_folder, "*.las")], cwd=merge_folder,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     out, err = p.communicate()  # make the script wait for the lasboundary to be done

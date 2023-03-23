@@ -2,7 +2,7 @@
 
 import arcpy
 
-from LASfileTimeExtractor import *
+from LASfileTimeExtractor_Interface import *
 from RelateNetworks_Interface import *
 from LocatePointsAlongRoutes_Interface import *
 from LargeurParTransect_Interface import *
