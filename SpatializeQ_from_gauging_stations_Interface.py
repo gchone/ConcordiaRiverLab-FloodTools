@@ -67,7 +67,7 @@ class SpatializeQ_gauging_stations(object):
         param_Qpoints = arcpy.Parameter(
             displayName="Qpoints",
             name="Qpoints",
-            datatype="GPFeatureLayer",
+            datatype="GPTableView",
             parameterType="Required",
             direction="Input")
         param_id_field_Qpoints = arcpy.Parameter(
@@ -153,6 +153,8 @@ class SpatializeQ_gauging_stations(object):
         param_RID_field.parameterDependencies = [param_routes.name]
         param_id_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_RID_Qpoints.parameterDependencies = [param_Qpoints.name]
+        param_name_Qpoints.parameterDependencies = [param_Qpoints.name]
+        param_drainage_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_dist_field_Qpoints.parameterDependencies = [param_Qpoints.name]
         param_id_field_target.parameterDependencies = [param_targetpoints.name]
         param_RID_field_target.parameterDependencies = [param_targetpoints.name]

@@ -10,7 +10,7 @@ from ExtractDischarges_Interface import *
 from SpatializeQ_Interface import *
 from WidthPostProc_Interface import *
 from BedAssessment_Interface import *
-from SpatializeQ_gauging_stations_Interface import *
+from SpatializeQ_from_gauging_stations_Interface import *
 
 class Toolbox(object):
     def __init__(self):
