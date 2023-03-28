@@ -19,13 +19,13 @@ class PlacePointsAlongReaches(object):
 
     def getParameterInfo(self):
         param_network_shp = arcpy.Parameter(
-            displayName="Network feature class",
+            displayName="Route feature class",
             name="network_shp",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_links_table = arcpy.Parameter(
-            displayName="Points-Network link table",
+            displayName="Route links table",
             name="links_table",
             datatype="GPTableView",
             parameterType="Required",
