@@ -4,6 +4,8 @@
 # Auteur: François Larouche-Tremblay, Ing, M Sc
 # Date: 04/05/2021
 # Description: Interface de la fonction LargeurParTransect
+#
+# 03/24/2023: English interface - Guénolé Choné
 #####################################################
 
 import arcpy
@@ -12,57 +14,55 @@ from WidthAssessment import *
 
 class LargeurParTransect(object):
     def __init__(self):
-        self.label = "Largeur par transects"
-        self.description = "Génère un profil de points contenant la largeur des cours d'eau calculée " \
-                           "à partir de transects ainsi que les transects associés à chaque point."
+        self.label = "Width by cross-sections"
+        self.description = ""
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         param_streamnetwork = arcpy.Parameter(
-            displayName="Réseau vectoriel de l'écoulement",
+            displayName="Route layer (or lines)",
             name="streamnetwork",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_idfield = arcpy.Parameter(
-            displayName="Nom du champ qui contient l'ID du tronçon (Nombre entier)",
+            displayName="RouteID field",
             name="idfield",
             datatype="GPString",
             parameterType="Required",
             direction="Input")
         param_riverbed = arcpy.Parameter(
-            displayName="Polygone de la surface des cours d'eau",
+            displayName="River polygons",
             name="riverbed",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_ineffarea = arcpy.Parameter(
-            displayName="Polygones recouvrant les branches de cours d'eau "
-                        "ineffectives (trop petites, secondaires, intermittentes)",
+            displayName="Polygons identifying dead water",
             name="ineffarea",
             datatype="GPFeatureLayer",
             parameterType="Optional",
             direction="Input")
         param_maxwidth = arcpy.Parameter(
-            displayName="Largeur maximale des transects (en m)",
+            displayName="Maximum width of cross-sections(m)",
             name="maxwidth",
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
         param_spacing = arcpy.Parameter(
-            displayName="Espacement régulier entre les sections transversales (en m)",
+            displayName="Interval between cross-sections (m)",
             name="spacing",
             datatype="GPDouble",
             parameterType="Required",
             direction="Input")
         param_transects = arcpy.Parameter(
-            displayName="Transects sur la ligne centrale contenant les données d'élévation",
+            displayName="Output: Cross-sections",
             name="transects",
             datatype="DEFeatureClass",
             parameterType="Required",
             direction="Output")
         param_cspoints = arcpy.Parameter(
-            displayName="Points aux sections d'écoulement qui contiendront les données de modélisation",
+            displayName="Output: Points at cross-section",
             name="outpts",
             datatype="DEFeatureClass",
             parameterType="Required",
