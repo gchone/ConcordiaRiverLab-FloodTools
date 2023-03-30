@@ -8,6 +8,7 @@
 # Versions:
 # v1.0 - Sept 2019 - François Larouche-Tremblay - Creation
 # v1.1 - May 2020 - Guénolé Choné - Brought into the FloodTools package.
+# v1.2 - Mars 2023 - Guénolé Choné - English translation
 
 import arcpy
 from ChannelCorrection import *
@@ -15,8 +16,8 @@ from ChannelCorrection import *
 
 class ChannelCorrection(object):
     def __init__(self):
-        self.label = "Correction de la surface de l'eau"
-        self.description = "Localise les obstacles sur la surface de l'eau et les supprime"
+        self.label = "Water surface correction"
+        self.description = "Remove local bumps on water surface"
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -27,31 +28,31 @@ class ChannelCorrection(object):
             parameterType="Required",
             direction="Input")
         param_boundary = arcpy.Parameter(
-            displayName="Transects perpendiculaires à l'écoulement aux extrémités amont et aval des cours d'eau",
+            displayName="Downstream and upstream cross-sections",
             name="boundary",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_riverline = arcpy.Parameter(
-            displayName="Ligne centrale des cours d'eau",
+            displayName="Rivers main channel lines",
             name="riverline",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_riverbed = arcpy.Parameter(
-            displayName="Polygone de la surface des cours d'eau",
+            displayName="River polygons",
             name="riverbed",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_footprints = arcpy.Parameter(
-            displayName="Empreinte des DEMs utilisés",
+            displayName="DEM footprints",
             name="footprints",
             datatype="GPFeatureLayer",
             parameterType="Required",
             direction="Input")
         param_breachedmnt = arcpy.Parameter(
-            displayName="Output: Nom du raster contenant l'élévation corrigée de la surface de l'eau",
+            displayName="Output: new DEM",
             name="breachedmnt",
             datatype="DERasterDataset",
             parameterType="Required",
