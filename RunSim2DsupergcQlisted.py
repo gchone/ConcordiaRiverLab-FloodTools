@@ -23,7 +23,7 @@ import csv
 from RasterIO import *
 
 
-def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_lakes, list_fields_z, voutput, simtime, channelmanning, r_zbed, list_fieldQ_inbci, str_log, messages):
+def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_lakes, list_fields_z, voutput, simtime, cfl, channelmanning, r_zbed, list_fieldQ_inbci, str_log, messages):
 
     str_inbci = str_zonefolder + "\\inbci.shp"
     str_outbci = str_zonefolder + "\\outbci.shp"
@@ -174,7 +174,7 @@ def execute_RunSim_prev(str_zonefolder, str_simfolder, str_lisfloodfolder, str_l
                             if voutput:
                                 filepar.write("hazard\n")
                                 filepar.write("qoutput\n")
-                            filepar.write("cfl\t0.3\n")
+                            filepar.write("cfl\t" + str(cfl) + "\n")
                             filepar.write("max_Froude\t1\n")
                             # filepar.write("debug\n")
                             filepar.close()

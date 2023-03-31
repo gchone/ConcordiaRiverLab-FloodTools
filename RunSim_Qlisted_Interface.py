@@ -55,7 +55,7 @@ class RunSim_LISFLOOD(object):
             parameterType="Required",
             direction="Input")
         param_voutput = arcpy.Parameter(
-            displayName="Ouput des vitesses",
+            displayName="Ouput of flow velocity?",
             name="voutput",
             datatype="GPBoolean",
             parameterType="Required",
@@ -80,9 +80,15 @@ class RunSim_LISFLOOD(object):
             parameterType="Required",
             direction="Input")
         param_simtime = arcpy.Parameter(
-            displayName="Simulation maximum time (s)",
+            displayName="Maximum simulation time (s)",
             name="simtime",
             datatype="GPLong",
+            parameterType="Required",
+            direction="Input")
+        param_cfl = arcpy.Parameter(
+            displayName="Courant–Friedrichs–Lewy condition",
+            name="CFL",
+            datatype="GPDouble",
             parameterType="Required",
             direction="Input")
         param_zbed = arcpy.Parameter(
@@ -100,7 +106,8 @@ class RunSim_LISFLOOD(object):
 
 
         param_channelmanning.value = 0.03
-        param_simtime.value = 200000
+        param_cfl.value = 0.5
+        param_simtime.value = 300000
         param_voutput.value = False
         param_lakes.filter.list = ["Polygon"]
         param_zfields.parameterDependencies = [param_lakes.name]
@@ -108,7 +115,7 @@ class RunSim_LISFLOOD(object):
         param_Qfields.parameterDependencies = [param_inbci.name]
 
 
-        params = [param_zones, param_inbci, param_Qfields, param_simfolder, param_lisflood, param_voutput, param_lakes, param_zfields, param_channelmanning, param_simtime, param_zbed, param_log]
+        params = [param_zones, param_inbci, param_Qfields, param_simfolder, param_lisflood, param_voutput, param_lakes, param_zfields, param_channelmanning, param_simtime, param_cfl, param_zbed, param_log]
 
         return params
 
@@ -141,12 +148,13 @@ class RunSim_LISFLOOD(object):
         list_zfields = parameters[7].valueAsText.split(";")
         channelmanning = float(parameters[8].valueAsText)
         simtime = int(parameters[9].valueAsText)
-        zbed = arcpy.Raster(parameters[10].valueAsText)
-        str_log = parameters[11].valueAsText
+        cfl = float(parameters[10].valueAsText)
+        zbed = arcpy.Raster(parameters[11].valueAsText)
+        str_log = parameters[12].valueAsText
         if len(list_qfields) != len(list_zfields):
             messages.addErrorMessage("Number of downstream boundary condition should match the number of input discharges")
         else:
-            execute_RunSim_prev(str_zones, str_simfolder, str_lisflood, str_lakes, list_zfields, voutput, simtime, channelmanning, zbed, list_qfields, str_log, messages)
+            execute_RunSim_prev(str_zones, str_simfolder, str_lisflood, str_lakes, list_zfields, voutput, simtime, cfl, channelmanning, zbed, list_qfields, str_log, messages)
 
         return
 
