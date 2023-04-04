@@ -23,16 +23,18 @@ class _NumpyArrayHolder(object):
     def get_SavedVariables(self):
         return self._variablesset
 
-    def add_SavedVariable(self, name, dtype, maxlength = None):
+    def add_SavedVariable(self, name, dtype, maxlength = None, fieldname = None):
         # creating a new attribute
         # dtype can be "float", "int" or "str"
         # if "str", a maxlength must be provided
+        if fieldname is None:
+            fieldname = name
         if dtype=="int" or dtype=="float":
             self._variablesset.add(name)
-            self._variablestype[name] = [dtype]
+            self._variablestype[name] = [dtype, fieldname]
         elif dtype=="str" and maxlength is not None:
             self._variablesset.add(name)
-            self._variablestype[name] = [dtype, maxlength]
+            self._variablestype[name] = [dtype, fieldname, maxlength]
         else:
             # if the attribute is not an int, a float or a string, it can't be saved
             raise TypeError
@@ -450,11 +452,11 @@ class Points_collection(_NumpyArrayHolder):
             else:
                 # the data must be an attribute of the DataPoint
                 if self._variablestype[attr][0] == "int":
-                    newdtype.append((field, 'i4'))
+                    newdtype.append((self._variablestype[attr][1], 'i4'))
                 elif self._variablestype[attr][0] == "float":
-                    newdtype.append((field, 'f8'))
+                    newdtype.append((self._variablestype[attr][1], 'f8'))
                 elif self._variablestype[attr][0] == "str":
-                    newdtype.append((field, 'U'+str(self._variablestype[attr][1])))
+                    newdtype.append((self._variablestype[attr][1], 'U'+str(self._variablestype[attr][2])))
             if attr == "id":
                 idfield = field
         if idfield is None:
