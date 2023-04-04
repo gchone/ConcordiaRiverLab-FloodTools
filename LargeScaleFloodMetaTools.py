@@ -247,7 +247,12 @@ def execute_SpatializeQ(route_D8, RID_field_D8, D8pathpoints, relate_table, r_fl
     #     arcpy.Delete_management(output_points)
     # arcpy.da.NumPyArrayToTable(finalarray, output_points)
 
-def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, name_field_Qpoints, drainage_area_field_Qpoints, RID_Qpoints, dist_field_Qpoints, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, beta_coef, output_points, messages):
+def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoints, relate_table, r_flowacc, routes, links, RID_field, Qpoints, id_field_Qpoints, name_field_Qpoints, drainage_area_field_Qpoints, RID_Qpoints, dist_field_Qpoints, Q_field, targetpoints, id_field_target, RID_field_target, Distance_field_target, DEM_field_target, Qcsv_file, beta_coef, output_points, messages):
+    # Two cases :
+    # - either Q_field is a field in the Q points with the discharges to spatialize (DEM_field_target and Qcsv_file must be None).
+    #   This is used to spatialize flood discharges
+    # - Qcsv_file provides multiple discharges, and the right discharge to use is indicated in the target point (DEM_field_target)
+    #   This is used to spatialize LiDAR discharges
 
     class Ref_point:
         def __init__(self, name, discharges, drainage_area, reach, dist):
@@ -257,21 +262,22 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
             self.reach = reach
             self.dist = dist
 
-    # Extract Flow Acc along D8
-    arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
-    D8pts = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
-    # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... I don't know why
-    arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
-    arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
+    # Extract Flow Acc along D8 (already done for inbci for Q flood)
+    if Q_field is None:
+        arcpy.MakeRouteEventLayer_lr(route_D8, RID_field_D8, D8pathpoints, RID_field_D8 + " POINT dist", "D8pts_lyr")
+        D8pts = gc.CreateScratchName("targets", data_type="FeatureClass", workspace="in_memory")
+        # I had a strange error when extracting the flow acc in a layer. Works if I use a Feature Class.... I don't know why
+        arcpy.CopyFeatures_management("D8pts_lyr", D8pts)
+        arcpy.sa.ExtractMultiValuesToPoints(D8pts, [[r_flowacc, "flowacc"]])
 
-    arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
-    D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
-    arcpy.AddJoin_management("D8pts_lyr2", RID_field_D8, relate_table,
-                             D8_RID_field_in_relatetable)
+        arcpy.MakeFeatureLayer_management(D8pts, "D8pts_lyr2")
+        D8_RID_field_in_relatetable = [f.name for f in arcpy.Describe(relate_table).fields][-2]
+        arcpy.AddJoin_management("D8pts_lyr2", RID_field_D8, relate_table,
+                                 D8_RID_field_in_relatetable)
 
-    # Join target points with the closest D8 point with the same RID
-    targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace=r"in_memory")
-    execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
+        # Join target points with the closest D8 point with the same RID
+        targets_withFlowAcc = gc.CreateScratchName("targets", data_type="FeatureClass", workspace=r"in_memory")
+        execute_AssignPointToClosestPointOnRoute("D8pts_lyr2", arcpy.Describe(relate_table).basename + "." + RID_field, ["flowacc"], routes, RID_field, targetpoints, RID_field_target, Distance_field_target, targets_withFlowAcc, stat="CLOSEST")
 
     network = RiverNetwork()
     network.dict_attr_fields['id'] = RID_field
@@ -283,34 +289,48 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
     Qcollection.dict_attr_fields['dist'] = dist_field_Qpoints
     Qcollection.dict_attr_fields['name'] = name_field_Qpoints
     Qcollection.dict_attr_fields['drainage_area'] = drainage_area_field_Qpoints
+    if Q_field is not None:
+        Qcollection.dict_attr_fields['discharge'] = Q_field
     Qcollection.load_table(Qpoints)
 
     targetcollection = Points_collection(network, "target")
     targetcollection.dict_attr_fields['id'] = id_field_target
     targetcollection.dict_attr_fields['reach_id'] = RID_field_target
     targetcollection.dict_attr_fields['dist'] = Distance_field_target
-    targetcollection.dict_attr_fields['DEM'] = DEM_field_target
     targetcollection.dict_attr_fields['flowacc'] = "flowacc"
-    targetcollection.load_table(targets_withFlowAcc)
+    if Q_field is None:
+        targetcollection.dict_attr_fields['DEM'] = DEM_field_target
+        targetcollection.load_table(targets_withFlowAcc)
+    else:
+        targetcollection.load_table(targetpoints)
 
-    # Read the csv file, transpose it
-    Q_dict = {} # dictionnary (key = name of gauging stations) with each entry being a dictionnary of discharges (key = code_dem)
-    with open(Qcsv_file, 'r') as csvfile:
-        csvreader = csv.DictReader(csvfile)
-        for station in csvreader.fieldnames[1:]:
-            Q_dict[station] = {}
-        firstrowname = csvreader.fieldnames[0]
-        for line in csvreader:
+    if Q_field is None:
+        # Read the csv file, transpose it
+        Q_dict = {} # dictionnary (key = name of gauging stations) with each entry being a dictionnary of discharges (key = code_dem)
+        with open(Qcsv_file, 'r') as csvfile:
+            csvreader = csv.DictReader(csvfile)
             for station in csvreader.fieldnames[1:]:
-                Q_dict[station][line[firstrowname]] = float(line[station])
-    # For each gauging station point, assign its dictionnary of discharges
-    for reach in network.browse_reaches_down_to_up():
-        for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
-            try:
-                Qpts.discharges = Q_dict[Qpts.name]
-            except KeyError as e:
-                messages.addErrorMessage("Missing gauging station in the csv file: " + str(Qpts.name))
-
+                Q_dict[station] = {}
+            firstrowname = csvreader.fieldnames[0]
+            discharges_list = []
+            for line in csvreader:
+                discharges_list.append(line[firstrowname])
+                for station in csvreader.fieldnames[1:]:
+                    Q_dict[station][line[firstrowname]] = float(line[station])
+        # For each gauging station point, assign its dictionnary of discharges
+        for reach in network.browse_reaches_down_to_up():
+            for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
+                try:
+                    Qpts.discharges = Q_dict[Qpts.name]
+                except KeyError as e:
+                    messages.addErrorMessage("Missing gauging station in the csv file: " + str(Qpts.name))
+    else:
+        # In the case of only discharges being a field in the gauging station file, format things the same way:
+        for reach in network.browse_reaches_down_to_up():
+            for Qpts in reach.browse_points(Qcollection, orientation="DOWN_TO_UP"):
+                Qpts.discharges = {Q_field: Qpts.discharge}
+            for targetpt in reach.browse_points(targetcollection, orientation="DOWN_TO_UP"):
+                targetpt.DEM = Q_field
 
     # First browse: assign the upstream Q point(s) (in a list)
     for reach in network.browse_reaches_down_to_up():
@@ -416,14 +436,18 @@ def execute_SpatializeQ_from_gauging_stations(route_D8, RID_field_D8, D8pathpoin
                 targetpt.computedQLiDAR = -999
 
 
+
+
         ### Third block : Convert the final upstream point into an Q input ###
         lastuppt = reach.get_last_point(targetcollection)
         reach.upstream_calculated_Q = Ref_point("uppt_reach"+str(reach.id), lastuppt.weightedQ,
                                                 lastuppt.flowacc*r_flowacc.meanCellWidth*r_flowacc.meanCellHeight/1000000.,
                                                 reach, lastuppt.dist)
 
-
-    targetcollection.add_SavedVariable("computedQLiDAR", "float")
+    if Q_field is None:
+        targetcollection.add_SavedVariable("computedQLiDAR", "float")
+    else:
+        targetcollection.add_SavedVariable("computedQLiDAR", "float", None, Q_field)
     targetcollection.save_points(output_points)
 
 
