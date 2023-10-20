@@ -25,6 +25,7 @@ from DefBci_Interface import *
 from RunSim_Qlisted_Interface import *
 from BridgeCorrection_Interface import *
 from D8toD4_Interface import *
+from SpatializeQ_rasters_Interface import *
 
 class Toolbox(object):
     def __init__(self):
@@ -32,5 +33,5 @@ class Toolbox(object):
         self.label = "Tools for linear referencing"
         self.alias = ""
 
-        self.tools = [BridgeCorrection, D8toD4, RunSim_LISFLOOD, DefBciWithLateralWlakes_hdown, CreateZonesWlakes, LASfileTimeExtractor, TopologicalRelateNetworks, BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
+        self.tools = [SpatializeQ_rasters, BridgeCorrection, D8toD4, RunSim_LISFLOOD, DefBciWithLateralWlakes_hdown, CreateZonesWlakes, LASfileTimeExtractor, TopologicalRelateNetworks, BedAssessmentIterations, DownstreamSlope, InterpolatePoints, FlowDirForWS, RelateNetworks, LocatePointsAlongRoutes, LargeurParTransect, BatchAggregate, PlacePointsAlongReaches, AssignPointToClosestPointOnRoute, CreateTreeFromShapefile, ChannelCorrection, TreeFromFlowDir, CreateFromPointsAndSplits, LocateMostDownstreamPoints]
 
