@@ -19,9 +19,10 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
                                  points_onroute_RIDfield+" POINT "+points_onroute_distfield, "onroute_lyr")
 
     list_RIDs = []
-    cursor = arcpy.da.SearchCursor(points, [points_RIDfield])
+    cursor = arcpy.da.SearchCursor("points_lyr", [points_RIDfield])
     for point in cursor:
-        list_RIDs.append(point[0])
+        if (point[0] != None) : list_RIDs.append(point[0])
+        #list_RIDs.append(point[0])
     list_RIDs = set(list_RIDs)
 
     if stat == "MEAN" or stat == "MAX" or stat == "2-WAY CLOSEST":
@@ -59,6 +60,8 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
 
         # rename fields
         wanted_fields_name = onroute_fields_names[1:-1]
+        if wanted_fields_name[0] == "Shape":
+            wanted_fields_name = wanted_fields_name[1:]
         for field in list_fields_to_keep:
             wanted_fields_name.append(field)
         wanted_fields_name.append("NEAR_DIST")
@@ -134,3 +137,5 @@ def execute_AssignPointToClosestPointOnRoute(points, points_RIDfield, list_field
 
         arcpy.da.NumPyArrayToTable(nparray, output_table)
 
+    arcpy.Delete_management("points_lyr")
+    arcpy.Delete_management("onroute_lyr")
