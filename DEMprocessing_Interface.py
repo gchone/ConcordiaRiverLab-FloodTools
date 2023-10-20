@@ -76,8 +76,14 @@ class BatchAggregate(object):
         rasterlist = parameters[0].valueAsText.split(";")
         factor = int(parameters[1].valueAsText)
         tech = parameters[2].valueAsText
-        extent = parameters[3].valueAsText == 'true'
-        nodata = parameters[4].valueAsText == 'true'
+        if (parameters[3].valueAsText == 'true'):
+            extent = "EXPAND"
+        else:
+            extent = "TRUNCATE"
+        if (parameters[4].valueAsText == 'true'):
+            nodata = "DATA"
+        else:
+            nodata = "NODATA"
         output_dir = parameters[5].valueAsText
 
         execute_BatchAggregate(rasterlist, factor, tech, extent, nodata, output_dir, messages)
